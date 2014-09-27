@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <math.h>
+#include <string.h>
 #include "minstdlib.h"
 
 void strreverse(char* begin, char* end)

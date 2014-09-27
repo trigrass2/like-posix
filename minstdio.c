@@ -31,6 +31,7 @@ void phy_putc(char* c)
 #include "minstdio.h"
 #include "minstdlib.h"
 #include "minstring.h"
+#include "strutils.h"
 
 #define PLUS_FLAG 1
 #define MINUS_FLAG 2
