@@ -36,17 +36,20 @@ CXXFLAGS = -g -Wall -Wextra -pthread
 GTEST_LIBS = $(GTEST_DIR)/libgtest_main.a $(GTEST_DIR)/libgtest.a
 #GTEST_LIBS = -lgtest_main -lgtest 
 
-TESTS = test_strutils 
-UNDERTEST = strutils minstdlib minstring
+TESTS = test_all
+UNDERTEST = strutils minstdlib minstring minstdio
 
 SOURCES = $(patsubst %,$(SRC_DIR)/%.c,$(UNDERTEST)) $(patsubst %,$(TEST_DIR)/%.cc,$(TESTS))
 OBJECTS = $(patsubst %,%.o,$(UNDERTEST) $(TESTS))
 
-objs: 
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(SOURCES)
+all :
+	g++ $(CPPFLAGS) $(CXXFLAGS) $(TEST_DIR)/*.cc $(SRC_DIR)/*.c $(GTEST_LIBS) -o test
 	
-all : objs
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(GTEST_LIBS) $(OBJECTS) -o test 
+#objs: 
+#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(SOURCES)
+#	
+#all : objs
+#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(OBJECTS) $(GTEST_LIBS) -o test 
 	
 clean :
 	rm -f test *.o

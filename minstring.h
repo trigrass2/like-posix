@@ -12,15 +12,6 @@
 extern "C" {
 #endif
 
-#include <stdarg.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include "strutils.h"
-
-int toupper(int c);
-int tolower(int c);
-
 #include <string.h>
 
 #ifdef __cplusplus

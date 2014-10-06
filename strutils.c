@@ -14,7 +14,9 @@
  */
 
 #include "strutils.h"
-#include "minstring.h"
+#include <ctype.h>
+
+
 
 /**
  * convert lowercase items in a string to uppercase, in place.
@@ -24,8 +26,7 @@ char* strtoupper(char* s)
 	char* d = s;
 	while(*d)
 	{
-		if((*d <= 'z') && (*d >= 'a'))
-			*d -= 32;
+		*d = toupper((int)*d);
 		d++;
 	}
 	return s;
@@ -39,8 +40,7 @@ char* strtolower(char* s)
 	char* d = s;
 	while(*d)
 	{
-		if((*d <= 'Z') && (*d >= 'A'))
-			*d += 32;
+		*d = tolower((int)*d);
 		d++;
 	}
 	return s;
@@ -66,7 +66,7 @@ char* strtolower(char* s)
  */
 char adtoi(char d)
 {
-	d = tolower(d);
+	d = tolower((int)d);
 	if (d >= '0' && d <= '9')
 		return d - '0';
 	if (d >= 'a' && d <= 'f')

@@ -32,5 +32,5 @@ Building and runnning the tests
 
 ```
 cd minstdlibs/test
-make all test
+make clean all run
 ```

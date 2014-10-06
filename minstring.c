@@ -13,6 +13,10 @@
  * @{
  */
 
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include "strutils.h"
 #include "minstring.h"
 
 size_t strlen(const char* str)
@@ -42,15 +46,12 @@ int strcmp(const char* str1, const char* str2)
 
 int strncmp(const char* str1, const char* str2, size_t num)
 {
-	int res = *str1-*str2;
-
-	while(*str1 && *str2 && !res && num)
+	int res = 0;
+	do
 	{
-		str1++;
-		str2++;
-		num--;
 		res = *str1-*str2;
-	}
+		num--;
+	}while(*str1++ && *str2++ && !res && num);
 
 	return res;
 }
@@ -113,20 +114,6 @@ int memcmp(const void* p1, const void* p2, size_t len)
 		tp2++;
 	}
 	return 0;
-}
-
-int toupper(int c)
-{
-	if(c <= 'z' && c >= 'a')
-		c -= 32;
-	return c;
-}
-
-int tolower(int c)
-{
-	if(c <= 'Z' && c >= 'A')
-		c += 32;
-	return c;
 }
 
 /**
