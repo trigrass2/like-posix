@@ -3,7 +3,7 @@ minstdlibs
 
 tiny implementations of c standard library functions.
 
-The code is targeted for use on small embedded targets where memeory is limited.
+The code is targeted for use on small embedded targets where memory is limited.
 
 Min stdio
 ---------
@@ -13,7 +13,7 @@ must be defined somewhere in your project.
 
 they are typically defined in syscalls.c... just #include <stdio.h> like normal wherever you want to use stdio.
 
-````
+``` c
 // examples of complete implementations targeting FreeRTOS and FatFs by ChaN may be found in syscalls.c in
 // the stm32_freertos project, https://github.com/drmetal/stm32_freertos
 
@@ -55,37 +55,73 @@ extern long int _ftell(int fd)
 	return -1;
 }
 
-````
+```
 
 supported string formatting:
 
- - %%		print % symbol
- - %c		print character
- - %s		print null terminated string
- - %i		print signed int
- - %d		print signed int
- - %u		print unsigned int
- - %x		print unsigned int, in hexadecimal format, lower case
- - %X		print unsigned int, in hexadecimal format, upper case
- - %p		print pointer address, in hexadecimal format, lower case, with '0x' presceeding
- - %f		print floating point value
- - 0, space	padding with space and 0 characters are supported by i, u, d, x, X, p
-			Eg printf("padded integer: %06d", 123);
-				-> padded integer: 000123
-			Eg printf("padded integer: % 6d\n", 123);
-			   printf("padded integer: % 6d", 4567);
-				-> padded integer:    123
-				-> padded integer:   4567
- - #     	a '0x' preceeds hexadecimal formatted numbers when # is inserted. supported by x, X:
-			Eg printf("modified hex: %#x", 1234);
-			   printf("modified hex: %#X", 1234);
-				-> modified hex: 0x4d2
-				-> modified hex: 0x4D2
- - l,h		ignored.
-			Eg printf("ignore lh: %llu %lld %lu %ld %hu %hd", 1234, 1234, 1234, 1234, 1234, 1234);
-				-> ignore lh: 1234 1234 1234 1234 1234 1234
- - +		a + preceeds numeric formatted numbers when + is inserted. supported by i, u, d, f:
 
+
+| % format	| operation |
+| ----------|-----------|
+| %		| double % prints % symbol |
+| c		| print character |
+| s		| print null terminated string |
+| i		| print signed int |
+| d		| print signed int |
+| u		| print unsigned int |
+| x		| print unsigned int, in lower case hexadecimal format |
+| X		| print unsigned int, in upper case hexadecimal format |
+| p		| print pointer address, in lower case hexadecimal format, preceded by '0x' |
+| f		| print floating point value |
+
+|modifier|operation|
+|------------|---------|
+| 0, space	| left padding with space and 0 characters are supported by i, u, d, x, X, p |
+| #     	| a '0x' precedes hexadecimal formatted numbers when # is inserted. supported by x, X |
+| +			| a + preceeds numeric formatted numbers when + is inserted, and the number is > 0. supported by i, u, d, f: |
+| l,h		| ignored. normally specify width of the data type as long or short respectively|
+
+**Examples**
+``` c
+// l, h modifiers ignored....
+printf("ignore lh: %llu %lld %lu %ld %hu %hd", 1234, 1234, 1234, 1234, 1234, 1234);
+prints: 
+    `ignore lh: 1234 1234 1234 1234 1234 1234`
+```
+``` c
+// zero padding
+printf("padded integer: %06d", 123);
+prints: 
+    `padded integer: 000123`
+```
+``` c
+// space padding
+printf("padded integer: % 6d\n", 123); 
+printf("padded integer: % 6d", 4567); 
+printf("padded integer: %6d\n", 123); 
+printf("padded integer: %6d", 4567); 
+prints: 
+    padded integer:    123 
+    padded integer:   4567 
+    padded integer:    123 
+    padded integer:   4567 
+```
+``` c
+// hex with 0x
+printf("modified hex: %#x", 1234); 
+printf("modified hex: %#X", 1234); 
+prints: 
+    `modified hex: 0x4d2`
+    `modified hex: 0x4D2`
+```
+``` c
+// padded hex
+printf("modified hex: %#06x", 1234); 
+printf("modified hex: %#06", 1); 
+prints: 
+    `modified hex: 0x0004d2`
+    `modified hex: 0x000001`
+```
 
 
 Testing
