@@ -80,6 +80,7 @@ supported string formatting:
 | #     	| a '0x' precedes hexadecimal formatted numbers when # is inserted. supported by x, X |
 | +			| a + preceeds numeric formatted numbers when + is inserted, and the number is > 0. supported by i, u, d, f: |
 | l,h		| ignored. normally specify width of the data type as long or short respectively|
+| -         | ignored.
 
 **Examples**
 ``` c
