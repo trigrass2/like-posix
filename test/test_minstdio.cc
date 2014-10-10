@@ -787,6 +787,206 @@ TEST(test_printf, test_printf_percent_X_with_hash_and_space_padding)
 	ASSERT_EQ(ret, expect_length);
 }
 
+////////
+
+TEST(test_printf, test_printf_percent_d_with_empty_padding)
+{
+	const char* expect = "hello        12345";
+	int expect_length = 18;
+	const char* test_fmt_string = "hello %12d";
+	int test_value = 12345;
+	int ret;
+
+	reset_fixture();
+	ret = printf(test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_printf, test_printf_percent_d_with_empty_padding_undersized)
+{
+	const char* expect = "hello 2000000000";
+	int expect_length = 16;
+	const char* test_fmt_string = "hello %8d";
+	int test_value = 2000000000;
+	int ret;
+
+	reset_fixture();
+	ret = printf(test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_printf, test_printf_percent_i_with_empty_padding)
+{
+	const char* expect = "hello        12345";
+	int expect_length = 18;
+	const char* test_fmt_string = "hello %12i";
+	int test_value = 12345;
+	int ret;
+
+	reset_fixture();
+	ret = printf(test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_printf, test_printf_percent_i_with_empty_padding_undersized)
+{
+	const char* expect = "hello 2000000000";
+	int expect_length = 16;
+	const char* test_fmt_string = "hello %8i";
+	int test_value = 2000000000;
+	int ret;
+
+	reset_fixture();
+	ret = printf(test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_printf, test_printf_percent_u_with_empty_padding)
+{
+	const char* expect = "hello   3000000000";
+	int expect_length = 18;
+	const char* test_fmt_string = "hello %12u";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = printf(test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_printf, test_printf_percent_u_with_empty_padding_undersized)
+{
+	const char* expect = "hello 3000000000";
+	int expect_length = 16;
+	const char* test_fmt_string = "hello %8u";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = printf(test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_printf, test_printf_percent_x_with_empty_padding)
+{
+	const char* expect = "hello     b2d05e00";
+	int expect_length = 18;
+	const char* test_fmt_string = "hello %12x";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = printf(test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_printf, test_printf_percent_x_with_empty_padding_undersized)
+{
+	const char* expect = "hello b2d05e00";
+	int expect_length = 14;
+	const char* test_fmt_string = "hello %8x";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = printf(test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+
+TEST(test_printf, test_printf_percent_X_with_empty_padding)
+{
+	const char* expect = "hello     B2D05E00";
+	int expect_length = 18;
+	const char* test_fmt_string = "hello %12X";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = printf(test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_printf, test_printf_percent_X_with_empty_padding_undersized)
+{
+	const char* expect = "hello B2D05E00";
+	int expect_length = 14;
+	const char* test_fmt_string = "hello %8X";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = printf(test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_printf, test_printf_percent_p_with_empty_padding)
+{
+	const char* expect = "hello 0x    3ade68b1";
+	int expect_length = 20;
+	const char* test_fmt_string = "hello %12p";
+	void* test_value = (void*)987654321;
+	int ret;
+
+	reset_fixture();
+	ret = printf(test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_printf, test_printf_percent_p_with_empty_padding_undersized)
+{
+	const char* expect = "hello 0x3ade68b1";
+	int expect_length = 16;
+	const char* test_fmt_string = "hello %8p";
+	void* test_value = (void*)987654321;
+	int ret;
+
+	reset_fixture();
+	ret = printf(test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_printf, test_printf_percent_x_with_hash_and_empty_padding)
+{
+	const char* expect = "hello 0x    b2d05e00";
+	int expect_length = 20;
+	const char* test_fmt_string = "hello %#12x";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = printf(test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_printf, test_printf_percent_X_with_hash_and_empty_padding)
+{
+	const char* expect = "hello 0x    B2D05E00";
+	int expect_length = 20;
+	const char* test_fmt_string = "hello %#12X";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = printf(test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+///////
+
 TEST(test_printf, test_printf_percent_percent)
 {
 	const char* expect = "hello % %\n";
@@ -1707,6 +1907,205 @@ TEST(test_sprintf, test_sprintf_percent_X_with_hash_and_space_padding)
 	ASSERT_EQ(ret, expect_length);
 }
 
+///
+
+TEST(test_sprintf, test_sprintf_percent_d_with_empty_padding)
+{
+	const char* expect = "hello        12345";
+	int expect_length = 18;
+	const char* test_fmt_string = "hello %12d";
+	int test_value = 12345;
+	int ret;
+
+	reset_fixture();
+	ret = sprintf(get_buffer(), test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_sprintf, test_sprintf_percent_d_with_empty_padding_undersized)
+{
+	const char* expect = "hello 2000000000";
+	int expect_length = 16;
+	const char* test_fmt_string = "hello %8d";
+	int test_value = 2000000000;
+	int ret;
+
+	reset_fixture();
+	ret = sprintf(get_buffer(), test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_sprintf, test_sprintf_percent_i_with_empty_padding)
+{
+	const char* expect = "hello        12345";
+	int expect_length = 18;
+	const char* test_fmt_string = "hello %12i";
+	int test_value = 12345;
+	int ret;
+
+	reset_fixture();
+	ret = sprintf(get_buffer(), test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_sprintf, test_sprintf_percent_i_with_empty_padding_undersized)
+{
+	const char* expect = "hello 2000000000";
+	int expect_length = 16;
+	const char* test_fmt_string = "hello %8i";
+	int test_value = 2000000000;
+	int ret;
+
+	reset_fixture();
+	ret = sprintf(get_buffer(), test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_sprintf, test_sprintf_percent_u_with_empty_padding)
+{
+	const char* expect = "hello   3000000000";
+	int expect_length = 18;
+	const char* test_fmt_string = "hello %12u";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = sprintf(get_buffer(), test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_sprintf, test_sprintf_percent_u_with_empty_padding_undersized)
+{
+	const char* expect = "hello 3000000000";
+	int expect_length = 16;
+	const char* test_fmt_string = "hello %8u";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = sprintf(get_buffer(), test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_sprintf, test_sprintf_percent_x_with_empty_padding)
+{
+	const char* expect = "hello     b2d05e00";
+	int expect_length = 18;
+	const char* test_fmt_string = "hello %12x";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = sprintf(get_buffer(), test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_sprintf, test_sprintf_percent_x_with_empty_padding_undersized)
+{
+	const char* expect = "hello b2d05e00";
+	int expect_length = 14;
+	const char* test_fmt_string = "hello %8x";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = sprintf(get_buffer(), test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+
+TEST(test_sprintf, test_sprintf_percent_X_with_empty_padding)
+{
+	const char* expect = "hello     B2D05E00";
+	int expect_length = 18;
+	const char* test_fmt_string = "hello %12X";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = sprintf(get_buffer(), test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_sprintf, test_sprintf_percent_X_with_empty_padding_undersized)
+{
+	const char* expect = "hello B2D05E00";
+	int expect_length = 14;
+	const char* test_fmt_string = "hello %8X";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = sprintf(get_buffer(), test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_sprintf, test_sprintf_percent_p_with_empty_padding)
+{
+	const char* expect = "hello 0x    3ade68b1";
+	int expect_length = 20;
+	const char* test_fmt_string = "hello %12p";
+	void* test_value = (void*)987654321;
+	int ret;
+
+	reset_fixture();
+	ret = sprintf(get_buffer(), test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_sprintf, test_sprintf_percent_p_with_empty_padding_undersized)
+{
+	const char* expect = "hello 0x3ade68b1";
+	int expect_length = 16;
+	const char* test_fmt_string = "hello %8p";
+	void* test_value = (void*)987654321;
+	int ret;
+
+	reset_fixture();
+	ret = sprintf(get_buffer(), test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_sprintf, test_sprintf_percent_x_with_hash_and_empty_padding)
+{
+	const char* expect = "hello 0x    b2d05e00";
+	int expect_length = 20;
+	const char* test_fmt_string = "hello %#12x";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = sprintf(get_buffer(), test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_sprintf, test_sprintf_percent_X_with_hash_and_empty_padding)
+{
+	const char* expect = "hello 0x    B2D05E00";
+	int expect_length = 20;
+	const char* test_fmt_string = "hello %#12X";
+	int test_value = 3000000000;
+	int ret;
+
+	reset_fixture();
+	ret = sprintf(get_buffer(), test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+///
 TEST(test_sprintf, test_sprintf_percent_percent)
 {
 	const char* expect = "hello % %\n";
@@ -2674,6 +3073,220 @@ TEST(test_fprintf, test_fprintf_percent_X_with_hash_and_space_padding)
 	ASSERT_STREQ(expect, get_buffer());
 	ASSERT_EQ(ret, expect_length);
 }
+
+///
+
+TEST(test_fprintf, test_fprintf_percent_d_with_empty_padding)
+{
+	const char* expect = "hello        12345";
+	int expect_length = 18;
+	const char* test_fmt_string = "hello %12d";
+	int test_value = 12345;
+	int ret;
+	FILE* fd = TEST_FILE_DESCRIPTOR;
+
+	reset_fixture();
+	ret = fprintf(fd, test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_fprintf, test_fprintf_percent_d_with_empty_padding_undersized)
+{
+	const char* expect = "hello 2000000000";
+	int expect_length = 16;
+	const char* test_fmt_string = "hello %8d";
+	int test_value = 2000000000;
+	int ret;
+	FILE* fd = TEST_FILE_DESCRIPTOR;
+
+	reset_fixture();
+	ret = fprintf(fd, test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_fprintf, test_fprintf_percent_i_with_empty_padding)
+{
+	const char* expect = "hello        12345";
+	int expect_length = 18;
+	const char* test_fmt_string = "hello %12i";
+	int test_value = 12345;
+	int ret;
+	FILE* fd = TEST_FILE_DESCRIPTOR;
+
+	reset_fixture();
+	ret = fprintf(fd, test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_fprintf, test_fprintf_percent_i_with_empty_padding_undersized)
+{
+	const char* expect = "hello 2000000000";
+	int expect_length = 16;
+	const char* test_fmt_string = "hello %8i";
+	int test_value = 2000000000;
+	int ret;
+	FILE* fd = TEST_FILE_DESCRIPTOR;
+
+	reset_fixture();
+	ret = fprintf(fd, test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_fprintf, test_fprintf_percent_u_with_empty_padding)
+{
+	const char* expect = "hello   3000000000";
+	int expect_length = 18;
+	const char* test_fmt_string = "hello %12u";
+	int test_value = 3000000000;
+	int ret;
+	FILE* fd = TEST_FILE_DESCRIPTOR;
+
+	reset_fixture();
+	ret = fprintf(fd, test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_fprintf, test_fprintf_percent_u_with_empty_padding_undersized)
+{
+	const char* expect = "hello 3000000000";
+	int expect_length = 16;
+	const char* test_fmt_string = "hello %8u";
+	int test_value = 3000000000;
+	int ret;
+	FILE* fd = TEST_FILE_DESCRIPTOR;
+
+	reset_fixture();
+	ret = fprintf(fd, test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_fprintf, test_fprintf_percent_x_with_empty_padding)
+{
+	const char* expect = "hello     b2d05e00";
+	int expect_length = 18;
+	const char* test_fmt_string = "hello %12x";
+	int test_value = 3000000000;
+	int ret;
+	FILE* fd = TEST_FILE_DESCRIPTOR;
+
+	reset_fixture();
+	ret = fprintf(fd, test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_fprintf, test_fprintf_percent_x_with_empty_padding_undersized)
+{
+	const char* expect = "hello b2d05e00";
+	int expect_length = 14;
+	const char* test_fmt_string = "hello %8x";
+	int test_value = 3000000000;
+	int ret;
+	FILE* fd = TEST_FILE_DESCRIPTOR;
+
+	reset_fixture();
+	ret = fprintf(fd, test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+
+TEST(test_fprintf, test_fprintf_percent_X_with_empty_padding)
+{
+	const char* expect = "hello     B2D05E00";
+	int expect_length = 18;
+	const char* test_fmt_string = "hello %12X";
+	int test_value = 3000000000;
+	int ret;
+	FILE* fd = TEST_FILE_DESCRIPTOR;
+
+	reset_fixture();
+	ret = fprintf(fd, test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_fprintf, test_fprintf_percent_X_with_empty_padding_undersized)
+{
+	const char* expect = "hello B2D05E00";
+	int expect_length = 14;
+	const char* test_fmt_string = "hello %8X";
+	int test_value = 3000000000;
+	int ret;
+	FILE* fd = TEST_FILE_DESCRIPTOR;
+
+	reset_fixture();
+	ret = fprintf(fd, test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_fprintf, test_fprintf_percent_p_with_empty_padding)
+{
+	const char* expect = "hello 0x    3ade68b1";
+	int expect_length = 20;
+	const char* test_fmt_string = "hello %12p";
+	void* test_value = (void*)987654321;
+	int ret;
+	FILE* fd = TEST_FILE_DESCRIPTOR;
+
+	reset_fixture();
+	ret = fprintf(fd, test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_fprintf, test_fprintf_percent_p_with_empty_padding_undersized)
+{
+	const char* expect = "hello 0x3ade68b1";
+	int expect_length = 16;
+	const char* test_fmt_string = "hello %8p";
+	void* test_value = (void*)987654321;
+	int ret;
+	FILE* fd = TEST_FILE_DESCRIPTOR;
+
+	reset_fixture();
+	ret = fprintf(fd, test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_fprintf, test_fprintf_percent_x_with_hash_and_empty_padding)
+{
+	const char* expect = "hello 0x    b2d05e00";
+	int expect_length = 20;
+	const char* test_fmt_string = "hello %#12x";
+	int test_value = 3000000000;
+	int ret;
+	FILE* fd = TEST_FILE_DESCRIPTOR;
+
+	reset_fixture();
+	ret = fprintf(fd, test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+
+TEST(test_fprintf, test_fprintf_percent_X_with_hash_and_empty_padding)
+{
+	const char* expect = "hello 0x    B2D05E00";
+	int expect_length = 20;
+	const char* test_fmt_string = "hello %#12X";
+	int test_value = 3000000000;
+	int ret;
+	FILE* fd = TEST_FILE_DESCRIPTOR;
+
+	reset_fixture();
+	ret = fprintf(fd, test_fmt_string, test_value);
+	ASSERT_STREQ(expect, get_buffer());
+	ASSERT_EQ(ret, expect_length);
+}
+///
 
 TEST(test_fprintf, test_fprintf_percent_percent)
 {
