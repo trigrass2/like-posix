@@ -24,7 +24,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the minstdlibs project.
+ * This file is part of the minstdlibs project, <https://github.com/drmetal/minstdlibs>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
