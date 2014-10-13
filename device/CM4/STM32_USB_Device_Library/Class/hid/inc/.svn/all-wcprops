@@ -1,0 +1,11 @@
+K 25
+svn:wc:ra_dav:version-url
+V 133
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_Device_Library/Class/hid/inc
+END
+usbd_hid_core.h
+K 25
+svn:wc:ra_dav:version-url
+V 149
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_Device_Library/Class/hid/inc/usbd_hid_core.h
+END

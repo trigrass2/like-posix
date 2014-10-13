@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 128
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_Device_Library/Core/inc
+END
+usbd_def.h
+K 25
+svn:wc:ra_dav:version-url
+V 139
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_Device_Library/Core/inc/usbd_def.h
+END
+usbd_ioreq.h
+K 25
+svn:wc:ra_dav:version-url
+V 141
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_Device_Library/Core/inc/usbd_ioreq.h
+END
+usbd_conf_template.h
+K 25
+svn:wc:ra_dav:version-url
+V 149
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_Device_Library/Core/inc/usbd_conf_template.h
+END
+usbd_req.h
+K 25
+svn:wc:ra_dav:version-url
+V 139
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_Device_Library/Core/inc/usbd_req.h
+END
+usbd_core.h
+K 25
+svn:wc:ra_dav:version-url
+V 140
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_Device_Library/Core/inc/usbd_core.h
+END
+usbd_usr.h
+K 25
+svn:wc:ra_dav:version-url
+V 139
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_Device_Library/Core/inc/usbd_usr.h
+END

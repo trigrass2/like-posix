@@ -1,0 +1,59 @@
+
+BOARDDIR = $(DEVICE_SUPPORT_DIR)/board
+DEVICEDIR = $(DEVICE_SUPPORT_DIR)/device
+
+## Supported BOARDS
+BOARDS = stm32f4_discovery HY-STM32_100P uemb1 uemb4 rrcv2
+
+## test BOARD againt BOARDS
+ifeq ($(filter $(BOARD),$(BOARDS)), )
+$(error board '$(BOARD)' not supported. supported boards: $(BOARDS))
+endif
+
+## Select DEVICE and FAMILY, by BOARD
+## configure BOARD
+
+ifeq ($(BOARD),  stm32f4_discovery)
+HSE_VALUE = 8000000
+FAMILY = STM32F4
+DEVICE = stm32f407vg
+FLASH_BASE_ADDRESS = 0x08000000
+endif
+
+ifeq ($(BOARD),  uemb1)
+HSE_VALUE = 8000000
+FAMILY = STM32F1
+DEVICE = stm32f103ve
+FLASH_BASE_ADDRESS = 0x08000000
+USE_DRIVER_ENC28J60_PHY = 1
+endif
+
+ifeq ($(BOARD),  uemb4)
+HSE_VALUE = 8000000
+FAMILY = STM32F4
+DEVICE = stm32f407ve
+FLASH_BASE_ADDRESS = 0x08000000
+USE_DRIVER_ENC28J60_PHY = 1
+endif
+
+ifeq ($(BOARD),  rrcv2)
+HSE_VALUE = 25000000
+FAMILY = STM32F4
+DEVICE = stm32f407ve
+FLASH_BASE_ADDRESS = 0x08000000
+USE_DRIVER_MII_RMII_PHY = 1
+endif
+
+ifeq ($(BOARD),  HY-STM32_100P)
+HSE_VALUE = 8000000
+FAMILY = STM32F1
+DEVICE = stm32f103ve
+FLASH_BASE_ADDRESS = 0x08000000
+endif
+
+## configure BOARD SOURCE and CFLAGS
+CFLAGS += -I$(BOARDDIR)
+CFLAGS += -I$(BOARDDIR)/$(BOARD)
+SOURCE += $(BOARDDIR)/$(BOARD)/board_config.c
+
+

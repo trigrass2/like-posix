@@ -1,0 +1,161 @@
+K 25
+svn:wc:ra_dav:version-url
+V 125
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc
+END
+stm32f4xx_crc.h
+K 25
+svn:wc:ra_dav:version-url
+V 141
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_crc.h
+END
+stm32f4xx_rcc.h
+K 25
+svn:wc:ra_dav:version-url
+V 141
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_rcc.h
+END
+stm32f4xx_pwr.h
+K 25
+svn:wc:ra_dav:version-url
+V 141
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_pwr.h
+END
+stm32f4xx_wwdg.h
+K 25
+svn:wc:ra_dav:version-url
+V 142
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_wwdg.h
+END
+stm32f4xx_exti.h
+K 25
+svn:wc:ra_dav:version-url
+V 142
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_exti.h
+END
+stm32f4xx_dcmi.h
+K 25
+svn:wc:ra_dav:version-url
+V 142
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_dcmi.h
+END
+stm32f4xx_i2c.h
+K 25
+svn:wc:ra_dav:version-url
+V 141
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_i2c.h
+END
+stm32f4xx_cryp.h
+K 25
+svn:wc:ra_dav:version-url
+V 142
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_cryp.h
+END
+stm32f4xx_hash.h
+K 25
+svn:wc:ra_dav:version-url
+V 142
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_hash.h
+END
+stm32f4xx_rng.h
+K 25
+svn:wc:ra_dav:version-url
+V 141
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_rng.h
+END
+stm32f4xx_dac.h
+K 25
+svn:wc:ra_dav:version-url
+V 141
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_dac.h
+END
+stm32f4xx_adc.h
+K 25
+svn:wc:ra_dav:version-url
+V 141
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_adc.h
+END
+stm32f4xx_fsmc.h
+K 25
+svn:wc:ra_dav:version-url
+V 142
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_fsmc.h
+END
+stm32f4xx_rtc.h
+K 25
+svn:wc:ra_dav:version-url
+V 141
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_rtc.h
+END
+misc.h
+K 25
+svn:wc:ra_dav:version-url
+V 132
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/misc.h
+END
+stm32f4xx_tim.h
+K 25
+svn:wc:ra_dav:version-url
+V 141
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_tim.h
+END
+stm32f4xx_iwdg.h
+K 25
+svn:wc:ra_dav:version-url
+V 142
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_iwdg.h
+END
+stm32f4xx_spi.h
+K 25
+svn:wc:ra_dav:version-url
+V 141
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_spi.h
+END
+stm32f4xx_flash.h
+K 25
+svn:wc:ra_dav:version-url
+V 143
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_flash.h
+END
+stm32f4xx_gpio.h
+K 25
+svn:wc:ra_dav:version-url
+V 142
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_gpio.h
+END
+stm32f4xx_sdio.h
+K 25
+svn:wc:ra_dav:version-url
+V 142
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_sdio.h
+END
+stm32f4xx_syscfg.h
+K 25
+svn:wc:ra_dav:version-url
+V 144
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_syscfg.h
+END
+stm32f4xx_usart.h
+K 25
+svn:wc:ra_dav:version-url
+V 143
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_usart.h
+END
+stm32f4xx_dma.h
+K 25
+svn:wc:ra_dav:version-url
+V 141
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_dma.h
+END
+stm32f4xx_dbgmcu.h
+K 25
+svn:wc:ra_dav:version-url
+V 144
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_dbgmcu.h
+END
+stm32f4xx_can.h
+K 25
+svn:wc:ra_dav:version-url
+V 141
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_can.h
+END
