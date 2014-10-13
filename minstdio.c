@@ -189,9 +189,9 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 					}
 
 					// determine overall padded length
+					padding = 0;
 					if(padchar)
 					{
-						padding = 0;
 						while(isdigit((int)*fmt))
 						{
 							intbuf[padding] = *fmt;
