@@ -222,7 +222,7 @@ void log_warning(logger_t* logger, char* message, ...)
 	va_list va_args;
 	va_start(va_args, message);
 	write_log_record(logger, LOG_WARNING, message, va_args);
-	va_end(va_args);system
+	va_end(va_args);
 }
 
 /**

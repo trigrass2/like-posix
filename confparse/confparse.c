@@ -106,6 +106,7 @@ bool get_next_config(config_parser_t* cfg)
     uint8_t* start;
     uint8_t* ptr;
     uint8_t* end;
+    uint8_t* comment;
 
     cfg->value = NULL;
     cfg->key = NULL;
@@ -127,6 +128,7 @@ bool get_next_config(config_parser_t* cfg)
 
     while(fgets((char*)cfg->buffer, cfg->buffer_length, cfg->file))
     {
+    	comment = NULL;
     	cfg->comment = NULL;
 		cfg->key = NULL;
 		cfg->value = NULL;
@@ -136,9 +138,9 @@ bool get_next_config(config_parser_t* cfg)
 		while(*start &&  ((*start == ' ')||(*start == '\t')))
 			start++;
 
-		// fint the last non whitespace character
-		end = strlen(cfg->buffer) + cfg->buffer;
-		while((end > start) &&  ((*end == ' ')||(*end == '\t')||(*end == '\n'))||(*end == '\r'))
+		// find the last non whitespace character
+		end = strlen((const char*)cfg->buffer) + cfg->buffer;
+		while((end > start) &&  ((*end == ' ')||(*end == '\t')||(*end == '\n')||(*end == '\r')))
 			end--;
 
 		// if we didnt hit the start, there must be some text content
@@ -147,12 +149,14 @@ bool get_next_config(config_parser_t* cfg)
 		*end = '\0';
 
 
-		cfg->comment = (uint8_t*)strchr((const char*)start, '#');
-		if(cfg->comment)
+		comment = (uint8_t*)strchr((const char*)start, '#');
+		if(comment)
 		{
-			*cfg->comment = '\0';
-			cfg->comment++;
+			*comment = '\0';
+			comment++;
 		}
+
+		cfg->comment = comment;
 
 
 		if((*ptr == '\0' ||*ptr == '#') && cfg->retain_comments_newlines)
