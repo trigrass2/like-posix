@@ -41,7 +41,7 @@
 
 #include <stdio.h>
 #include "diskio.h"
-#include "stm32_device_support.h"
+#include "sdcard.h"
 #include "cutensils.h"
 
 SD_CardInfo SDCardInfo;             // card information
