@@ -113,8 +113,8 @@ DEVICE_SUPPORT_DIR = ../stm32-device-support
 CUTENSILS_DIR = ../cutensils
 ## specify location of the project: https://github.com/drmetal/FatFs
 FATFS_DIR = ../FatFs
-## specify location of the project: https://github.com/drmetal/freertos-posix-wrapper
-FPWR_DIR = ../freertos-posix-wrapper
+## specify location of the project: https://github.com/drmetal/like-posix
+LIKEPOSIX_DIR = ../like-posix
 ## specify location of the project: https://github.com/drmetal/freertos
 FREERTOS_DIR = ../freertos
 ## specify location of the project: https://github.com/drmetal/LwIP

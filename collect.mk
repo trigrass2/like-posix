@@ -36,7 +36,7 @@ include $(BUILD_ENV_DIR)/cutensils.mk
 include $(BUILD_ENV_DIR)/minstdlibs.mk
 include $(BUILD_ENV_DIR)/freertos.mk
 include $(BUILD_ENV_DIR)/lwip.mk
-include $(BUILD_ENV_DIR)/freertos_posix_wrapper.mk
+include $(BUILD_ENV_DIR)/like_posix.mk
 include $(BUILD_ENV_DIR)/fatfs.mk
 
 ## definitions
