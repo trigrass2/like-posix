@@ -38,6 +38,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "usart_it.h"
 #include "usart_config.h"
