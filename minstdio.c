@@ -435,9 +435,9 @@ FILE* fopen(const char * filename, const char * mode)
 	if(m == 'r')
 		flags = update ? O_RDWR : O_RDONLY;
 	else if(m == 'w')
-		flags = O_CREAT | O_TRUNC | update ? O_RDWR : O_WRONLY;
+		flags = O_CREAT | O_TRUNC | (update ? O_RDWR : O_WRONLY);
 	else if(m == 'a')
-		flags = O_CREAT | O_APPEND | update ? O_RDWR : O_WRONLY;
+		flags = O_CREAT | O_APPEND | (update ? O_RDWR : O_WRONLY);
 
 	intptr_t fd = open(filename, flags);
 
