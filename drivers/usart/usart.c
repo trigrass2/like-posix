@@ -401,10 +401,18 @@ void set_baudrate(USART_TypeDef* usart, uint32_t br)
     RCC_ClocksTypeDef RCC_ClocksStatus;
 
 	RCC_GetClocksFreq(&RCC_ClocksStatus);
+
+#if defined(STM32F10X_HD) || defined(STM32F10X_CL)
+	if(usart == USART1)
+		apbclock = RCC_ClocksStatus.PCLK2_Frequency;
+	else
+		apbclock = RCC_ClocksStatus.PCLK1_Frequency;
+#elif FAMILY == STM32F4
 	if(usart == USART1 || usart == USART6)
 		apbclock = RCC_ClocksStatus.PCLK2_Frequency;
 	else
 		apbclock = RCC_ClocksStatus.PCLK1_Frequency;
+#endif
 
 	// Determine the integer part
 	if (usart->CR1 & CR1_OVER8_Set)
