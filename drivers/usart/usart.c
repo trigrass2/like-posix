@@ -312,10 +312,19 @@ int8_t get_usart_devno(USART_TypeDef* usart)
 }
 
 /**
- * initialize the the specified USART, and its GOIO pins.
- * if async is set to rue, enables interrupts.
+ * initialize the the specified USART, interrupts, device file, and its GPIO pins.
+ *
+ * @param	usart is the usart to init (USART1,2,3,6 UART4,5)
+ * @param	install, is the name of the file to install as. if specified,
+ * 			creates a new file in the directory /dev, and installs the USART peripheral as a device.
+ * 			if set to NULL, does not install the device, but simply configures the peripheral.
+ * @param	enable, when set to true enables the peripheral. use this option when using the peripehral
+ * 			raw, not as a device.
+ * 			set to false when using as a device - it will be enabled when the open()
+ * 			function is invoked on its device file.
+ * @retval	returns true if the operation succeeded, false otherwise.
  */
-bool init_usart(USART_TypeDef* usart, char* install_as, bool open)
+bool init_usart(USART_TypeDef* usart, char* install, bool enable)
 {
 	bool ret = true;
 	int8_t usart_devno = get_usart_devno(usart);
@@ -324,12 +333,12 @@ bool init_usart(USART_TypeDef* usart, char* install_as, bool open)
 
 	assert_true(usart_devno != -1);
 
-    if(install_as)
+    if(install)
     {
     	// installed USART can only work with interrupt enabled
     	init_usart_interrupt(usart, USART_INTERRUPT_PRIORITY, true);
 
-    	usart_dev_ioctls[usart_devno] = install_device(install_as,
+    	usart_dev_ioctls[usart_devno] = install_device(install,
 														usart,
 														usart_enable_rx_ioctl,
 														usart_enable_tx_ioctl,
@@ -339,7 +348,7 @@ bool init_usart(USART_TypeDef* usart, char* install_as, bool open)
     	log_syslog(NULL, "install usart%d: %d", usart_devno, ret);
     }
 
-    if(open)
+    if(enable)
     {
     	// installed usarts are opened automatically... this is optional
     	usart_open_ioctl(usart);
