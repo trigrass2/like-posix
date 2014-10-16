@@ -55,8 +55,8 @@ void init_target(void)
 
 	configure_nvic();
 
-#if USE_DRIVER_SERIAL
-	init_serial(CONSOLE_USART, CONSOLE_BAUDRATE);
+#if USE_DRIVER_USART
+	init_usart(CONSOLE_USART, NULL, true);
 	set_console_usart(CONSOLE_USART);
 #endif
 #if USE_DRIVER_LEDS
