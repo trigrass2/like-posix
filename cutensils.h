@@ -33,9 +33,8 @@
 #ifndef CUTENSILS_H_
 #define CUTENSILS_H_
 
-#if USE_LOGGER
+// logger is always safe to include
 #include "logger/logger.h"
-#endif
 
 #if USE_CONFPARSE
 #include "confparse/confparse.h"
