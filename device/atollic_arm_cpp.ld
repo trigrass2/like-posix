@@ -3,8 +3,7 @@
 **
 **  File        : stm32_flash.ld
 **
-**  Abstract    : Linker script for STM32F207IG Device with
-**                1024KByte FLASH, 112KByte RAM
+**  Abstract    : Linker script for stm32 devices.
 **
 **                Set heap size, stack size and stack location according
 **                to application requirements.
@@ -15,7 +14,7 @@
 **
 **  Environment : Atollic TrueSTUDIO(R)
 **
-**  Distribution: The file is distributed “as is,” without any warranty
+**  Distribution: The file is distributed ï¿½as is,ï¿½ without any warranty
 **                of any kind.
 **
 **  (c)Copyright Atollic AB.
@@ -32,6 +31,9 @@
 **  scripts, binutils-documentations, GNU Tools for ARM Embedded Processors
 **  readme-file and examples for other targets.
 **  No extra copyright on modifications.
+**
+**  Minor modification by Mike Stuart, added ___SVECTOR_OFFSET to make vector
+**	table relocation easier.
 **
 *****************************************************************************
 */
@@ -57,6 +59,7 @@ SECTIONS
     CREATE_OBJECT_SYMBOLS
     . = ALIGN(4);
     ___SVECTOR = .;
+    ___SVECTOR_OFFSET = ___SVECTOR - 0x08000000;
     KEEP(*(.isr_vector)) /* Startup code */
     ASSERT (. != ___SVECTOR, "No isr_vector input-section!");
     . = ALIGN(4);

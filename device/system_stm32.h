@@ -29,8 +29,6 @@
 
 
 extern uint32_t SystemCoreClock;/*!< System Clock Frequency (Core Clock) */
-#define VECT_TAB_OFFSET  0x00 /*!< Vector Table base offset field. 
-                                   This value must be a multiple of 0x200. */
 
 extern void SystemInit(void);
 extern void SystemCoreClockUpdate(void);

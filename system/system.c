@@ -45,25 +45,17 @@
 #include "system.h"
 
 volatile int32_t ITM_RxBuffer;
+extern uint32_t ___SVECTOR_OFFSET; // defined in linker script, must be multiple of 0x200?
 
 /**
- * @TODO use this to offset the application for use with bootloader
  * linker script defines memory base and vector table offset values
  * Set the Vector Table base location at:
- * FLASH_BASE+_isr_vectorsflash_offs
- * or:SRAM_BASE+_isr_vectorsram_offs
+ * FLASH_BASE+___SVECTOR_OFFSET
  * set 16 levels of preemption priority, 0 levels of subpriority
  */
-// extern uint32_t _isr_vectorsflash_offs;
-// void configure_nvic()
-// {
-// 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
-// 	NVIC_SetVectorTable(NVIC_VectTab_FLASH, (uint32_t)&_isr_vectorsflash_offs);
-// }
 void configure_nvic()
 {
-	/* Set the Vector Table base address at 0x08000000 */
-	NVIC_SetVectorTable(NVIC_VectTab_FLASH, VECT_TAB_OFFSET);
+	NVIC_SetVectorTable(NVIC_VectTab_FLASH, (uint32_t)&___SVECTOR_OFFSET);
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
 }
 

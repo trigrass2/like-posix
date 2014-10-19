@@ -3,8 +3,8 @@
 **
 **  File        : stm32_flash.ld
 **
-**  Abstract    : Linker script for STM32F103VE Device with
-**                512KByte FLASH, 64KByte RAM
+**  Abstract    : Linker script for STM32F107RC Device with
+**                256KByte FLASH, 64KByte RAM
 **
 **                Set heap size, stack size and stack location according
 **                to application requirements.
@@ -36,12 +36,10 @@
 *****************************************************************************
 */
 
-
-
 /* Specify the memory areas */
 MEMORY
 {
-  FLASH (rx)      : ORIGIN = 0x08000000+${OFFSET}, LENGTH = 512K-${OFFSET}
+  FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 256K
   CCRAM (xrw)     : ORIGIN = 0x10000000, LENGTH = 0K
   RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 64K
   MEMORY_B1 (rx)  : ORIGIN = 0x60000000, LENGTH = 0K

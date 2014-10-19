@@ -3,8 +3,8 @@
 **
 **  File        : stm32_flash.ld
 **
-**  Abstract    : Linker script for STM32F207IG Device with
-**                1024KByte FLASH, 112KByte RAM
+**  Abstract    : Linker script for STM32F407VE Device with
+**                512KByte FLASH, 128KByte RAM, 64KByte core coupled RAM
 **
 **                Set heap size, stack size and stack location according
 **                to application requirements.
@@ -55,5 +55,4 @@ _estack = ORIGIN(CCRAM) + LENGTH(CCRAM);
 /* STM32F4 use all of core coupled RAM */
 _sstack = ORIGIN(CCRAM);
 
-/* hack, for reference from the project */
-INCLUDE ../stm32-device-support/device/stm32.ld
+INCLUDE stm32.ld

@@ -1,0 +1,22 @@
+/* Specify the memory areas */
+MEMORY
+{
+  FLASH (rx)      : ORIGIN = !FLASH_BASE_ADDRESS!+!APP_ADDRESS_OFFSET!, LENGTH = !FLASH_LENGTH!-!APP_ADDRESS_OFFSET!
+  CCRAM (xrw)     : ORIGIN = !CCRAM_BASE_ADDRESS!, LENGTH = !CCRAM_LENGTH!
+  RAM (xrw)       : ORIGIN = !RAM_BASE_ADDRESS!, LENGTH = !RAM_LENGTH!
+  MEMORY_B1 (rx)  : ORIGIN = 0x60000000, LENGTH = 0K
+}
+
+/* Generate a link error if heap and stack don't fit into RAM */
+_Min_Heap_Size = !MIN_HEAP_SIZE!; /* required amount of heap  */
+/* STM32F4 only - All of CCRAM is used for stack, set to 0 */
+_Min_Stack_Size = !MIN_STACK_SIZE!; /* required amount of stack */
+
+/* STM32F4 use all of core coupled RAM */
+/* STM32F1 use end of SYSTEM RAM */
+_estack = ORIGIN(!STACK_RAM!) + LENGTH(!STACK_RAM!);
+
+/* STM32F4 only, start of stack - use all of core coupled RAM */
+_sstack = ORIGIN(!STACK_RAM!);
+
+INCLUDE !BASE_LINKER_SCRIPT!
