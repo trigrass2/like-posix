@@ -26,11 +26,11 @@ to use, clone the following projects into a new directory:
 Demos
 -----
 
-** Led Blinker**
+**Led Blinker**
 
 https://github.com/drmetal/led-blink-demo.git
 
-** File IO**
+**File IO**
 
 https://github.com/drmetal/file-io-demo.git
 
