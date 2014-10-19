@@ -1,4 +1,10 @@
 
+## DEVICE_SUPPORT_DIR
+# the root directory of this project (where stm32_device_support.mk is) 
+# must be defined in the variable DEVICE_SUPPORT_DIR, relative to the 
+# directory where thw project make file is.
+
+
 CFLAGS += -I$(DEVICE_SUPPORT_DIR)
 include $(DEVICE_SUPPORT_DIR)/board/board.mk
 include $(DEVICE_SUPPORT_DIR)/device/device.mk

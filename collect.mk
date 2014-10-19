@@ -16,8 +16,16 @@
 #******************************************************************************
 
 
+## project name
+ifeq ($(PROJECT_NAME), )
+PROJECT_NAME = main
+endif
+
 ## Output Directory.
+ifeq ($(OUTDIR), )
 OUTDIR = bin
+endif
+
 OUTPUT_PREFIX = $(OUTDIR)/$(PROJECT_NAME)
 
 ## Toolchain definition.
@@ -38,6 +46,7 @@ include $(BUILD_ENV_DIR)/freertos.mk
 include $(BUILD_ENV_DIR)/lwip.mk
 include $(BUILD_ENV_DIR)/like_posix.mk
 include $(BUILD_ENV_DIR)/fatfs.mk
+include $(BUILD_ENV_DIR)/programming.mk
 
 ## definitions
 CFLAGS += -D FAMILY=$(FAMILY)
@@ -52,7 +61,6 @@ ifneq ($(DEBUG), )
 CFLAGS += -g$(DEBUG)
 endif
 CFLAGS += -O$(OPT)
-CFLAGS += -T$(LDSCRIPT)
 CFLAGS += -std=gnu99
 CFLAGS += -I ./
 CFLAGS += -ffunction-sections
@@ -91,7 +99,7 @@ ALLSRCBASE = $(notdir $(basename $(SOURCE)))
 # List of all objects files.
 OBJS = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(ALLSRCBASE)))
 
-all: begin gccversion $(OUTPUT_PREFIX).bin log size end
+all: begin gccversion buildlinkerscript $(OUTPUT_PREFIX).bin log size end
 
 # binary file
 $(OUTPUT_PREFIX).bin : $(OUTPUT_PREFIX).elf Makefile
@@ -141,36 +149,7 @@ gccversion :
 
 $(shell mkdir $(OUTDIR) 2>/dev/null)
 
-program: all
-	stm32loader.py -p /dev/ttyUSB0 -b 230400 -e -w -v -i -f $(OUTPUT_PREFIX).bin
-	# stm32loader.py -b 115200 -ew -p /dev/ttyUSB0 $(OUTPUT_PREFIX).bin
-
-jtag: all
-	echo "reset halt" | nc localhost 4444
-	sleep 1
-	echo "stm32f1x mass_erase 0" | nc localhost 4444
-	sleep 1
-	echo "flash write_bank 0 Debug/stm32_freertos_example.bin 0" | nc localhost 4444
-	sleep 2
-	echo "reset halt" | nc localhost 4444
-
-oldjtag: all
-	echo "reset halt" | nc localhost 4444
-	echo "stm32f1x mass_erase 0" | nc localhost 4444
-	sleep 1
-	echo "flash write_bank 0 $(OUTPUT_PREFIX).bin 0" | nc localhost 4444
-	sleep 2
-	echo "reset halt" | nc localhost 4444
-
-run: jtag
-	echo "reset run" | nc localhost 4444
-
 ELFSIZE = $(SIZE) -B $(OUTPUT_PREFIX).elf
 size:
 	@if [ -f  $(OUTPUT_PREFIX).elf ]; then echo; echo "Size:"; $(ELFSIZE); echo; fi
 
-dfu:
-	python $(FRAMEWORK_DIR)/tools/dfu.py -b $(FLASH_BASE_ADDRESS):$(OUTPUT_PREFIX).bin $(OUTPUT_PREFIX).dfu
-
-progdfu:
-	dfu-util -d 0483:df11 -c 1 -i 0 -a 0 -R -D $(OUTPUT_PREFIX).dfu

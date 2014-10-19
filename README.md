@@ -30,6 +30,10 @@ Demos
 
 https://github.com/drmetal/led-blink-demo.git
 
+** File IO**
+
+https://github.com/drmetal/file-io-demo.git
+
 
 Options in project Makefiles
 ----------------------------
@@ -121,6 +125,10 @@ FREERTOS_DIR = ../freertos
 LWIP_DIR = ../LwIP
 ## specify location of the project: https://github.com/drmetal/minstdlibs
 MINSTDLIBSDIR = ../minstdlibs
+
+## relocate application
+# set appropriately if there is a bootloader in the low flash pages
+APP_ADDRESS_OFFSET = 0x0000
 
 ## be sure to include the other makefiles
 include $(BUILD_ENV_DIR)/collect.mk
