@@ -40,6 +40,7 @@
 #include "stm32_eth.h"
 
 #include "ethernetif.h"
+#include "tcp_impl.h"
 #include "dhcp.h"
 #include "mem.h"
 #include "memp.h"
