@@ -6,11 +6,16 @@ $(error USE_DRIVER_LWIP_NET is not set. set to one of: $(USE_DRIVER_LWIP_NET_VAL
 endif
 
 CFLAGS += -DUSE_DRIVER_LWIP_NET=$(USE_DRIVER_LWIP_NET)
+CFLAGS += -I$(LWIP_DIR)/src/include
+CFLAGS += -I$(LWIP_DIR)/src/include/ipv4
+CFLAGS += -I$(LWIP_DIR)/src/include/lwip
+CFLAGS += -I$(LWIP_DIR)/src/include/netif
+CFLAGS += -I$(LWIP_DIR)/src/include/posix
+CFLAGS += -I$(LWIP_DIR)/src/include/posix/sys
 
 ifeq ($(USE_DRIVER_LWIP_NET), 1)
 SOURCE += $(LWIP_DIR)/src/netif/etharp.c
-SOURCE += $(LWIP_DIR)/src/netif/loopif.c
-SOURCE += $(LWIP_DIR)/src/netif/slipif.c
+SOURCE += $(LWIP_DIR)/src/core/def.c
 SOURCE += $(LWIP_DIR)/src/core/dhcp.c
 SOURCE += $(LWIP_DIR)/src/core/dns.c
 SOURCE += $(LWIP_DIR)/src/core/init.c
@@ -24,6 +29,7 @@ SOURCE += $(LWIP_DIR)/src/core/sys.c
 SOURCE += $(LWIP_DIR)/src/core/tcp_in.c
 SOURCE += $(LWIP_DIR)/src/core/tcp_out.c
 SOURCE += $(LWIP_DIR)/src/core/tcp.c
+SOURCE += $(LWIP_DIR)/src/core/timers.c
 SOURCE += $(LWIP_DIR)/src/core/udp.c
 SOURCE += $(LWIP_DIR)/src/core/ipv4/autoip.c
 SOURCE += $(LWIP_DIR)/src/core/ipv4/icmp.c
@@ -42,10 +48,4 @@ SOURCE += $(LWIP_DIR)/src/api/netifapi.c
 SOURCE += $(LWIP_DIR)/src/api/sockets.c
 SOURCE += $(LWIP_DIR)/src/api/tcpip.c
 
-SOURCE += $(LWIP_DIR)/src/ethernetif.c
-
-CFLAGS += -I$(LWIP_DIR)/inc/lwip
-CFLAGS += -I$(LWIP_DIR)/inc/lwip/arch
-CFLAGS += -I$(LWIP_DIR)/inc/netif
-CFLAGS += -I$(LWIP_DIR)/inc
 endif

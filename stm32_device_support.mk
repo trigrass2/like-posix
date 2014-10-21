@@ -66,8 +66,13 @@ endif
 
 CFLAGS += -DUSE_DRIVER_LWIP_NET=$(USE_DRIVER_LWIP_NET)
 ifeq ($(USE_DRIVER_LWIP_NET), 1)
-SOURCE += $(DRIVERSDIR)/net_lwip/net.c
 CFLAGS += -I$(DRIVERSDIR)/net_lwip
+CFLAGS += -I$(DRIVERSDIR)/net_lwip/netif
+
+SOURCE += $(DRIVERSDIR)/net_lwip/net.c
+SOURCE += $(DRIVERSDIR)/net_lwip/netif/ethernetif.c
+SOURCE += $(DRIVERSDIR)/net_lwip/arch/sys_arch.c
+
 endif
 
 ## Ethernet PHY, ENC28J60
