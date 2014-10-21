@@ -49,17 +49,15 @@
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "../lwip/opt.h"
+#include "lwip/opt.h"
 
 #if PPP_SUPPORT
 
-#include "../../../../../net_lwip/STM32F4x7_ETH_Driver/src/netif/ppp/ppp.h"
-#include "../../../../../net_lwip/STM32F4x7_ETH_Driver/src/netif/ppp/randm.h"
-#include "../../../../../net_lwip/STM32F4x7_ETH_Driver/src/netif/ppp/magic.h"
+#include "ppp_impl.h"
+#include "randm.h"
+#include "magic.h"
 
-/***********************************/
-/*** PUBLIC FUNCTION DEFINITIONS ***/
-/***********************************/
+
 /*
  * magicInit - Initialize the magic number generator.
  *

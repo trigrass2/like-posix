@@ -31,15 +31,15 @@
 *   Extracted from avos.
 *****************************************************************************/
 
-#include "../lwip/opt.h"
+#include "lwip/opt.h"
 
 #if PPP_SUPPORT /* don't build if not configured for use in lwipopts.h */
 
-#include "../../../../../net_lwip/STM32F4x7_ETH_Driver/src/netif/ppp/md5.h"
-#include "../../../../../net_lwip/STM32F4x7_ETH_Driver/src/netif/ppp/randm.h"
+#include "md5.h"
+#include "randm.h"
 
-#include "../../../../../net_lwip/STM32F4x7_ETH_Driver/src/netif/ppp/ppp.h"
-#include "../../../../../net_lwip/STM32F4x7_ETH_Driver/src/netif/ppp/pppdebug.h"
+#include "ppp_impl.h"
+#include "pppdebug.h"
 
 #include <string.h>
 
@@ -85,7 +85,7 @@ avChurnRand(char *randData, u32_t randLen)
 {
   MD5_CTX md5;
 
-  /* ppp_trace(LOG_INFO, "churnRand: %u@%P\n", randLen, randData); */
+  /* LWIP_DEBUGF(LOG_INFO, ("churnRand: %u@%P\n", randLen, randData)); */
   MD5Init(&md5);
   MD5Update(&md5, (u_char *)randPool, sizeof(randPool));
   if (randData) {
@@ -100,7 +100,7 @@ avChurnRand(char *randData, u32_t randLen)
     MD5Update(&md5, (u_char *)&sysData, sizeof(sysData));
   }
   MD5Final((u_char *)randPool, &md5);
-/*  ppp_trace(LOG_INFO, "churnRand: -> 0\n"); */
+/*  LWIP_DEBUGF(LOG_INFO, ("churnRand: -> 0\n")); */
 }
 
 /*

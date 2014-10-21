@@ -31,16 +31,16 @@
  ***********************************************************************
  */
 
-#include "../lwip/opt.h"
+#include "lwip/opt.h"
 
 #if PPP_SUPPORT /* don't build if not configured for use in lwipopts.h */
 
 #if CHAP_SUPPORT || MD5_SUPPORT
 
-#include "../../../../../net_lwip/STM32F4x7_ETH_Driver/src/netif/ppp/ppp.h"
-#include "../../../../../net_lwip/STM32F4x7_ETH_Driver/src/netif/ppp/pppdebug.h"
+#include "ppp_impl.h"
+#include "pppdebug.h"
 
-#include "../../../../../net_lwip/STM32F4x7_ETH_Driver/src/netif/ppp/md5.h"
+#include "md5.h"
 
 #include <string.h>
 
@@ -138,8 +138,8 @@ MD5Update(MD5_CTX *mdContext, unsigned char *inBuf, unsigned int inLen)
   unsigned int i, ii;
 
 #if 0
-  ppp_trace(LOG_INFO, "MD5Update: %u:%.*H\n", inLen, MIN(inLen, 20) * 2, inBuf);
-  ppp_trace(LOG_INFO, "MD5Update: %u:%s\n", inLen, inBuf);
+  PPPDEBUG(LOG_INFO, ("MD5Update: %u:%.*H\n", inLen, LWIP_MIN(inLen, 20) * 2, inBuf));
+  PPPDEBUG(LOG_INFO, ("MD5Update: %u:%s\n", inLen, inBuf));
 #endif
   
   /* compute number of bytes mod 64 */
