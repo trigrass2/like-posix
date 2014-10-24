@@ -103,13 +103,16 @@ void close_config_file(config_parser_t* cfg)
 bool get_next_config(config_parser_t* cfg)
 {
 	long int fptr, size;
-    uint8_t* start;
+    uint8_t* keystart;
+    uint8_t* keyend;
+    uint8_t* valstart;
+    uint8_t* valend;
+    uint8_t* comstart;
     uint8_t* ptr;
-    uint8_t* end;
-    uint8_t* comment;
 
     cfg->value = NULL;
     cfg->key = NULL;
+	cfg->comment = NULL;
 
     if(!cfg->buffer || !cfg->buffer_length)
         return false;
@@ -128,91 +131,87 @@ bool get_next_config(config_parser_t* cfg)
 
     while(fgets((char*)cfg->buffer, cfg->buffer_length, cfg->file))
     {
-    	comment = NULL;
+    	comstart = NULL;
     	cfg->comment = NULL;
 		cfg->key = NULL;
 		cfg->value = NULL;
 
-    	// trim leading spaces
-		start = cfg->buffer;
-		while(*start &&  ((*start == ' ')||(*start == '\t')))
-			start++;
+		ptr = cfg->buffer;
 
-		// find the last non whitespace character
-		end = strlen((const char*)cfg->buffer) + cfg->buffer;
-		while((end > start) &&  ((*end == ' ')||(*end == '\t')||(*end == '\n')||(*end == '\r')))
-			end--;
+		// loop while whitespace
+		while(*ptr &&  ((*ptr == ' ')||(*ptr == '\t')))
+			ptr++;
 
-		// if we didnt hit the start, there must be some text content
-		if(end > start)
-			end++;
-		*end = '\0';
-
-
-		comment = (uint8_t*)strchr((const char*)start, '#');
-		if(comment)
+		// check for end of line, or start of comment
+		if((*ptr == '\r')||(*ptr == '\n')||(*ptr == '#'))
 		{
-			*comment = '\0';
-			comment++;
-		}
-
-		cfg->comment = comment;
-
-
-		if((*ptr == '\0' ||*ptr == '#') && cfg->retain_comments_newlines)
-		{
-			// the line is blank or only contains a comment - just pass on the whole line
-			cfg->comment = cfg->buffer;
-			return true;
-		}
-		else if(*ptr != '\0' && *ptr != '#')
-		{
-			// we have a key, minus whitespace
-			cfg->key = ptr;
-
-			// null terminate line at the first trailing '#' character, if there is one
-			ptr = (uint8_t*)strchr((const char*)cfg->key, '#');
-			if(ptr)
-			{
-				cfg->comment = ptr + 1;
-				*ptr = '\0';
-			}
-
-			// trim leading spaces.
-			ptr = cfg->buffer;
-			while(*ptr && *ptr == ' ')
-			{
-				ptr++;
-			}
-
-
-			// find the space - there must be one
-			ptr = (uint8_t*)strchr((const char*)cfg->buffer, ' ');
-			if(ptr)
-			{
-				// null terminate at the space, separates key from value
-				*ptr = '\0';
-				ptr++;
-				// the value of the entry starts at the next non space character
-				while(*ptr == ' ')
-					ptr++;
-				cfg->value = ptr;
-				// count forward to the null terminator
-				while(*ptr)
-					ptr++;
-				// count back to the last non space, newline or carriage return character
-				ptr--;
-				while(((*ptr == ' ')||(*ptr == '\n')||(*ptr == '\r')) && ptr >= cfg->buffer)
-					ptr--;
-				// if we didnt hit the start of the buffer, there must be some content
-				if(ptr >= cfg->buffer)
-					*(ptr+1) = '\0';
-				else
-					*(ptr) = '\0';
-				cfg->key = cfg->buffer;
+			// line is a comment or blank
+			if(cfg->retain_comments_newlines)
 				return true;
-			}
-    	}
+			else
+				continue;
+		}
+
+		// store key
+		keystart = ptr;
+
+		// loop while not whitespace, or end of line is reached
+		while(*ptr && (*ptr != ' ') && (*ptr != '\t') && (*ptr != '\r') && (*ptr != '\n') && (*ptr != '#'))
+			ptr++;
+
+		// check for end of line only
+		if((*ptr == '\r')||(*ptr == '\n')||(*ptr == '#'))
+		{
+			// we only got the key - the line is corrupt
+			if(cfg->retain_comments_newlines)
+				return true;
+			else
+				continue;
+		}
+
+		// terminate the key
+		keyend = ptr;
+
+		// loop while whitespace
+		while(*ptr &&  ((*ptr == ' ')||(*ptr == '\t')))
+			ptr++;
+
+		// check for end of line or comment
+		if((*ptr == '\r')||(*ptr == '\n')||(*ptr == '#'))
+		{
+			// we only got the key - the line is corrupt
+			if(cfg->retain_comments_newlines)
+				return true;
+			else
+				continue;
+		}
+
+		// store value
+		valstart = ptr;
+
+		// loop while not whitespace, or end of line is reached
+		while(*ptr && (*ptr != ' ') && (*ptr != '\t') && (*ptr != '\r') && (*ptr != '\n') && (*ptr != '#'))
+			ptr++;
+
+		// terminate the value
+		valend = ptr;
+
+		// loop while whitespace
+		while(*ptr &&  ((*ptr == ' ')||(*ptr == '\t')))
+			ptr++;
+
+		// check for comment
+		if(*ptr == '#')
+		{
+			comstart = ptr+1;
+		}
+
+		cfg->key = keystart;
+		*keyend = '\0';
+		cfg->value = valstart;
+		*valend = '\0';
+		cfg->comment = comstart;
+		return true;
     }
 	return false;
 }
@@ -399,6 +398,7 @@ bool edit_config_entry(uint8_t* buffer, uint16_t buffer_length, const uint8_t* f
     cfg.buffer_length = buffer_length;
     cfg.key = NULL;
     cfg.value = NULL;
+    cfg.retain_comments_newlines = true;
 
     // use buffer temporarily to create backup config file name
     snprintf((char*)buffer, buffer_length-1, "%s.bak", filepath);
@@ -419,18 +419,25 @@ bool edit_config_entry(uint8_t* buffer, uint16_t buffer_length, const uint8_t* f
             	// iterate over entries in backup
 				while(get_next_config(&cfg))
 				{
-					if(config_key_match(&cfg, key))
+					if(cfg.comment && (!cfg.key || !cfg.value))
+					{
+						// the line contained only a comment - no key/value
+						fprintf(newconf, "%s", cfg.buffer);
+					}
+					else if(config_key_match(&cfg, key))
 					{
 						// if we matched the desired key, add it with the new value
-						fprintf(newconf, "%s %s\n", (const char*)key, (const char*)value);
+						if(cfg.comment)
+							fprintf(newconf, "%s %s #%s\n", (const char*)key, (const char*)value, cfg.comment);
+						else
+							fprintf(newconf, "%s %s\n", (const char*)key, (const char*)value);
 						set = true;
 					}
 					else
 					{
 						// otherwise add the whole line from the backup back in
-						// this preserves comments
-						fprintf(newconf, "%s %s\n", (const char*)get_config_key(&cfg), (const char*)get_config_value(&cfg));
-//						fprintf(newconf, "%s\n", cfg.buffer);
+//						fprintf(newconf, "%s %s\n", (const char*)get_config_key(&cfg), (const char*)get_config_value(&cfg));
+						fprintf(newconf, "%s\n", cfg.buffer);
 					}
 				}
 				// if we get here and the key wasnt modified, add it
