@@ -42,6 +42,7 @@
 #include <string.h>
 #include "net.h"
 #include "mem.h"
+#include "lwip/debug.h"
 #include "etharp.h"
 #include "stm32_eth.h"
 
@@ -220,11 +221,6 @@ err_t ethernetif_input(struct netif *netif)
 err_t ethernetif_init(struct netif *netif)
 {
   LWIP_ASSERT("netif != NULL", (netif != NULL));
-
-#if LWIP_NETIF_HOSTNAME
-  /* Initialize interface hostname */
-  netif->hostname = "lwip";
-#endif /* LWIP_NETIF_HOSTNAME */
 
   netif->name[0] = IFNAME0;
   netif->name[1] = IFNAME1;
