@@ -70,6 +70,7 @@ CFLAGS += -I$(DRIVERSDIR)/net_lwip
 CFLAGS += -I$(DRIVERSDIR)/net_lwip/netif
 
 SOURCE += $(DRIVERSDIR)/net_lwip/net.c
+SOURCE += $(DRIVERSDIR)/net_lwip/netconf.c
 SOURCE += $(DRIVERSDIR)/net_lwip/netif/ethernetif.c
 SOURCE += $(DRIVERSDIR)/net_lwip/arch/sys_arch.c
 
