@@ -9,12 +9,20 @@
  */
 
 #include <stdio.h>
+#if USE_DRIVER_LEDS
+#include "leds.h"
+#endif
 #include "board_config.h"
 
 #ifdef USE_FULL_ASSERT
 void assert_failed(uint8_t* file, uint32_t line)
 {
-    printf("Assert Failed: \nfile: %s\nline: %u\n", file, (unsigned int)line);
+	(void)file;
+	(void)line;
+#if USE_DRIVER_LEDS && defined(ERROR_LED)
+	set_led(ERROR_LED);
+#endif
+    printf("Assert Failed in %s, line %d\n", file, line);
     for( ;; );
 }
 #endif
