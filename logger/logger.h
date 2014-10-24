@@ -46,10 +46,27 @@
  extern "C" {
 #endif
 
+#ifndef USE_LOGGER
+ /**
+  * enable logging
+  */
+#define USE_LOGGER	0
+#endif
+
+#ifndef MAX_LOG_HANDLERS
  /**
   * the number of log handlers that are allowed at one time
   */
 #define MAX_LOG_HANDLERS	5
+#endif
+
+#ifndef USE_LOGGER_FREERTOS_MUTEX
+ /**
+  * puts a mutex around writing a log line, when set to 1
+  */
+#define USE_LOGGER_FREERTOS_MUTEX	0
+#endif
+
 
 typedef enum {
 	LOG_SYSLOG=0,
@@ -79,6 +96,23 @@ void log_debug(logger_t* logger, char* message, ...);
 void log_info(logger_t* logger, char* message, ...);
 void log_warning(logger_t* logger, char* message, ...);
 void log_error(logger_t* logger, char* message, ...);
+
+#if USE_LOGGER_FREERTOS_MUTEX
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
+#define	LOGGER_TIMEOUT		1000
+typedef  SemaphoreHandle_t logger_mutex_t;
+#define create_mutex()		xSemaphoreCreateMutex()
+#define take_mutex(mutex)		xSemaphoreTake(mutex, LOGGER_TIMEOUT/portTICK_RATE_MS)
+#define give_mutex(mutex)		xSemaphoreGive(mutex)
+#else
+#define create_mutex()
+#define take_mutex(mutex)
+#define give_mutex(mutex)
+#endif
+
 #else
 #define log_init(...) {}
 #define log_add_handler(...) {}
@@ -90,6 +124,10 @@ void log_error(logger_t* logger, char* message, ...);
 #define log_info(...) {}
 #define log_warning(...) {}
 #define log_error(...) {}
+
+#define create_mutex()
+#define take_mutex(mutex)
+#define give_mutex(mutex)
 #endif
 
 #ifdef __cplusplus

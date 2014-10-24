@@ -51,6 +51,9 @@
 
 static log_level_t _log_level = LOG_SYSLOG;
 static int handlers[MAX_LOG_HANDLERS] = {-1};
+#if USE_LOGGER_FREERTOS_MUTEX
+static logger_mutex_t _logger_write_mutex = NULL;
+#endif
 
 /**
  * logger that may be used by any module
@@ -87,6 +90,11 @@ void log_init(logger_t* logger, const char* name)
  */
 void log_add_handler(int file)
 {
+#if USE_LOGGER_FREERTOS_MUTEX
+	// create mutex once, at the time the first handler is added.
+	if(_logger_write_mutex == NULL)
+		_logger_write_mutex = create_mutex();
+#endif
 	for(int i = 0; i < MAX_LOG_HANDLERS; i++)
 	{
 		if(handlers[i] == -1)
@@ -127,7 +135,10 @@ static inline void write_log_record(logger_t* logger, log_level_t level, char* m
 {
 	if(level < _log_level)
 		return;
-
+#if USE_LOGGER_FREERTOS_MUTEX
+	if(_logger_write_mutex == NULL)
+		return;
+#endif
 	char buf[512];
 	vsprintf(buf, message, va_args);
 
@@ -137,6 +148,7 @@ static inline void write_log_record(logger_t* logger, log_level_t level, char* m
 	{
 		if(handlers[i] != -1)
 		{
+			take_mutex(_logger_write_mutex);
 			write(handlers[i], logger->name, strlen(logger->name));
 			write(handlers[i], levelstr[level], strlen(levelstr[level]));
 			write(handlers[i], buf, strlen(buf));
@@ -146,6 +158,7 @@ static inline void write_log_record(logger_t* logger, log_level_t level, char* m
 			{
 				fsync(handlers[i]);
 			}
+			give_mutex(_logger_write_mutex);
 		}
 	}
 }
