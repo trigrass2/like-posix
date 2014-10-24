@@ -30,11 +30,37 @@
  *
  */
 
-#include "netconf.h"
+#include "lwipopts.h"
+#include "netif.h"
+#include "logger.h"
+#include "net_config.h"
 
-#ifndef DRIVERS_NET_LWIP_NET_H_
-#define DRIVERS_NET_LWIP_NET_H_
+#ifndef NET_CONFIG_H_
+#define NET_CONFIG_H_
 
-void net_init(netconf_t* netconf);
+#define MAX_HOSTNAME_LENGTH	64
 
-#endif /* DRIVERS_NET_LWIP_NET_H_ */
+typedef enum {
+	NET_RESOLV_DHCP,
+	NET_RESOLV_STATIC
+} net_resolv_prot_t;
+
+typedef struct {
+	struct netif netif;
+	net_resolv_prot_t resolv;
+	#ifdef USE_DHCP
+	uint32_t dhcp_fine_timer;
+	uint32_t dhcp_coarse_timer;
+	#endif
+	uint8_t hostname[MAX_HOSTNAME_LENGTH];
+	struct ip_addr addr_cache[3]; // ip, netmask,gw
+	uint32_t tcp_timer;
+	uint32_t arp_timer;
+	logger_t log;
+}netconf_t;
+
+void net_config(netconf_t* netconf, const char* resolv, const char* interface);
+bool string_to_mac_address(uint8_t* address, const uint8_t* macaddr);
+bool string_to_address(uint8_t* address, const uint8_t* addr);
+
+#endif // NET_CONFIG_H_

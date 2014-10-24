@@ -34,7 +34,7 @@
 #define NET_CONF_H_
 
 #define MAX_SOCKETS             5
-#define NET_TASK_PRIORITY		2
+#define NET_TASK_PRIORITY		1
 #define NET_TASK_STACK			2048
 
 #define NET_LINK_LED			LED2
