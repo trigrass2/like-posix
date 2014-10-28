@@ -46,10 +46,11 @@
  * open a socket.
  *
  * @param	host may be an IP address or hostname.
- * @param	port is the TCP port to open.
+ * @param	port is the port to open.
+ * @param	type is the type of socket to open - generally SOCK_STREAM or SOCK_DATAGRAM.
  * @retval	returns the socket file descriptor, or -1 on error.
  */
-int sock_connect(char *host, int port)
+int sock_connect(char *host, int port, int type)
 {
 	char portbuf[16];
 	struct addrinfo *addr_list, *addr_ptr;
@@ -60,7 +61,7 @@ int sock_connect(char *host, int port)
 	// setup hints to help resolve our hostname
 	memset(&hints, 0, sizeof(struct addrinfo));
 	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_socktype = type;
 	hints.ai_flags = 0;
 	hints.ai_protocol = 0;
 

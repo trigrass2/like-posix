@@ -40,7 +40,7 @@
 #ifndef SOCKET_SOCK_UTILS_H_
 #define SOCKET_SOCK_UTILS_H_
 
-int sock_connect(char *host, int port);
+int sock_connect(char *host, int port, int type);
 
 #endif /* SOCKET_SOCK_UTILS_H_ */
 
