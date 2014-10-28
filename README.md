@@ -15,10 +15,11 @@ to use, clone the following projects into a new directory:
 
  - https://github.com/drmetal/stm32-build-env
  - https://github.com/drmetal/stm32-device-support
- - https://github.com/drmetal/freertos-posix-wrapper
+ - https://github.com/drmetal/like-posix
  - https://github.com/drmetal/freertos
  - https://github.com/drmetal/minstdlibs
  - https://github.com/drmetal/cutensils
+ - https://github.com/drmetal/nutensils
  - https://github.com/drmetal/LwIP
  - https://github.com/drmetal/FatFs
  
@@ -73,22 +74,25 @@ DEBUG =
 # can be 0, 1, 2, 3, s
 OPT = 2
 
-## there are some small alternatives to the standard libraries
+## there are some small alternatives to the standard libraries, the minstdlibs project
 # set to 1 to enable those (may reduce code size by several 10's of kb)
 USE_MINSTDLIBS = 0
 
-## there is a small configuration file utility
+## there is a small configuration file utility in cutensils project
 # set to 1 to enable
 USE_CONFPARSE = 0
 
-## there is a logging facility
+## there is a logging facility in cutensils project, requires the like-posix project
 # set to 1 to enable, set to 0 to disable
-# depends on USE_LARGE_SYSCALLS set to 1, if files/devices are to be written
 USE_LOGGER = 0
 
 ## to use many of the facilities, posix style IO is required.
 # set to 1 to enable
 USE_POSIX_STYLE_IO = 0
+
+## socket utilities from the nutensils project
+# set to 1 to enable, set to 0 to disable
+USE_SOCK_UTILS = 0
 
 ## DRIVERS
 # set thse to 0 to remove from the build, 1 to include in the build
@@ -115,6 +119,8 @@ BUILD_ENV_DIR = ../stm32-build-env
 DEVICE_SUPPORT_DIR = ../stm32-device-support
 ## specify location of the project: https://github.com/drmetal/cutensils
 CUTENSILS_DIR = ../cutensils
+## specify location of the project: https://github.com/drmetal/nutensils
+NUTENSILS_DIR = ../nutensils
 ## specify location of the project: https://github.com/drmetal/FatFs
 FATFS_DIR = ../FatFs
 ## specify location of the project: https://github.com/drmetal/like-posix

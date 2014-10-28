@@ -41,6 +41,7 @@ CFLAGS =
 ## include sub makefiles
 include $(BUILD_ENV_DIR)/stm32_device_support.mk
 include $(BUILD_ENV_DIR)/cutensils.mk
+include $(BUILD_ENV_DIR)/nutensils.mk
 include $(BUILD_ENV_DIR)/minstdlibs.mk
 include $(BUILD_ENV_DIR)/freertos.mk
 include $(BUILD_ENV_DIR)/lwip.mk
