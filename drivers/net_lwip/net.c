@@ -149,10 +149,14 @@ void net_task(void *pvParameters)
     {
     	// TODO - use a semaphore to trigger ethernetif_input from an packet received interrupt.
     	// run the other TCP stuff in a separate thread in that case...
+#if !NO_SYS
+    	LOCK_TCPIP_CORE();
+#endif
 		if (ETH_CheckFrameReceived())
-		{
 			ethernetif_input(&netconf->netif);
-		}
+#if !NO_SYS
+		UNLOCK_TCPIP_CORE();
+#endif
 
 #if NO_SYS
 	// only need the following if we specify NO_SYS
