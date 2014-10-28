@@ -46,17 +46,19 @@ typedef enum {
 } net_resolv_prot_t;
 
 typedef struct {
+	logger_t log;
 	struct netif netif;
 	net_resolv_prot_t resolv;
-	#ifdef USE_DHCP
+#ifdef USE_DHCP
 	uint32_t dhcp_fine_timer;
 	uint32_t dhcp_coarse_timer;
-	#endif
+#endif
 	uint8_t hostname[MAX_HOSTNAME_LENGTH];
 	struct ip_addr addr_cache[3]; // ip, netmask,gw
+#if NO_SYS
 	uint32_t tcp_timer;
 	uint32_t arp_timer;
-	logger_t log;
+#endif
 }netconf_t;
 
 void net_config(netconf_t* netconf, const char* resolv, const char* interface);
