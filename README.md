@@ -58,7 +58,7 @@ There are a few options that may be specified in the project makefile. Here is a
 BOARD = stm32f4_discovery
 
 ## Project name
-PROJECT_NAME = stm32f4demo
+PROJECT_NAME = demoproject
 
 ## project source, add any new project source files
 SOURCE =
@@ -93,6 +93,10 @@ USE_POSIX_STYLE_IO = 0
 ## socket utilities from the nutensils project
 # set to 1 to enable, set to 0 to disable
 USE_SOCK_UTILS = 0
+
+## HTTP utilities from the nutensils project
+# set to 1 to enable, set to 0 to disable
+USE_HTTP_UTILS = 0
 
 ## DRIVERS
 # set thse to 0 to remove from the build, 1 to include in the build
