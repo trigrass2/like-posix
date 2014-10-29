@@ -40,7 +40,32 @@
 #ifndef HTTP_HTTP_CLIENT_H_
 #define HTTP_HTTP_CLIENT_H_
 
-char* http_query(char *host, int port, char *page, char* buffer);
+#include "http_defs.h"
+
+typedef struct {
+	char* remote;               ///< set the remote IP address or hostname
+	int port;                   ///< set the remote port
+	char *page;                 ///< set the page to request
+	char* local;                ///< set the local IP address or hostname
+	char* type;                 ///< set the request type - GET, POST etc
+	char* content_type;         ///< set content type, eg text/plain
+	char* buffer;               ///< set the buffer that holds the request body data
+	int content_length;         ///< set the length of the request body data
+}http_request_t;
+
+// TODO - do a nice HTTP response parser.
+typedef struct {
+	int status;					///< not set by the user - holds the HTTP status code, of the response
+	char* message;				///< not set by the user - points to the HTTP status message, in buffer
+	char* body;					///< not set by the user - points to the HTTP response body, in buffer
+//	char* host;                 ///< not set by the user - holds the "Host" header field, of the response
+//	char* content_type;         ///< not set by the user - holds the "Content-Type" header field, of the response
+//	int content_length;         ///< not set by the user - holds the "Content-Length" header field, of the response
+	char* buffer;               ///< set the buffer that will hold the response body data
+	int size;                   ///< set to the the size of the buffer in bytes.
+}http_response_t;
+
+http_response_t* http_request(http_request_t* request, http_response_t* response);
 
 #endif /* HTTP_HTTP_CLIENT_H_ */
 
