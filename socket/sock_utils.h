@@ -40,7 +40,40 @@
 #ifndef SOCKET_SOCK_UTILS_H_
 #define SOCKET_SOCK_UTILS_H_
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include "cutensils.h"
+
+typedef struct _sock_server_t sock_server_t;
+typedef struct _sock_conn_t sock_conn_t;
+
+typedef int(*sock_handle_incoming_fptr_t)(sock_server_t*,sock_conn_t*);
+typedef void(*sock_service_fptr_t)(sock_conn_t*);
+
+typedef struct _sock_conn_t {
+	struct sockaddr_in cliaddr;
+	socklen_t clilen;
+	int connfd;
+	void* ctx;
+	sock_service_fptr_t service;
+}sock_conn_t;
+
+typedef struct _sock_server_t {
+	int listenfd;
+	logger_t log;
+	char* name;
+	void* ctx;
+	sock_handle_incoming_fptr_t handle_incoming;
+	sock_service_fptr_t service;
+	int stacksize;
+	int prio;
+}sock_server_t;
+
 int sock_connect(char *host, int port, int type);
+int sock_server(int port, int type, int conns, sock_server_t* servinfo,
+				sock_handle_incoming_fptr_t handle_incoming, sock_service_fptr_t service,
+				void* ctx, char* name, int stacksize, int prio);
+void sock_server_thread(void* parameters);
 
 #endif /* SOCKET_SOCK_UTILS_H_ */
 

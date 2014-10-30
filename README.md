@@ -14,3 +14,8 @@ HTTP
 ----
 
 this is a collection of HTTP protocol utilities. These build upon the nutensils socket module.
+
+Threaded Server
+---------------
+
+this is small multithreaded addition to the socket server given in the socket module.

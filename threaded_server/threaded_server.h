@@ -31,35 +31,24 @@
  */
 
 /**
-* @addtogroup http
+* @addtogroup threaded_server
 *
 * @{
-* @file http_defs.h
+* @file threaded_server.h
 */
 
-#ifndef HTTP_HTTP_DEFS_H_
-#define HTTP_HTTP_DEFS_H_
 
-#define HTTP_HOST				"Host: "
-#define HTTP_CONTENT_LENGTH		"Content-Length: "
-#define HTTP_CONTENT_TYPE		"Content-Type: "
+#ifndef THREADED_SERVER_H_
+#define THREADED_SERVER_H_
 
-#define HTTP_CONTENT_JSON			"application/json"
-#define HTTP_CONTENT_JAVASCRIPT		"application/javascript"
-#define HTTP_CONTENT_BINARY			"application/octet-stream"
-#define HTTP_CONTENT_TEXT			"text/plain"
-#define HTTP_CONTENT_HTML			"text/html"
-#define HTTP_CONTENT_NONE			"text/plain"
+#include "sock_utils.h"
 
-#define HTTP_GET				"GET"
-#define HTTP_POST				"POST"
-#define HTTP_EOL				"\r\n"
-#define HTTP_EOH				"\r\n\r\n"
-#define HTTP_HEADER				"%s %s HTTP/1.0" HTTP_EOL HTTP_HOST "%s" HTTP_EOL HTTP_CONTENT_LENGTH "%d" HTTP_EOL HTTP_CONTENT_TYPE "%s" HTTP_EOH
-#define HTTP_SCHEMA				"http://"
+#define THREADED_SERVER_PRIORITY		1
+#define THREADED_SERVER_STACK_SIZE		128
 
+void start_threaded_server(sock_server_t* servinfo, char* config, sock_service_fptr_t threadfunc, char* name, void* data, int stacksize, int prio, int conns);
 
-#endif /* HTTP_HTTP_DEFS_H_ */
+#endif /* THREADED_SERVER_H_ */
 
 /**
  * @}

@@ -31,35 +31,65 @@
  */
 
 /**
-* @addtogroup http
+* @defgroup threaded_server Threaded Server
+*
+* multithreaded socket server - relies upon freertos, cutensils, like-posix,
+* a network stack that supports posix style network calls - lwip for example.
+*
+* creates a listener and starts a new thread to handle
 *
 * @{
-* @file http_defs.h
+* @file threaded_server.c
 */
 
-#ifndef HTTP_HTTP_DEFS_H_
-#define HTTP_HTTP_DEFS_H_
-
-#define HTTP_HOST				"Host: "
-#define HTTP_CONTENT_LENGTH		"Content-Length: "
-#define HTTP_CONTENT_TYPE		"Content-Type: "
-
-#define HTTP_CONTENT_JSON			"application/json"
-#define HTTP_CONTENT_JAVASCRIPT		"application/javascript"
-#define HTTP_CONTENT_BINARY			"application/octet-stream"
-#define HTTP_CONTENT_TEXT			"text/plain"
-#define HTTP_CONTENT_HTML			"text/html"
-#define HTTP_CONTENT_NONE			"text/plain"
-
-#define HTTP_GET				"GET"
-#define HTTP_POST				"POST"
-#define HTTP_EOL				"\r\n"
-#define HTTP_EOH				"\r\n\r\n"
-#define HTTP_HEADER				"%s %s HTTP/1.0" HTTP_EOL HTTP_HOST "%s" HTTP_EOL HTTP_CONTENT_LENGTH "%d" HTTP_EOL HTTP_CONTENT_TYPE "%s" HTTP_EOH
-#define HTTP_SCHEMA				"http://"
+#include <sys/socket.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include "cutensils.h"
+#include "threaded_server.h"
 
 
-#endif /* HTTP_HTTP_DEFS_H_ */
+void handle_connection(sock_conn_t* conn);
+int spawn_connection(sock_server_t* server, sock_conn_t* conn);
+
+void start_threaded_server(sock_server_t* servinfo, char* config, sock_service_fptr_t threadfunc, char* name, void* data, int stacksize, int prio, int conns)
+{
+	uint8_t buffer[32];
+	int fd = -1;
+	const uint8_t* portstr;
+
+	portstr = get_config_value_by_key(buffer, sizeof(buffer), (const uint8_t*)config, (const uint8_t*)"port");
+
+	if(portstr)
+	{
+		fd = sock_server(atoi((const char*)portstr), SOCK_STREAM, conns, servinfo, spawn_connection, threadfunc, data, name, stacksize, prio);
+
+		if(fd != -1)
+			xTaskCreate(sock_server_thread, "threaded_server", configMINIMAL_STACK_SIZE + THREADED_SERVER_STACK_SIZE, servinfo, tskIDLE_PRIORITY + THREADED_SERVER_PRIORITY, NULL);
+	}
+}
+
+int spawn_connection(sock_server_t* server, sock_conn_t* conn)
+{
+	return xTaskCreate((void(*)(void*))handle_connection,
+						server->name,
+						configMINIMAL_STACK_SIZE + server->stacksize,
+						conn,
+						tskIDLE_PRIORITY + server->prio, NULL) == pdPASS ? 0 : -1;
+}
+
+void handle_connection(sock_conn_t* conn)
+{
+	if(conn)
+	{
+		conn->service(conn);
+		closesocket(conn->connfd);
+		free(conn);
+	}
+
+	vTaskDelete(NULL);
+}
 
 /**
  * @}

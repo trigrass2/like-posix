@@ -44,5 +44,9 @@
 #include "http/http_client.h"
 #endif
 
+#if USE_THREADED_SERVER
+#include "threaded_server/threaded_server.h"
+#endif
+
 #endif /* NUTENSILS_H_ */
 

@@ -42,6 +42,8 @@
 
 #include "http_defs.h"
 
+#define HTTP_MAX_HEADER_LENGTH	128
+
 typedef struct {
 	char* remote;               ///< set the remote IP address or hostname
 	int port;                   ///< set the remote port
@@ -51,6 +53,7 @@ typedef struct {
 	char* content_type;         ///< set content type, eg text/plain
 	char* buffer;               ///< set the buffer that holds the request body data
 	int content_length;         ///< set the length of the request body data
+	int size;                   ///< set to the the size of the buffer in bytes.
 }http_request_t;
 
 // TODO - do a nice HTTP response parser.
