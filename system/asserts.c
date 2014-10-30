@@ -17,8 +17,6 @@
 #ifdef USE_FULL_ASSERT
 void assert_failed(uint8_t* file, uint32_t line)
 {
-	(void)file;
-	(void)line;
 #if USE_DRIVER_LEDS && defined(ERROR_LED)
 	set_led(ERROR_LED);
 #endif

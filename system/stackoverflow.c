@@ -46,7 +46,9 @@
 void vApplicationStackOverflowHook(xTaskHandle* pxTask, signed portCHAR* pcTaskName)
 {
     (void)pxTask;
+    printf("\n**************************************************\n", pcTaskName);
     printf("Error, stack overflow: %s", pcTaskName);
+    printf("\n**************************************************\n", pcTaskName);
     for( ;; );
 }
 
