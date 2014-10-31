@@ -35,8 +35,17 @@ SIZE=arm-none-eabi-size
 OBJDUMP=arm-none-eabi-objdump
 NM = arm-none-eabi-nm
 
-## C Compiler flags.
-CFLAGS =
+## create empty C Compiler flags if needed
+CFLAGS ?=
+
+# create empty source list if needed
+SOURCE ?= 
+
+## create empty library flags if needed
+LIBS ?=
+
+# create empty linker list if needed
+LINKER_FLAGS ?= 
 
 ## include sub makefiles
 include $(BUILD_ENV_DIR)/stm32_device_support.mk
@@ -78,7 +87,7 @@ CFLAGS += -Wno-attributes
 
 ## Linker options
 # to allow for C++, removed -nostartfiles
-LINKER_FLAGS = -Xlinker -o$(OUTPUT_PREFIX).elf -Xlinker -M -Xlinker -Map=$(OUTPUT_PREFIX).map -Xlinker
+LINKER_FLAGS += -Xlinker -o$(OUTPUT_PREFIX).elf -Xlinker -M -Xlinker -Map=$(OUTPUT_PREFIX).map -Xlinker
 ## note, if debug is enabled use -no-gc-sections - binaries will be unoptimised, read enormous
 LINKER_FLAGS +=  -gc-sections
 #ifeq ($(DEBUG), )
@@ -88,7 +97,7 @@ LINKER_FLAGS +=  -gc-sections
 #endif
 
 ## add any libraries here
-LIBS= -lm
+LIBS += -lm
 
 
 ####################################################################
