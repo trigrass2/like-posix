@@ -84,6 +84,8 @@ BUILD_ENV_DIR ?= ../stm32-build-env
 DEVICE_SUPPORT_DIR ?= ../stm32-device-support
 ## specify location of the project: https://github.com/drmetal/cutensils
 CUTENSILS_DIR ?= ../cutensils
+## specify location of the project: https://github.com/drmetal/nutensils
+NUTENSILS_DIR ?= ../nutensils
 ## specify location of the project: https://github.com/drmetal/FatFs
 FATFS_DIR ?= ../FatFs
 ## specify location of the project: https://github.com/drmetal/like-posix
