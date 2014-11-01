@@ -35,7 +35,7 @@
 #define LCD_CONF_H_
 
 
-#define TOUCH_TASK_PRIORITY         4
+#define TOUCH_TASK_PRIORITY         1
 #define TOUCH_TASK_STACK         	100
 
 
