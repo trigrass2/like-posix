@@ -7,21 +7,16 @@
  * @{
  */
 
-#include "MII_RMII.h"
-#include "stm32_eth.h"
-#include "lwipopts.h"
-
+#include "stm32_eth.h" // includes "MII_RMII.h" for us
 
 static void ETH_GPIO_Config(void);
 
 __IO uint32_t  EthInitStatus = 0;
 
-/* Ethernet Rx & Tx DMA Descriptors */
-static ETH_DMADESCTypeDef  DMARxDscrTab[ETH_RXBUFNB], DMATxDscrTab[ETH_TXBUFNB];
-/* Ethernet Driver Receive buffers  */
-static uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE];
-/* Ethernet Driver Transmit buffers */
-static uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE];
+static ETH_DMADESCTypeDef  DMARxDscrTab[ETH_RXBUFNB] __attribute__ ((aligned (4))); /* Ethernet Rx DMA Descriptor */
+static ETH_DMADESCTypeDef  DMATxDscrTab[ETH_TXBUFNB] __attribute__ ((aligned (4))); /* Ethernet Tx DMA Descriptor */
+static uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE] __attribute__ ((aligned (4))); /* Ethernet Receive Buffer */
+static uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __attribute__ ((aligned (4))); /* Ethernet Transmit Buffer */
 
 #if FAMILY == STM32F1
 
@@ -173,7 +168,7 @@ void ETH_Configuration(const uint8_t* macaddr)
 	ETH_InitStructure.ETH_PromiscuousMode = ETH_PromiscuousMode_Disable;
 	ETH_InitStructure.ETH_MulticastFramesFilter = ETH_MulticastFramesFilter_Perfect;
 	ETH_InitStructure.ETH_UnicastFramesFilter = ETH_UnicastFramesFilter_Perfect;
-#ifdef CHECKSUM_BY_HARDWARE
+#if CHECKSUM_BY_HARDWARE
 	ETH_InitStructure.ETH_ChecksumOffload = ETH_ChecksumOffload_Enable;
 #endif
 
@@ -203,7 +198,7 @@ void ETH_Configuration(const uint8_t* macaddr)
 	/* Initialize Rx Descriptors list: Chain Mode  */
 	ETH_DMARxDescChainInit(DMARxDscrTab, &Rx_Buff[0][0], ETH_RXBUFNB);
 
-#ifdef CHECKSUM_BY_HARDWARE
+#if CHECKSUM_BY_HARDWARE
 	/* Enable the TCP, UDP and ICMP checksum insertion for the Tx frames */
 	for(uint8_t i=0; i<ETH_TXBUFNB; i++)
 		ETH_DMATxDescChecksumInsertionConfig(&DMATxDscrTab[i], ETH_DMATxDesc_ChecksumTCPUDPICMPFull);

@@ -264,14 +264,17 @@ typedef struct  {
 /** @defgroup ENET_Buffers_setting 
   * @{
   */ 
-#define ETH_MAX_PACKET_SIZE    1524    /*!< ETH_HEADER + ETH_EXTRA + VLAN_TAG + MAX_ETH_PAYLOAD + ETH_CRC */
-#define ETH_HEADER               14    /*!< 6 byte Dest addr, 6 byte Src addr, 2 byte length/type */
-#define ETH_CRC                   4    /*!< Ethernet CRC */
-#define ETH_EXTRA                 2    /*!< Extra bytes in some cases */   
-#define VLAN_TAG                  4    /*!< optional 802.1q VLAN Tag */
-#define MIN_ETH_PAYLOAD          46    /*!< Minimum Ethernet payload size */
-#define MAX_ETH_PAYLOAD        1500    /*!< Maximum Ethernet payload size */
-#define JUMBO_FRAME_PAYLOAD    9000    /*!< Jumbo frame payload size */      
+#ifndef MAX_ETH_PAYLOAD
+#pragma message ( "using default MAX_ETH_PAYLOAD = 1500" )
+#define MAX_ETH_PAYLOAD             1500    /*!< Maximum Ethernet payload size */
+#endif
+#define ETH_HEADER                  14    /*!< 6 byte Dest addr, 6 byte Src addr, 2 byte length/type */
+#define ETH_CRC                     4    /*!< Ethernet CRC */
+#define ETH_EXTRA                   2    /*!< Extra bytes in some cases */
+#define VLAN_TAG                    4    /*!< optional 802.1q VLAN Tag */
+#define MIN_ETH_PAYLOAD             46    /*!< Minimum Ethernet payload size */
+#define JUMBO_FRAME_PAYLOAD         9000    /*!< Jumbo frame payload size */
+#define ETH_MAX_PACKET_SIZE         (MAX_ETH_PAYLOAD+ETH_HEADER+ETH_EXTRA+ETH_CRC)//1520    /*!< ETH_HEADER + ETH_EXTRA + MAX_ETH_PAYLOAD + ETH_CRC */
 
  /* Ethernet driver receive buffers are organized in a chained linked-list, when
     an ethernet packet is received, the Rx-DMA will transfer the packet from RxFIFO

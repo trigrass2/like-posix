@@ -9,7 +9,6 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include "net_config.h"
 
 volatile uint8_t enc28j60_current_bank = 0;
 volatile uint16_t enc28j60_rxrdpt = 0;
@@ -78,8 +77,8 @@ void enc28j60_init(uint8_t *macadr)
 		PHLCON_LBCFG2|PHLCON_LBCFG1|PHLCON_LBCFG0|
 		PHLCON_LFRQ0|PHLCON_STRCH);
 
-	printf("enc28j60 rev.%X\n",
-			enc28j60_revision());
+//	printf("enc28j60 rev.%X\n",
+//			enc28j60_revision());
 }
 
 void enc28j60_spi_init()
@@ -217,14 +216,14 @@ void enc28j60_soft_reset()
 	enc28j60_release();
 
 	enc28j60_current_bank = 0;
-	delay(10);
+	for(volatile int i = 50000; i > 0; i--);
 }
 
 // Initiate hardware reset
 void enc28j60_reset()
 {
 	GPIO_ResetBits(ENC28J60_SPI_NRST_PORT, ENC28J60_SPI_NRST_PIN);
-	delay(100);
+    for(volatile int i = 500000; i > 0; i--);
 	GPIO_SetBits(ENC28J60_SPI_NRST_PORT, ENC28J60_SPI_NRST_PIN);
 }
 
@@ -373,6 +372,31 @@ void enc28j60_send_packet(uint8_t *data, uint16_t len)
 	enc28j60_bfs(ECON1, ECON1_TXRTS);
 }
 
+void enc28j60_send_packet_start()
+{
+    while(enc28j60_rcr(ECON1) & ECON1_TXRTS)
+    {
+        // TXRTS may not clear - ENC28J60 bug. We must reset
+        // transmit logic in cause of Tx error
+        if(enc28j60_rcr(EIR) & EIR_TXERIF)
+        {
+            enc28j60_bfs(ECON1, ECON1_TXRST);
+            enc28j60_bfc(ECON1, ECON1_TXRST);
+        }
+    }
+
+    enc28j60_wcr16(EWRPT, ENC28J60_TXSTART);
+    enc28j60_write_buffer((uint8_t*)"\0", 1);
+}
+
+void enc28j60_send_packet_end(uint16_t len)
+{
+    enc28j60_wcr16(ETXST, ENC28J60_TXSTART);
+    enc28j60_wcr16(ETXND, ENC28J60_TXSTART + len);
+    // Request packet send
+    enc28j60_bfs(ECON1, ECON1_TXRTS);
+}
+
 uint16_t enc28j60_recv_packet(uint8_t *buf, uint16_t buflen)
 {
 	uint16_t len = 0, rxlen, status, temp;
@@ -409,6 +433,46 @@ uint16_t enc28j60_recv_packet(uint8_t *buf, uint16_t buflen)
 	return len;
 }
 
+uint8_t enc28j60_check_incoming()
+{
+    return enc28j60_rcr(EPKTCNT);
+}
+
+uint16_t enc28j60_recv_packet_start(uint16_t maxlen)
+{
+    uint16_t len = 0, rxlen, status;
+
+    enc28j60_wcr16(ERDPT, enc28j60_rxrdpt);
+
+    enc28j60_read_buffer((void*)&enc28j60_rxrdpt, sizeof(enc28j60_rxrdpt));
+    enc28j60_read_buffer((void*)&rxlen, sizeof(rxlen));
+    enc28j60_read_buffer((void*)&status, sizeof(status));
+
+    if(status & ENC28J60_RX_STATUS_VECTOR_RX_OK)
+    {
+        len = rxlen - 4; //throw out crc
+        if(len > maxlen)
+            len = maxlen;
+    }
+
+    return len;
+}
+
+void enc28j60_recv_packet_end()
+{
+    uint16_t temp;
+    // Set Rx read pointer to next packet
+    // take care, never set ERXRDPT to an even number.
+    // sinceenc28j60_rxrdpt is always even, subtract 1.
+    // also deal with wrap around.
+    if(enc28j60_rxrdpt == ENC28J60_RXSTART)
+        temp = ENC28J60_RXEND;
+    else
+        temp = enc28j60_rxrdpt - 1;
+    enc28j60_wcr16(ERXRDPT, temp);
+    // Decrement packet counter
+    enc28j60_bfs(ECON2, ECON2_PKTDEC);
+}
 /**
  * @}
  */

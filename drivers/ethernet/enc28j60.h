@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include "net_config.h"
 #include "board_config.h"
-#include "uip.h"
 
 
 // Init ENC28J60
@@ -20,7 +19,13 @@ uint8_t enc28j60_revision(void);
 
 // Snd/Rcv packets
 void enc28j60_send_packet(uint8_t *data, uint16_t len);
+void enc28j60_send_packet_start();
+void enc28j60_send_packet_end(uint16_t len);
+
 uint16_t enc28j60_recv_packet(uint8_t *buf, uint16_t buflen);
+uint8_t enc28j60_check_incoming();
+uint16_t enc28j60_recv_packet_start(uint16_t maxlen);
+void enc28j60_recv_packet_end();
 
 // R/W control registers
 uint8_t enc28j60_rcr(uint8_t adr);
@@ -40,36 +45,17 @@ void enc28j60_write_phy(uint8_t adr, uint16_t data);
 
 // void enc28j6_nint();
 
-
-#if defined(ENC28J60_PHY) && defined(USE_DRIVER_UIP_NET)
-/**
- * ethernet device init.
- */
-static inline void devicedriver_init(void* conf)
-{
-    enc28j60_init((uint8_t*)conf);
-}
-
-/**
- * ethernet device send.
- */
-static inline bool devicedriver_send()
-{
-    enc28j60_send_packet((uint8_t *) uip_buf, uip_len);
-    return true;
-}
-
-/**
- * ethernet device read.
- */
-static inline uint32_t devicedriver_read()
-{
-    return (uint32_t)enc28j60_recv_packet((uint8_t *) uip_buf, UIP_BUFSIZE);
-}
-
+#ifndef MAX_ETH_PAYLOAD
+#pragma message ( "Note: using default MAX_ETH_PAYLOAD = 1500" )
+#define MAX_ETH_PAYLOAD             1500        // Maximum Ethernet payload size
 #endif
+#define ETH_HEADER                  14          // 6 byte Dest addr, 6 byte Src addr, 2 byte length/type
+#define ETH_CRC                     4           // Ethernet CRC
+#define ETH_EXTRA                   2           // Extra bytes in some cases
+#define VLAN_TAG                    4           // optional 802.1q VLAN Tag
+#define MIN_ETH_PAYLOAD             46          // Minimum Ethernet payload size
+#define ENC28J60_MAXFRAME           (MAX_ETH_PAYLOAD + ETH_HEADER + ETH_EXTRA + ETH_CRC)
 
-#define ENC28J60_MAXFRAME   1500
 
 #define ENC28J60_BUFSIZE	0x2000
 #define ENC28J60_RXSIZE		(ENC28J60_BUFSIZE - ENC28J60_MAXFRAME - 54)

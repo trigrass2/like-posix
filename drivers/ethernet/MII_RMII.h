@@ -15,6 +15,7 @@
  extern "C" {
 #endif
 
+
  /* Uncomment the line below when using time stamping and/or IPv4 checksum offload */
  #define USE_ENHANCED_DMA_DESCRIPTORS
 
@@ -121,32 +122,6 @@ bool auto_negotiation_status(void);
 uint16_t link_speed(void);
 bool link_full_duplex(void);
 
-#if (defined(BCM5241_PHY) || defined(DP83848_PHY) || defined(LAN8700_PHY)) && USE_DRIVER_UIP_NET
-/**
- * ethernet device init.
- */
-static inline void devicedriver_init(void* conf)
-{
-     (void)conf;
-     ETH_Configuration();
-}
-
-/**
- * ethernet device send.
- */
-static inline bool devicedriver_send()
-{
-     return (bool)ETH_HandleTxPkt(uip_buf, uip_len);
-}
-
-/**
- * ethernet device read.
- */
-static inline uint32_t devicedriver_read()
-{
-     return ETH_HandleRxPkt(uip_buf);
-}
-#endif
 
 #ifdef __cplusplus
  }
