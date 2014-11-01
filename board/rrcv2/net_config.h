@@ -37,16 +37,15 @@
 #define NET_TASK_PRIORITY		1
 #define NET_TASK_STACK			2048
 
+/**
+ * Ethernet driver buffer size and count - defaults are set in stm32_eth.h
+ */
+#define ETH_RXBUFNB        4                   // 4 Rx buffers
+#define ETH_TXBUFNB        2                   // 2 Tx buffers
+#define MAX_ETH_PAYLOAD     1500
+
 #define NET_LINK_LED			LED2
 
-/* Redefinition of the Ethernet driver buffers size and count */
-#define ETH_RX_BUF_SIZE    ETH_MAX_PACKET_SIZE /* buffer size for receive */
-#define ETH_TX_BUF_SIZE    ETH_MAX_PACKET_SIZE /* buffer size for transmit */
-#define ETH_RXBUFNB        4                   /* 4 Rx buffers of size ETH_RX_BUF_SIZE */
-#define ETH_TXBUFNB        2                   /* 2  Tx buffers of size ETH_TX_BUF_SIZE */
-
-#define USE_DHCP							   /* enable DHCP, if disabled static address is used */
-#define MAX_DHCP_TRIES     6
 
 //#define ENC28J60_PHY
 //#define DP83848_PHY
