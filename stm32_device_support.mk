@@ -81,6 +81,7 @@ CFLAGS += -DUSE_DRIVER_ENC28J60_PHY=$(USE_DRIVER_ENC28J60_PHY)
 ifeq ($(USE_DRIVER_ENC28J60_PHY), 1)
 SOURCE += $(DRIVERSDIR)/ethernet/enc28j60.c
 CFLAGS += -I$(DRIVERSDIR)/ethernet
+CFLAGS += -DCHECKSUM_BY_HARDWARE=0
 endif
 
 ## Ethernet PHY, BCM5241
@@ -88,6 +89,7 @@ CFLAGS += -DUSE_DRIVER_MII_RMII_PHY=$(USE_DRIVER_MII_RMII_PHY)
 ifeq ($(USE_DRIVER_MII_RMII_PHY), 1)
 SOURCE += $(DRIVERSDIR)/ethernet/MII_RMII.c
 CFLAGS += -I$(DRIVERSDIR)/ethernet
+CFLAGS += -DCHECKSUM_BY_HARDWARE=1
 endif
 
 ###############################################################
