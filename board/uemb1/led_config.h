@@ -34,7 +34,7 @@
 #ifndef LED_CONFIG_H_
 #define LED_CONFIG_H_
 
-#define LED_FLASHER_TASK_PRIORITY 2
+#define LED_FLASHER_TASK_PRIORITY 1
 #define LED_FLASHER_TASK_STACK	  0
 
 #define LED1 	0

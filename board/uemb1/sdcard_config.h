@@ -50,7 +50,7 @@
 // #define SD_CARD_NWP_PORT             GPIO
 
 #define SDCARD_IT_PRIORITY          5
-#define SDCARD_TASK_PRIORITY        2
+#define SDCARD_TASK_PRIORITY        1
 #define SDCARD_TASK_STACK        	1024
 
 #endif // SDCARD_CONFIG_H_
