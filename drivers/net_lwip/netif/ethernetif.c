@@ -44,12 +44,13 @@
 #include "mem.h"
 #include "lwip/debug.h"
 #include "etharp.h"
-#include "stm32_eth.h"
+#include "eth_mac.h"
 
 /* Network interface name */
 #define IFNAME0 'T'
 #define IFNAME1 'C'
 
+#if USE_DRIVER_MII_RMII_PHY && USE_DRIVER_LWIP_NET
 
 /* Global pointers to track current transmit and receive descriptors */
 // defined in stm32_eth.c
@@ -60,6 +61,14 @@ extern ETH_DMADESCTypeDef  *DMARxDescToGet;
 // defined in stm32_eth.c, only valid for stm32f4
 extern ETH_DMA_Rx_Frame_infos *DMA_RX_FRAME_infos;
 
+
+/**
+ * performs MAC/PHY level initialization
+ */
+static void low_level_init(void* macaddr)
+{
+    ETH_Configuration((const uint8_t*)macaddr);
+}
 
 /**
  * This function should do the actual transmission of the packet. The packet is
@@ -79,25 +88,25 @@ extern ETH_DMA_Rx_Frame_infos *DMA_RX_FRAME_infos;
 
 static err_t low_level_output(struct netif *netif, struct pbuf *p)
 {
-	(void)netif;
-  struct pbuf *q;
-  int framelength = 0;
-  u8 *buffer =  (u8 *)(DMATxDescToSet->Buffer1Addr);
-  
-  /* copy frame from pbufs to driver buffers */
-  for(q = p; q != NULL; q = q->next) 
-  {
-    memcpy((u8_t*)&buffer[framelength], q->payload, q->len);
-	framelength = framelength + q->len;
-  }
-  
-  /* Note: padding and CRC for transmitted frame 
+    (void)netif;
+    struct pbuf *q;
+    int framelength = 0;
+    u8 *buffer =  (u8 *)(DMATxDescToSet->Buffer1Addr);
+
+    /* copy frame from pbufs to driver buffers */
+    for(q = p; q != NULL; q = q->next)
+    {
+        memcpy((u8_t*)&buffer[framelength], q->payload, q->len);
+        framelength = framelength + q->len;
+    }
+
+    /* Note: padding and CRC for transmitted frame
      are automatically inserted by DMA */
 
-  /* Prepare transmit descriptors to give to DMA*/ 
-  ETH_Prepare_Transmit_Descriptors(framelength);
+    /* Prepare transmit descriptors to give to DMA*/
+    ETH_Prepare_Transmit_Descriptors(framelength);
 
-  return ERR_OK;
+    return ERR_OK;
 }
 
 /**
@@ -118,7 +127,6 @@ static struct pbuf * low_level_input(struct netif *netif)
   u8 *buffer;
   uint32_t i=0;
   __IO ETH_DMADESCTypeDef *DMARxNextDesc;
-  
   
   p = NULL;
   
@@ -173,6 +181,73 @@ static struct pbuf * low_level_input(struct netif *netif)
   }
   return p;
 }
+
+#elif USE_DRIVER_ENC28J60_PHY && USE_DRIVER_LWIP_NET
+
+// TODO - does the setting CHECKSUM_BY_HARDWARE have an effect here?
+
+/**
+ * performs MAC/PHY level initialization
+ */
+static void low_level_init(void* macaddr)
+{
+    enc28j60_init((uint8_t*)macaddr);
+}
+
+static err_t low_level_output(struct netif *netif, struct pbuf *p)
+{
+    (void)netif;
+    struct pbuf *q;
+    int framelength = 0;
+
+    enc28j60_send_packet_start();
+
+    /* copy frame from pbufs to driver buffers */
+    for(q = p; q != NULL; q = q->next)
+    {
+        enc28j60_write_buffer(q->payload, q->len);
+        framelength = framelength + q->len;
+    }
+
+    enc28j60_send_packet_end(framelength);
+    return ERR_OK;
+}
+
+static struct pbuf * low_level_input(struct netif *netif)
+{
+    struct pbuf *p, *q;
+    u16_t len;
+
+    len = enc28j60_recv_packet_start(netif->mtu);
+
+    /* We allocate a pbuf chain of pbufs from the Lwip buffer pool */
+    p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
+
+    if(p != NULL)
+    {
+        for (q = p; q != NULL; q = q->next)
+        {
+            enc28j60_read_buffer(q->payload, q->len);
+        }
+    }
+
+    enc28j60_recv_packet_end();
+
+    return p;
+}
+
+#endif
+
+
+err_t ethernetif_incoming()
+{
+#if USE_DRIVER_MII_RMII_PHY
+    return ETH_CheckFrameReceived() ? ERR_OK : ERR_MEM;
+#elif USE_DRIVER_ENC28J60_PHY
+    return enc28j60_check_incoming() ? ERR_OK : ERR_MEM;
+#endif
+}
+
 
 /**
  * This function should be called when a packet is ready to be read
@@ -236,7 +311,7 @@ err_t ethernetif_init(struct netif *netif)
   /* don't set NETIF_FLAG_ETHARP if this device is not an ethernet one */
   netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_LINK_UP;
   /* initialize the hardware */
-  ETH_Configuration(netif->hwaddr);
+  low_level_init(netif->hwaddr);
 
   return ERR_OK;
 }
