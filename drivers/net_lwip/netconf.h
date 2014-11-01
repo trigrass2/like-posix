@@ -49,7 +49,7 @@ typedef struct {
 	logger_t log;
 	struct netif netif;
 	net_resolv_prot_t resolv;
-#ifdef USE_DHCP
+#ifdef LWIP_DHCP
 	uint32_t dhcp_fine_timer;
 	uint32_t dhcp_coarse_timer;
 #endif
