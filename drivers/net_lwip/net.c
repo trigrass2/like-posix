@@ -37,7 +37,7 @@
 #include "task.h"
 #include "queue.h"
 
-#include "stm32_eth.h"
+#include "eth_mac.h"
 
 #include "ethernetif.h"
 #include "tcp_impl.h"
@@ -152,7 +152,7 @@ void net_task(void *pvParameters)
 #if !NO_SYS
     	LOCK_TCPIP_CORE();
 #endif
-		if (ETH_CheckFrameReceived())
+		if(ethernetif_incoming() == ERR_OK)
 			ethernetif_input(&netconf->netif);
 #if !NO_SYS
 		UNLOCK_TCPIP_CORE();
