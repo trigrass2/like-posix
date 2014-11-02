@@ -64,7 +64,14 @@
  /**
   * puts a mutex around writing a log line, when set to 1
   */
-#define USE_LOGGER_FREERTOS_MUTEX	0
+#define USE_LOGGER_FREERTOS_MUTEX   0
+#endif
+
+#ifndef LOG_BUFFER_SIZE
+ /**
+  * this is the size in bytes of the buffer used to format the log message.
+  */
+#define LOG_BUFFER_SIZE   512
 #endif
 
 

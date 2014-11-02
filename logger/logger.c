@@ -56,6 +56,11 @@ static logger_mutex_t _logger_write_mutex = NULL;
 #endif
 
 /**
+ * the log buffer is static, not stacked, in order to eliminate blowing task stack sizes out.
+ */
+static char log_buf[LOG_BUFFER_SIZE];
+
+/**
  * logger that may be used by any module
  */
 static logger_t _syslog = {
@@ -139,8 +144,7 @@ static inline void write_log_record(logger_t* logger, log_level_t level, char* m
 	if(_logger_write_mutex == NULL)
 		return;
 #endif
-	char buf[512];
-	vsprintf(buf, message, va_args);
+	vsprintf(log_buf, message, va_args);
 
 	logger = logger != NULL ? logger : &_syslog;
 
@@ -151,7 +155,7 @@ static inline void write_log_record(logger_t* logger, log_level_t level, char* m
 			take_mutex(_logger_write_mutex);
 			write(handlers[i], logger->name, strlen(logger->name));
 			write(handlers[i], levelstr[level], strlen(levelstr[level]));
-			write(handlers[i], buf, strlen(buf));
+			write(handlers[i], log_buf, strlen(log_buf));
 			write(handlers[i], "\n", 1);
 
 			if(isatty(handlers[i]) == 0)
