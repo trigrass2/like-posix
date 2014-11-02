@@ -36,5 +36,6 @@
 #define DRIVERS_NET_LWIP_NET_H_
 
 void net_init(netconf_t* netconf);
+bool wait_for_address(netconf_t* netconf);
 
 #endif /* DRIVERS_NET_LWIP_NET_H_ */

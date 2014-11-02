@@ -41,17 +41,25 @@
 #define MAX_HOSTNAME_LENGTH	64
 
 typedef enum {
-	NET_RESOLV_DHCP,
-	NET_RESOLV_STATIC
+    NET_RESOLV_DHCP,
+    NET_RESOLV_STATIC
 } net_resolv_prot_t;
+
+typedef enum {
+    DHCP_STATE_INIT,
+    DHCP_STATE_DISCOVER,
+    DHCP_STATE_DONE=2
+} dhcp_state_t;
 
 typedef struct {
 	logger_t log;
 	struct netif netif;
 	net_resolv_prot_t resolv;
+	SemaphoreHandle_t address_ok;
 #ifdef LWIP_DHCP
 	uint32_t dhcp_fine_timer;
 	uint32_t dhcp_coarse_timer;
+	dhcp_state_t dhcp_state;
 #endif
 	uint8_t hostname[MAX_HOSTNAME_LENGTH];
 	struct ip_addr addr_cache[3]; // ip, netmask,gw

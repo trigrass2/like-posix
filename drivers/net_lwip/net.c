@@ -59,6 +59,10 @@
 #include "leds.h"
 #endif
 
+#if LWIP_DHCP
+static void dhcp_begin(netconf_t* netconf);
+static void dhcp_process(netconf_t* netconf);
+#endif
 static void net_task(void *pvParameters);
 static void link_callback(struct netif *netif);
 static void status_callback(struct netif *netif);
@@ -67,10 +71,6 @@ static void tcpip_init_done(void *arg);
 
 void net_init(netconf_t* netconf)
 {
-#if LWIP_DHCP
-	uint32_t localtime;
-#endif
-
 	log_init(&netconf->log, "net_init");
 
 #if NO_SYS
@@ -84,57 +84,31 @@ void net_init(netconf_t* netconf)
 	netif_set_status_callback(&netconf->netif, status_callback);
 	netif_set_default(&netconf->netif);
 
+    netconf->address_ok = xSemaphoreCreateBinary();
+    assert_true(netconf->address_ok != NULL);
+    xSemaphoreTake(netconf->address_ok, 100/portTICK_RATE_MS);
+
+#if LWIP_DHCP
+    if(netconf->resolv == NET_RESOLV_DHCP)
+        dhcp_begin(netconf);
+    else
+    {
+        netif_set_up(&netconf->netif);
+        xSemaphoreGive(netconf->address_ok);
+    }
+#endif
+
 	xTaskCreate(net_task,
 				"lwIP",
 				configMINIMAL_STACK_SIZE+NET_TASK_STACK,
 				netconf,
 				tskIDLE_PRIORITY+NET_TASK_PRIORITY,
 				NULL);
+}
 
-#if LWIP_DHCP
-	if(netconf->resolv == NET_RESOLV_DHCP)
-	{
-		dhcp_start(&netconf->netif); // call dhcp_fine_tmr() and dhcp_coarse_tmr()
-		log_info(&netconf->log, "DHCP started");
-
-		// loop here while DHCP is ongoing... we arnt going anywhere fast without an IP address
-		// TODO - I saw that DHCP has timeouts enabled in timers.c... why do I need this loop? DHCP doesnt seem to work otherwise.
-		while(netconf->netif.dhcp->state != DHCP_OFF)
-		{
-			localtime = xTaskGetTickCount()/portTICK_PERIOD_MS;
-
-			// DHCP Coarse periodic process every 60s
-			if (localtime - netconf->dhcp_coarse_timer >= DHCP_COARSE_TIMER_MSECS)
-			{
-				netconf->dhcp_coarse_timer =  localtime;
-				dhcp_coarse_tmr();
-			}
-
-			// Fine DHCP periodic process every 500ms
-			if (localtime - netconf->dhcp_fine_timer >= DHCP_FINE_TIMER_MSECS)
-			{
-
-				netconf->dhcp_fine_timer =  localtime;
-				dhcp_fine_tmr();
-
-				if(netconf->netif.dhcp->state == DHCP_BOUND)
-				{
-					dhcp_stop(&netconf->netif);
-					log_info(&netconf->log, "DHCP finished");
-				}
-				else if(netconf->netif.dhcp->state != DHCP_OFF)
-				{
-#ifdef NET_LINK_LED
-					toggle_led(NET_LINK_LED);
-#endif
-				}
-			}
-			taskYIELD();
-		}
-	}
-#endif
-
-	netif_set_up(&netconf->netif);
+bool wait_for_address(netconf_t* netconf)
+{
+    return xSemaphoreTake(netconf->address_ok, 10000/portTICK_RATE_MS) == pdTRUE;
 }
 
 void net_task(void *pvParameters)
@@ -149,35 +123,108 @@ void net_task(void *pvParameters)
     {
     	// TODO - use a semaphore to trigger ethernetif_input from an packet received interrupt.
     	// run the other TCP stuff in a separate thread in that case...
-#if !NO_SYS
-    	LOCK_TCPIP_CORE();
-#endif
+
 		if(ethernetif_incoming() == ERR_OK)
-			ethernetif_input(&netconf->netif);
+		{
 #if !NO_SYS
-		UNLOCK_TCPIP_CORE();
+		    LOCK_TCPIP_CORE();
+			ethernetif_input(&netconf->netif);
+			UNLOCK_TCPIP_CORE();
+#else
+			ethernetif_input(&netconf->netif);
+#endif
+		}
+		else
+		    vTaskDelay(1/portTICK_RATE_MS); // TODO - sort this out!! required in some cases to get CPU time for other tasks :|
+
+#if LWIP_DHCP
+	    if(netconf->resolv == NET_RESOLV_DHCP)
+	        dhcp_process(netconf);
 #endif
 
 #if NO_SYS
-	// only need the following if we specify NO_SYS
+		// only need the following if we specify NO_SYS
 #if LWIP_TCP
-	/* TCP periodic process every 250 ms */
-	if (localtime - netconf->tcp_timer >= TCP_TMR_INTERVAL)
-	{
-		netconf->tcp_timer = localtime;
-		tcp_tmr();
-	}
+        /* TCP periodic process every 250 ms */
+        if (localtime - netconf->tcp_timer >= TCP_TMR_INTERVAL)
+        {
+            netconf->tcp_timer = localtime;
+            tcp_tmr();
+        }
 #endif
-	/* ARP periodic process every 5s */
-	if ((localtime - netconf->arp_timer) >= ARP_TMR_INTERVAL)
-	{
-		netconf->arp_timer = localtime;
-		etharp_tmr();
-	}
+        /* ARP periodic process every 5s */
+        if ((localtime - netconf->arp_timer) >= ARP_TMR_INTERVAL)
+        {
+            netconf->arp_timer = localtime;
+            etharp_tmr();
+        }
 #endif
 		taskYIELD();
     }
 }
+
+#if LWIP_DHCP
+
+static void dhcp_begin(netconf_t* netconf)
+{
+    dhcp_start(&netconf->netif);
+    netconf->dhcp_state = DHCP_STATE_INIT;
+    log_info(&netconf->log, "DHCP started");
+}
+
+void dhcp_process(netconf_t* netconf)
+{
+    uint32_t localtime;
+    bool run_sm = false;
+
+    localtime = xTaskGetTickCount()/portTICK_PERIOD_MS;
+
+    if(localtime - netconf->dhcp_coarse_timer >= DHCP_COARSE_TIMER_MSECS)
+    {
+        netconf->dhcp_coarse_timer =  localtime;
+        dhcp_coarse_tmr();
+        run_sm = true;
+    }
+
+    // Fine DHCP periodic process every 500ms
+    if(localtime - netconf->dhcp_fine_timer >= DHCP_FINE_TIMER_MSECS)
+    {
+        netconf->dhcp_fine_timer =  localtime;
+        dhcp_fine_tmr();
+        run_sm = true;
+    }
+
+    if(run_sm)
+    {
+        switch(netconf->dhcp_state)
+        {
+            case DHCP_STATE_INIT:
+                netif_set_down(&netconf->netif);
+                netconf->dhcp_state = DHCP_STATE_DISCOVER;
+            break;
+
+            case DHCP_STATE_DISCOVER:
+#ifdef NET_LINK_LED
+                toggle_led(NET_LINK_LED);
+#endif
+                if(netconf->netif.dhcp->state == DHCP_BOUND)
+                {
+                    netif_set_up(&netconf->netif);
+                    netconf->dhcp_state = DHCP_STATE_DONE;
+                    xSemaphoreGive(netconf->address_ok);
+                    log_info(&netconf->log, "DHCP finished");
+                }
+            break;
+
+            case DHCP_STATE_DONE:
+                if(netconf->netif.dhcp->state != DHCP_BOUND)
+                    netconf->dhcp_state = DHCP_STATE_INIT;
+            break;
+        }
+    }
+}
+
+#endif
 
 /**
  * link notification
@@ -208,9 +255,13 @@ void status_callback(struct netif *netif)
 	log_info(&status_cb_log, "gw: %d.%d.%d.%d", pt[0], pt[1], pt[2], pt[3]);
 	pt = netif->hwaddr;
 	log_info(&status_cb_log, "mac: %02x:%02x:%02x:%02x:%02x:%02x", pt[0], pt[1], pt[2], pt[3], pt[4], pt[5]);
+
+	if(netif_is_up(netif))
+	{
 #ifdef NET_LINK_LED
-	set_led(NET_LINK_LED);
+	    set_led(NET_LINK_LED);
 #endif
+	}
 }
 
 void tcpip_init_done(void *arg)
