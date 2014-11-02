@@ -49,6 +49,8 @@ USE_DRIVER_FAT_FILESYSTEM = 1
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include "sdfs.h"
+#include "net.h"
 #include "threaded_server.h"
 
 #define ECHO_BUFFER_SIZE                16
@@ -91,7 +93,6 @@ void start_echo(sock_server_t* echo, char* configfile)
 {
 
 	// init filesystem
-	log_info(&log, "wait for filesystem...");
 	sdfs_init();
 	while(!sdfs_ready());
 	    
