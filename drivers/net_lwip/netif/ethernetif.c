@@ -215,10 +215,11 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
 
 static struct pbuf * low_level_input(struct netif *netif)
 {
+    (void)netif;
     struct pbuf *p, *q;
     u16_t len;
 
-    len = enc28j60_recv_packet_start(netif->mtu);
+    len = enc28j60_recv_packet_start(MAX_ETH_PAYLOAD);
 
     /* We allocate a pbuf chain of pbufs from the Lwip buffer pool */
     p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);

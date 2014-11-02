@@ -54,7 +54,7 @@ void enc28j60_write_phy(uint8_t adr, uint16_t data);
 #define ETH_EXTRA                   2           // Extra bytes in some cases
 #define VLAN_TAG                    4           // optional 802.1q VLAN Tag
 #define MIN_ETH_PAYLOAD             46          // Minimum Ethernet payload size
-#define ENC28J60_MAXFRAME           (MAX_ETH_PAYLOAD + ETH_HEADER + ETH_EXTRA + ETH_CRC)
+#define ENC28J60_MAXFRAME           MAX_ETH_PAYLOAD//(MAX_ETH_PAYLOAD + ETH_HEADER + ETH_EXTRA + ETH_CRC)
 
 
 #define ENC28J60_BUFSIZE	0x2000
