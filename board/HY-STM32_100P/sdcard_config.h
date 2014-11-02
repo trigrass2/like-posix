@@ -51,6 +51,6 @@
 
 #define SDCARD_IT_PRIORITY          5
 #define SDCARD_TASK_PRIORITY        1
-#define SDCARD_TASK_STACK        	1024
+#define SDCARD_TASK_STACK        	0
 
 #endif // SDCARD_CONFIG_H_

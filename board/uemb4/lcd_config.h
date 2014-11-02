@@ -36,7 +36,7 @@
 
 
 #define TOUCH_TASK_PRIORITY         1
-#define TOUCH_TASK_STACK         	100
+#define TOUCH_TASK_STACK         	0
 
 
 // TODO this has no effect on touch screen rotation
