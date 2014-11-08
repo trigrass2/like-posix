@@ -34,7 +34,7 @@
 #define NET_CONF_H_
 
 #define NET_TASK_PRIORITY		1
-#define NET_TASK_STACK			32
+#define NET_TASK_STACK			64
 
 /**
  * Ethernet driver buffer size and count - defaults are set in stm32_eth.h

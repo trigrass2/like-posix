@@ -40,6 +40,9 @@
 
 #define MAX_HOSTNAME_LENGTH	64
 
+#define DEFAULT_RESOLV_CONF_PATH        "/etc/network/resolv"
+#define DEFAULT_NETIF_CONF_PATH         "/etc/network/interface"
+
 typedef enum {
     NET_RESOLV_DHCP,
     NET_RESOLV_STATIC
