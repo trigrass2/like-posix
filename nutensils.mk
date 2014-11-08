@@ -39,3 +39,20 @@ ifeq ($(USE_THREADED_SERVER), 1)
 SOURCE += $(NUTENSILS_DIR)/threaded_server/threaded_server.c
 CFLAGS += -I $(NUTENSILS_DIR)/threaded_server
 endif
+
+
+USE_SHELL_VALUES = 0 1
+
+ifeq ($(filter $(USE_SHELL),$(USE_SHELL_VALUES)), )
+$(error USE_SHELL is not set. set to one of: $(USE_SHELL_VALUES))
+endif
+
+CFLAGS += -DUSE_SHELL=$(USE_SHELL)
+
+ifeq ($(USE_SHELL), 1)
+SOURCE += $(NUTENSILS_DIR)/shell/shell.c
+SOURCE += $(NUTENSILS_DIR)/shell/shell_command.c
+SOURCE += $(NUTENSILS_DIR)/shell/builtins/builtins.c
+CFLAGS += -I $(NUTENSILS_DIR)/shell/builtins
+CFLAGS += -I $(NUTENSILS_DIR)/shell
+endif

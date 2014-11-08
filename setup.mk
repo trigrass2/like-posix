@@ -59,6 +59,10 @@ USE_HTTP_UTILS ?= 0
 # set to 1 to enable, set to 0 to disable
 USE_THREADED_SERVER ?= 0
 
+## Shell server module from the nutensils project
+# set to 1 to enable, set to 0 to disable
+USE_SHELL ?= 0
+
 ## DRIVERS
 # set thse to 0 to remove from the build, 1 to include in the build
 # standalone drivers
