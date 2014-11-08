@@ -48,26 +48,43 @@
 #include <stdlib.h>
 #include "cutensils.h"
 #include "threaded_server.h"
+#include "cutensils.h"
 
 
 void handle_connection(sock_conn_t* conn);
 int spawn_connection(sock_server_t* server, sock_conn_t* conn);
 
-void start_threaded_server(sock_server_t* servinfo, char* config, sock_service_fptr_t threadfunc, char* name, void* data, int stacksize, int prio, int conns)
+int start_threaded_server(sock_server_t* servinfo, char* config, sock_service_fptr_t threadfunc, char* name, void* data, int stacksize, int prio)
 {
+    logger_t startuplog;
 	uint8_t buffer[32];
 	int fd = -1;
-	const uint8_t* portstr;
+	const uint8_t* intstr;
+	int port = 0;
+	int conns = 0;
 
-	portstr = get_config_value_by_key(buffer, sizeof(buffer), (const uint8_t*)config, (const uint8_t*)"port");
+	log_init(&startuplog, "start_threaded_server");
 
-	if(portstr)
+	intstr = get_config_value_by_key(buffer, sizeof(buffer), (const uint8_t*)config, (const uint8_t*)"port");
+	if(intstr)
+	    port = atoi((const char*)intstr);
+	intstr = get_config_value_by_key(buffer, sizeof(buffer), (const uint8_t*)config, (const uint8_t*)"conns");
+    if(intstr)
+        conns = atoi((const char*)intstr);
+
+	if(port && conns)
 	{
-		fd = sock_server(atoi((const char*)portstr), SOCK_STREAM, conns, servinfo, spawn_connection, threadfunc, data, name, stacksize, prio);
+		fd = sock_server(port, SOCK_STREAM, conns, servinfo, spawn_connection, threadfunc, data, name, stacksize, prio);
 
 		if(fd != -1)
 			xTaskCreate(sock_server_thread, "threaded_server", configMINIMAL_STACK_SIZE + THREADED_SERVER_STACK_SIZE, servinfo, tskIDLE_PRIORITY + THREADED_SERVER_PRIORITY, NULL);
 	}
+	else
+	{
+	    log_error(&startuplog, "port and/or conns settings invalid, %d and %d", port, conns);
+	}
+
+	return fd;
 }
 
 int spawn_connection(sock_server_t* server, sock_conn_t* conn)

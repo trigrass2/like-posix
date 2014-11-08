@@ -46,7 +46,7 @@
 #define THREADED_SERVER_PRIORITY		1
 #define THREADED_SERVER_STACK_SIZE		128
 
-void start_threaded_server(sock_server_t* servinfo, char* config, sock_service_fptr_t threadfunc, char* name, void* data, int stacksize, int prio, int conns);
+int start_threaded_server(sock_server_t* servinfo, char* config, sock_service_fptr_t threadfunc, char* name, void* data, int stacksize, int prio);
 
 #endif /* THREADED_SERVER_H_ */
 
