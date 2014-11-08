@@ -43,9 +43,12 @@
 #include "misc.h"
 #include "board_config.h"
 #include "system.h"
+#include "minstdlib.h"
 
 volatile int32_t ITM_RxBuffer;
 extern uint32_t ___SVECTOR_OFFSET; // defined in linker script, must be multiple of 0x200?
+
+static void set_resetflag(uint16_t rcc_flag, uint16_t resetflag, uint16_t* resetflags);
 
 /**
  * linker script defines memory base and vector table offset values
@@ -86,10 +89,137 @@ void enable_bod()
 	PWR_PVDCmd(ENABLE);
 }
 
+/**
+ * bit of a hack and not really a good idea to use these kind of things.
+ * delays for aproximately count milliseconds.
+ */
 void delay(volatile uint32_t count)
 {
     count *= SystemCoreClock/8960;
     while(count-- > 0);
+}
+
+/**
+  * @brief  reset the processor by software...
+  */
+void soft_reset()
+{
+    NVIC_SystemReset();
+}
+
+/**
+  * @brief  causes a hardfault by calling invalid function by pointer. used for testing exception handler.
+  */
+void fake_hardfault()
+{
+    function_pointer_t f = (function_pointer_t)0x12345678;
+    f();
+}
+
+/**
+ *
+ * The STM32 device can have multiple reset sources flagged.
+ *
+ * @param rcc_flag is one of the RCC flags to check....
+ *    @arg RCC_FLAG_HSIRDY: HSI oscillator clock ready
+ *    @arg RCC_FLAG_HSERDY: HSE oscillator clock ready
+ *    @arg RCC_FLAG_PLLRDY: main PLL clock ready
+ *    @arg RCC_FLAG_PLLI2SRDY: PLLI2S clock ready
+ *    @arg RCC_FLAG_LSERDY: LSE oscillator clock ready
+ *    @arg RCC_FLAG_LSIRDY: LSI oscillator clock ready
+ *    @arg RCC_FLAG_BORRST: POR/PDR or BOR reset
+ *    @arg RCC_FLAG_PINRST: Pin reset
+ *    @arg RCC_FLAG_PORRST: POR/PDR reset
+ *    @arg RCC_FLAG_SFTRST: Software reset
+ *    @arg RCC_FLAG_IWDGRST: Independent Watchdog reset
+ *    @arg RCC_FLAG_WWDGRST: Window Watchdog reset
+ *    @arg RCC_FLAG_LPWRRST: Low Power reset
+ * @param resetflag is one of the following  enumerated values:
+ *    @arg RESETFLAG_PINRST
+ *    @arg RESETFLAG_PORRST
+ *    @arg RESETFLAG_SFTRST
+ *    @arg RESETFLAG_IWDGRST
+ *    @arg RESETFLAG_WWDGRST
+ * @param resetflags is a variable to store the result in.
+ */
+void set_resetflag(uint16_t rcc_flag, uint16_t resetflag, uint16_t* resetflags)
+{
+    if(RCC_GetFlagStatus(rcc_flag) == SET)
+        *resetflags |= resetflag;
+}
+
+/**
+ * clears all reset flags
+ */
+void clear_resetflags()
+{
+    RCC_ClearFlag();
+}
+
+/**
+ * @retval  returns the source(s) of the last reset.
+ */
+uint16_t get_resetflags()
+{
+    uint16_t resetflags = 0;
+
+    set_resetflag(RCC_FLAG_SFTRST, RESETFLAG_SFTRST, &resetflags);
+    set_resetflag(RCC_FLAG_PORRST, RESETFLAG_PORRST, &resetflags);
+    set_resetflag(RCC_FLAG_PINRST, RESETFLAG_PINRST, &resetflags);
+    set_resetflag(RCC_FLAG_IWDGRST, RESETFLAG_IWDGRST, &resetflags);
+    set_resetflag(RCC_FLAG_WWDGRST, RESETFLAG_WWDGRST, &resetflags);
+    set_resetflag(RCC_FLAG_LPWRRST, RESETFLAG_LPWRRST, &resetflags);
+
+    return resetflags;
+}
+
+/**
+ * @retval  returns true if the specified flag is set in the resetflags variable (populated by @ref get_resetflags)
+ */
+bool get_resetflag_state(uint16_t resetflags, uint16_t flag)
+{
+    return (bool)(resetflags&flag);
+}
+
+/**
+ * @brief   set stack pointer and exectute from some address.
+ */
+void run_from(uint32_t address)
+{
+    __set_MSP(*(__IO uint32_t*)address);
+
+    uint32_t startAddress = *(__IO uint32_t*)(address + 4);
+    function_pointer_t runapp = (function_pointer_t)(startAddress);
+    runapp();
+}
+
+/**
+ * @brief   reads the device unique id, converts the 96bit number to a uint64_t.
+ */
+uint64_t get_device_uid()
+{
+    uint64_t serialnumber;
+#if defined(STM32F10X_HD) || defined(STM32F10X_MD) || defined(STM32F10X_LD)
+    serialnumber = *(__IO uint64_t*)(0x1FFFF7E8);
+    serialnumber += *(__IO uint64_t*)(0x1FFFF7EC);
+//  serialnumber += *(__IO uint64_t*)(0x1FFFF7F0);
+#elif defined(STM32F10X_CL) || defined(STM32F4XX)
+    serialnumber = *(__IO uint64_t*)(0x1FFFB7E8);
+    serialnumber += *(__IO uint64_t*)(0x1FFFB7EC);
+//  serialnumber += *(__IO uint64_t*)(0x1FFFB7F0);
+#endif
+
+    return serialnumber;
+}
+
+/**
+ * @brief   reads the device unique id, converts it to a base32 string.
+ * @param   str is some memory to put the uid string into including the null terminator.
+ *          it should be a minimum of 14 characters long.
+ */
+void get_device_uid_string(uint8_t* str)
+{
+    ditoa(get_device_uid(), (char*)str, 32);
 }
 
 /**

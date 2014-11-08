@@ -45,14 +45,39 @@
  extern "C" {
 #endif
 
+typedef  void (*function_pointer_t)(void);
+
 #ifndef NULL
 #define NULL ((void*)0)
 #endif
+
+ /**
+  * enumeration used to determine reset source.
+  */
+enum {
+    RESETFLAG_PINRST = 1,
+    RESETFLAG_PORRST = 2,
+    RESETFLAG_SFTRST = 4,
+    RESETFLAG_IWDGRST = 8,
+    RESETFLAG_WWDGRST = 16,
+    RESETFLAG_LPWRRST = 32
+};
 
 void enable_bod();
 void enable_fpu();
 void configure_nvic();
 void delay(volatile uint32_t count);
+
+void soft_reset();
+void fake_hardfault(void);
+void run_from(uint32_t address);
+
+void clear_resetflags();
+uint16_t get_resetflags();
+bool get_resetflag_state(uint16_t resetflags, uint16_t flag);
+
+uint64_t get_device_uid();
+void get_device_uid_string(uint8_t* str);
 
 #ifdef __cplusplus
  }
