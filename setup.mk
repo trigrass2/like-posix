@@ -24,7 +24,7 @@ PROJECT_NAME ?= main
 # stabs
 # dwarf-2
 # gdb
-DEBUG ?= 
+DEBUG ?=
 
 ## Optimization level,
 # can be 0, 1, 2, 3, s
@@ -59,10 +59,6 @@ USE_HTTP_UTILS ?= 0
 # set to 1 to enable, set to 0 to disable
 USE_THREADED_SERVER ?= 0
 
-## Shell server module from the nutensils project
-# set to 1 to enable, set to 0 to disable
-USE_SHELL ?= 0
-
 ## DRIVERS
 # set thse to 0 to remove from the build, 1 to include in the build
 # standalone drivers
@@ -81,29 +77,31 @@ USE_DRIVER_SDCARD_SPI ?= 0
 USE_DRIVER_SDCARD_SDIO ?= 0
 USE_DRIVER_FAT_FILESYSTEM ?= 0
 
+# the location of this stuff WRT the project
+STM32DEVSUPPORTDIR ?= ..
 
 ## specify location of the project: https://github.com/drmetal/stm32-build-env
-BUILD_ENV_DIR ?= ../stm32-build-env
+BUILD_ENV_DIR ?= $(STM32DEVSUPPORTDIR)/stm32-build-env
 ## specify location of the project: https://github.com/drmetal/stm32-device-support
-DEVICE_SUPPORT_DIR ?= ../stm32-device-support
+DEVICE_SUPPORT_DIR ?= $(STM32DEVSUPPORTDIR)/stm32-device-support
 ## specify location of the project: https://github.com/drmetal/cutensils
-CUTENSILS_DIR ?= ../cutensils
+CUTENSILS_DIR ?= $(STM32DEVSUPPORTDIR)/cutensils
 ## specify location of the project: https://github.com/drmetal/nutensils
-NUTENSILS_DIR ?= ../nutensils
+NUTENSILS_DIR ?= $(STM32DEVSUPPORTDIR)/nutensils
 ## specify location of the project: https://github.com/drmetal/FatFs
-FATFS_DIR ?= ../FatFs
+FATFS_DIR ?= $(STM32DEVSUPPORTDIR)/FatFs
 ## specify location of the project: https://github.com/drmetal/like-posix
-LIKEPOSIX_DIR ?= ../like-posix
+LIKEPOSIX_DIR ?= $(STM32DEVSUPPORTDIR)/like-posix
 ## specify location of the project: https://github.com/drmetal/freertos
-FREERTOS_DIR ?= ../freertos
+FREERTOS_DIR ?= $(STM32DEVSUPPORTDIR)/freertos
 ## specify location of the project: https://github.com/drmetal/LwIP
-LWIP_DIR ?= ../LwIP
+LWIP_DIR ?= $(STM32DEVSUPPORTDIR)/LwIP
 ## specify location of the project: https://github.com/drmetal/minstdlibs
-MINSTDLIBSDIR ?= ../minstdlibs
+MINSTDLIBSDIR ?= $(STM32DEVSUPPORTDIR)/minstdlibs
 
 ## relocate application
 # set appropriately if there is a bootloader in the low flash pages
 APP_ADDRESS_OFFSET ?= 0x0000
 
 # include the makefile that collects all modules together
-include ../stm32-build-env/collect.mk
+include $(STM32DEVSUPPORTDIR)/stm32-build-env/collect.mk
