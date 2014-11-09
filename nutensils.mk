@@ -52,7 +52,9 @@ CFLAGS += -DUSE_SHELL=$(USE_SHELL)
 ifeq ($(USE_SHELL), 1)
 SOURCE += $(NUTENSILS_DIR)/shell/shell.c
 SOURCE += $(NUTENSILS_DIR)/shell/shell_command.c
+CFLAGS += -I $(NUTENSILS_DIR)/shell
 SOURCE += $(NUTENSILS_DIR)/shell/builtins/builtins.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell/builtins
-CFLAGS += -I $(NUTENSILS_DIR)/shell
+SOURCE += $(NUTENSILS_DIR)/shell/filesystem_cmds/fs_cmds.c
+CFLAGS += -I $(NUTENSILS_DIR)/shell/filesystem_cmds
 endif
