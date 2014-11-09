@@ -43,6 +43,8 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
 void strreverse(char* begin, char* end);
 char* itoa(int value, char* str, int base);
 char* ditoa(int64_t value, char* str, int base);
