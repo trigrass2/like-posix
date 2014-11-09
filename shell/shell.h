@@ -49,6 +49,8 @@
 #define SHELL_HISTORY_LENGTH        4
 #define SHELL_MAX_ARGS              16
 
+#define SHELL_CWD_LENGTH_MAX        256
+
 typedef struct {
     char* name;
     shell_cmd_t* head_cmd;

@@ -1,12 +1,38 @@
 /*
- * shell.c
+ * Copyright (c) 2015 Michael Stuart.
+ * All rights reserved.
  *
- *  Created on: 29/10/2014
- *      Author: stuartm
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 3. The name of the author may not be used to endorse or promote products
+ *    derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+ * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+ * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+ * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
+ * This file is part of the nutensils project, <https://github.com/drmetal/nutensils>
+ *
+ * Author: Michael Stuart <spaceorbot@gmail.com>
+ *
  */
 
 #include "shell.h"
 
+#include <unistd.h>
 #include <sys/socket.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,30 +64,67 @@ typedef struct _shell_instance_t{
 }shell_instance_t;
 
 
-void prompt(shell_instance_t* sh);
-void historic_prompt(shell_instance_t* sh);
-void clear_prompt(shell_instance_t* sh);
-void put_prompt(shell_instance_t* sh, const char* promptstr, const char* argstr, bool newline);
-void parse_input(shell_instance_t* sh, current_command_t* cmd);
-void shell_builtins(shell_instance_t* sh, int code, shell_cmd_t* cmd);
+static void prompt(shell_instance_t* sh);
+static void historic_prompt(shell_instance_t* sh);
+static void clear_prompt(shell_instance_t* sh);
+static void put_prompt(shell_instance_t* sh, const char* promptstr, const char* argstr, bool newline);
+static void parse_input(shell_instance_t* sh, current_command_t* cmd);
+static void shell_builtins(shell_instance_t* sh, int code, shell_cmd_t* cmd);
+static void shell_instance_thread(sock_conn_t* conn);
 
-
-void shell_instance_thread(sock_conn_t* conn);
-
+/**
+ * starts a shell server. requires a config file that meets the needs of the threaded server...
+ *
+ * @param   shellserver is a pointer to a fresh shell server structure, its contents will be fully initialized.
+ * @param   config file is a filepath to a configuration file. it must contain port and conns settings.
+ * @retval  returns -1 on error, and a non zero value on success.
+ */
 int start_shell(shellserver_t* shellserver, char* configfile)
 {
     shellserver->name = "shell";
 
-	register_command(shellserver, &help_cmd, help_sh, NULL, NULL);
-	register_command(shellserver, &exit_cmd, exit_sh, NULL, NULL);
+    memset(shellserver, 0, sizeof(shellserver_t));
+
+	register_command(shellserver, &sh_help_cmd, NULL, NULL, NULL);
+	register_command(shellserver, &sh_exit_cmd, NULL, NULL, NULL);
 
 	return start_threaded_server(&shellserver->server, configfile, shell_instance_thread, shellserver->name, shellserver, SHELL_TASK_STACK_SIZE, SHELL_TASK_PRIORITY);
 }
 
 /**
- * @brief   registers an @ref shell_cmd_t with the Shell.
- *          once a shell_cmd_t has been registered, it can be run from the shell.
- * @param   cmd is a pointer to a shell_cmd_t instance.
+ * registers a command with the Shell.
+ * once a shell_cmd_t has been registered, it can be run from the shell.
+ *
+ * The command structure may be pre-populated, or populated via this function.
+ *
+\code
+
+// function to run for this command
+int sh_mycmd(int fdes, const char** args, unsigned char nargs)
+{
+    // do stuff
+    return SHELL_CMD_EXIT;
+}
+
+// pre populated case:
+shell_cmd_t mycmd = {
+    .name = "mycmd",
+    .usage = "help string for mycmd",
+    .cmdfunc = sh_mycmd
+};
+register_command(&shellserver, &mycmd, NULL, NULL, NULL);
+
+// un populated case:
+shell_cmd_t mycmd;
+register_command(&shellserver, &mycmd, sh_mycmd, "mycmd", "help string for mycmd");
+
+\endcode
+ *
+ * @param   shellserver shellserver is a pointer to a the owning shell server structure.
+ * @param   cmd is a pointer to a shell_cmd_t variable.
+ * @param   cmdfunc is a pointer to a shell_cmd_func_t function pointer to use for the command.
+ * @param   name is a pointer to a string that names the command.
+ * @param   usage is a pointer to a string that describes the usage of the command.
  */
 void register_command(shellserver_t* shellserver, shell_cmd_t* cmd, shell_cmd_func_t cmdfunc, const char* name, const char* usage)
 {
@@ -74,6 +137,9 @@ void register_command(shellserver_t* shellserver, shell_cmd_t* cmd, shell_cmd_fu
     }
 }
 
+/**
+ * this function runs inside a new thread, spawned by the threaded_server
+ */
 void shell_instance_thread(sock_conn_t* conn)
 {
 	shellserver_t* shellserver = (shellserver_t*)conn->ctx;
@@ -90,6 +156,7 @@ void shell_instance_thread(sock_conn_t* conn)
 		sh->history_save_index = 0;
 		sh->fdes = conn->connfd;
 
+		// blocks here running the shell
 		prompt(sh);
 
 		free(sh);
@@ -97,10 +164,10 @@ void shell_instance_thread(sock_conn_t* conn)
 }
 
 /**
- * @brief	the shell update method, must be called periodically to make sure user input is captured.
- * @retval  pt_yielded if the shell has an action pending completeion.
- *          pt_skipped if the shell is idle or the serial interface has no incoming data.
- *          pt_blocking if the shell is in the middle of gathering incoming data.
+ * this function loops while the shell instance exitflag is set to false.
+ * it processes serial IO, decodes commands and executes them.
+ * the exit flag is set when the user runs the built in command "exit",
+ * or when the client connection closes.
  */
 void prompt(shell_instance_t* sh)
 {
@@ -289,6 +356,9 @@ void prompt(shell_instance_t* sh)
 	}
 }
 
+/**
+ * copies a prompt from a the history buffer to the input buffer, then displays it.
+ */
 void historic_prompt(shell_instance_t* sh)
 {
 	if(sh->history_index >= 0 && sh->history_index < SHELL_HISTORY_LENGTH)
@@ -310,6 +380,9 @@ void historic_prompt(shell_instance_t* sh)
 	}
 }
 
+/**
+ * clears the input buffer to a fresh prompt.
+ */
 void clear_prompt(shell_instance_t* sh)
 {
 	sh->input_index = sh->cursor_index = 0;
@@ -323,19 +396,23 @@ void clear_prompt(shell_instance_t* sh)
 }
 
 /**
- * @brief	prints the prompt string.
+ * prints the prompt string.
  */
 void put_prompt(shell_instance_t* sh, const char* promptstr, const char* argstr, bool newline)
 {
+    char* path;
 	send(sh->fdes, "\r", 1, 0);
 	if(newline)
 		send(sh->fdes, "\n", 1, 0);
-	// TODO - integrate cwd syscall
-//#if USE_SDFS
-//    FRESULT r = f_getcwd((TCHAR*)sh->scratch, sizeof(sh->scratch));
-//    if(r == FR_OK)
-//    	send(sh->fdes, sh->scratch, strlen((const char*)sh->scratch), 0);
-//#endif
+
+	path = getcwd(NULL, SHELL_CWD_LENGTH_MAX);
+
+    if(path != NULL)
+    {
+       send(sh->fdes, path, strlen(path), 0);
+       free(path);
+    }
+
 	if(promptstr)
 		send(sh->fdes, promptstr, strlen((const char*)promptstr), 0);
 	if(argstr)
@@ -343,8 +420,10 @@ void put_prompt(shell_instance_t* sh, const char* promptstr, const char* argstr,
 }
 
 /**
- * @brief	parses a string captured by prompt() for valid commands.
- * 			when a valid command is detected, the function associated with that command is called.
+ * parses a string captured by prompt() for valid commands. when a valid command is detected,
+ * the function associated with that command is called.
+ * populates cmd with the command if one is found.
+ * if no command is found, cmd->cmd is set to NULL.
  */
 void parse_input(shell_instance_t* sh, current_command_t* cmd)
 {
@@ -419,7 +498,7 @@ void parse_input(shell_instance_t* sh, current_command_t* cmd)
 		}
 
 		// match input args[0] (the command) to one of the commands
-		while(head)
+		while(head && head->name)
 		{
 			if(!strncmp((const char*)cmd->args[0], (const char*)head->name, sizeof(sh->input_buffer)-1))
 				break;
@@ -427,7 +506,7 @@ void parse_input(shell_instance_t* sh, current_command_t* cmd)
 		}
 
 		// return command if one was found
-		if(head)
+		if(head && head->name)
 		{
 			send(sh->fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1, 0);
 			// reduce number of arguments by one as first arg is just the command
