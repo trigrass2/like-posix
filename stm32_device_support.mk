@@ -62,6 +62,13 @@ SOURCE += $(DRIVERSDIR)/sdcard/sdfs.c
 CFLAGS += -I$(DRIVERSDIR)/sdcard
 endif
 
+## System Clock timer
+CFLAGS += -DUSE_DRIVER_SYSTEM_TIMER=$(USE_DRIVER_SYSTEM_TIMER)
+ifeq ($(USE_DRIVER_SYSTEM_TIMER), 1)
+SOURCE += $(DRIVERSDIR)/system_timer/systime.c
+CFLAGS += -I$(DRIVERSDIR)/system_timer
+endif
+
 ## Networking
 
 CFLAGS += -DUSE_DRIVER_LWIP_NET=$(USE_DRIVER_LWIP_NET)
