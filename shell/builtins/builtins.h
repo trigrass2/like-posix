@@ -37,5 +37,6 @@
 
 extern shell_cmd_t sh_help_cmd;
 extern shell_cmd_t sh_exit_cmd;
+extern shell_cmd_t sh_date_cmd;
 
 #endif /* SHELL_BUILTINS_H_ */

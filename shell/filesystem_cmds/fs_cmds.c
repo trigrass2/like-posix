@@ -33,6 +33,8 @@
 
 #include "minstdlib.h"
 #include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
@@ -54,11 +56,9 @@ void install_fs_cmds(shellserver_t* sh)
     register_command(sh, &sh_rm_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_mkdir_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_echo_cmd, NULL, NULL, NULL);
+    register_command(sh, &sh_cat_cmd, NULL, NULL, NULL);
 }
 
-/**
- * @brief   ls command, prints a list of file/directory names from the cwd.
- */
 int sh_ls(int fdes, const char** args, unsigned char nargs)
 {
     unsigned int i;
@@ -127,9 +127,6 @@ int sh_cd(int fdes, const char** args, unsigned char nargs)
     return SHELL_CMD_EXIT;
 }
 
-/**
- * @brief   removes a file from the filesystem.
- */
 int sh_rm(int fdes, const char** args, unsigned char nargs)
 {
     const char* path = final_arg(args, nargs);
@@ -142,9 +139,6 @@ int sh_rm(int fdes, const char** args, unsigned char nargs)
     return SHELL_CMD_EXIT;
 }
 
-/**
- * @brief   make a new directory.
- */
 int sh_mkdir(int fdes, const char** args, unsigned char nargs)
 {
     const char* dir = final_arg(args, nargs);
@@ -157,9 +151,6 @@ int sh_mkdir(int fdes, const char** args, unsigned char nargs)
     return SHELL_CMD_EXIT;
 }
 
-/**
- * @brief   echos text to a file.
- */
 int sh_echo(int fdes, const char** args, unsigned char nargs)
 {
     (void)fdes;
@@ -183,6 +174,27 @@ int sh_echo(int fdes, const char** args, unsigned char nargs)
     fputs(string, f);
     fclose(f);
 
+    return SHELL_CMD_EXIT;
+}
+
+int sh_cat(int fdes, const char** args, unsigned char nargs)
+{
+	(void)nargs;
+	char buffer[64];
+	int len;
+	int ffd = open(args[0], O_RDONLY);
+
+	if(ffd != -1)
+	{
+		len = 1;
+		while(len > 0)
+		{
+			len = read(ffd, buffer, sizeof(buffer));
+			if(len > 0)
+				send(fdes, buffer, len, 0);
+		}
+		close(ffd);
+	}
     return SHELL_CMD_EXIT;
 }
 
@@ -223,3 +235,10 @@ shell_cmd_t sh_echo_cmd = {
 "\techo `\"key\": \"value\"` > file.txt",
     .cmdfunc = sh_echo
 };
+
+shell_cmd_t sh_cat_cmd = {
+		.name = "cat",
+		.usage = "reads the entire content of a file to the sceen",
+		.cmdfunc = sh_cat
+};
+
