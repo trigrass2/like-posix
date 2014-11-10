@@ -41,7 +41,9 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#if USE_DRIVER_SYSTEM_TIMER
 #include "systime.h"
+#endif
 
 #ifdef __cplusplus
  extern "C" {
