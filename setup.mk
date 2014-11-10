@@ -55,6 +55,10 @@ USE_SOCK_UTILS ?= 0
 # set to 1 to enable, set to 0 to disable
 USE_HTTP_UTILS ?= 0
 
+## Shell server, from the nutensils project
+# set to 1 to enable, set to 0 to disable
+USE_SHELL ?= 0
+
 ## Threaded server module from the nutensils project
 # set to 1 to enable, set to 0 to disable
 USE_THREADED_SERVER ?= 0
