@@ -30,37 +30,63 @@
  *
  */
 
-/**
- * @addtogroup system
- *
- * @file stackoverflow.c
- * @{
- */
-
 #include <stdio.h>
-#include "FreeRTOS.h"
-#include "task.h"
-#if USE_DRIVER_LEDS
-#include "leds.h"
-#endif
 #include "board_config.h"
+#include "systime.h"
 
-#if configCHECK_FOR_STACK_OVERFLOW > 0
+static unsigned long seconds;
 
-void vApplicationStackOverflowHook(xTaskHandle* pxTask, signed portCHAR* pcTaskName)
+#define TIMER_INT_PRIORITY		2
+#define TIMER_BUS_CLOCK			84000000
+#define TIMER_TICK_RATE			10000
+#define TV_TICK_RATE			1000000
+#define PRESCALER				((TIMER_BUS_CLOCK / TIMER_TICK_RATE) - 1)
+#define OVERFLOW				(TIMER_TICK_RATE - 1)
+
+void init_systime()
 {
-    (void)pxTask;
-#if USE_DRIVER_LEDS && defined(ERROR_LED)
-	set_led(ERROR_LED);
-#endif
-    printf("\n**************************************************\n", pcTaskName);
-    printf("Error, stack overflow: %s", pcTaskName);
-    printf("\n**************************************************\n", pcTaskName);
-    for( ;; );
+	seconds = 0;
+
+	// Audio input sample rate, select trigger
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+
+	TIM_TimeBaseInitTypeDef timer_init =
+	{
+			PRESCALER,								// prescaler value
+			TIM_CounterMode_Up,				// counter mode
+			OVERFLOW,  							// period reload value
+			TIM_CKD_DIV1,		      		// clock divider value (1, 2 or 4) (has no effect on OC/PWM)
+			0						      	// repetition counter
+	};
+	TIM_TimeBaseInit(TIM2, &timer_init);
+
+	// configure interrupt for card control timer
+	NVIC_InitTypeDef timer_nvic =
+	{
+		TIM2_IRQn,
+		2,
+		0,
+		ENABLE
+	};
+	NVIC_Init(&timer_nvic);
+	TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
+	TIM_Cmd(TIM2, ENABLE);
 }
 
-#endif
+void TIM2_IRQHandler()
+{
+	TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+	seconds++;
+}
 
-/**
- * @}
- */
+void get_hw_time(unsigned long* secs, unsigned long* usecs)
+{
+	*secs = seconds;
+	*usecs = TIM2->CNT * (TV_TICK_RATE / TIMER_TICK_RATE);
+}
+
+void set_hw_time(unsigned long secs, unsigned long usecs)
+{
+	seconds = secs;
+	TIM2->CNT = usecs / (TV_TICK_RATE / TIMER_TICK_RATE);
+}

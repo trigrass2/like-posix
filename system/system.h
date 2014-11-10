@@ -39,7 +39,9 @@
 #ifndef SYSTEM_H_
 #define SYSTEM_H_
 
+#include <stdbool.h>
 #include <stdint.h>
+#include "systime.h"
 
 #ifdef __cplusplus
  extern "C" {

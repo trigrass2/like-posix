@@ -30,37 +30,9 @@
  *
  */
 
-/**
- * @addtogroup system
- *
- * @file stackoverflow.c
- * @{
- */
+#ifndef SYSTIME_H_
+#define SYSTIME_H_
 
-#include <stdio.h>
-#include "FreeRTOS.h"
-#include "task.h"
-#if USE_DRIVER_LEDS
-#include "leds.h"
-#endif
-#include "board_config.h"
+void init_systime();
 
-#if configCHECK_FOR_STACK_OVERFLOW > 0
-
-void vApplicationStackOverflowHook(xTaskHandle* pxTask, signed portCHAR* pcTaskName)
-{
-    (void)pxTask;
-#if USE_DRIVER_LEDS && defined(ERROR_LED)
-	set_led(ERROR_LED);
-#endif
-    printf("\n**************************************************\n", pcTaskName);
-    printf("Error, stack overflow: %s", pcTaskName);
-    printf("\n**************************************************\n", pcTaskName);
-    for( ;; );
-}
-
-#endif
-
-/**
- * @}
- */
+#endif /* SYSTIME_H_ */

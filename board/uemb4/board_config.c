@@ -50,6 +50,9 @@ void init_target(void)
 
     configure_nvic();
     enable_fpu();
+#if USE_DRIVER_SYSTEM_TIMER
+	init_systime();
+#endif
 
 #if USE_DRIVER_USART
     init_usart(CONSOLE_USART, NULL, true);

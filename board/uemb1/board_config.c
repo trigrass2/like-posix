@@ -54,6 +54,9 @@ void init_target(void)
     // GPIO_PinRemapConfig(GPIO_Remap_SWJ_Disable, ENABLE);
 
     configure_nvic();
+#if USE_DRIVER_SYSTEM_TIMER
+	init_systime();
+#endif
 
 #if USE_DRIVER_USART
     init_usart(CONSOLE_USART, NULL, true);
