@@ -1,12 +1,11 @@
 
 
-debug: DEBUG=gdb
-debug: OPT=0
-debug: all
-
-release: DEBUG=
-release: OPT=2
+release: OPT = 2
 release: all
+
+debug: CFLAGS += -g
+debug: OPT = 0
+debug: all
 
 ## Supported boards:
 # HY-STM32_100P
@@ -19,12 +18,6 @@ BOARD ?= stm32f4_discovery
 
 ## Project name
 PROJECT_NAME ?= main
-
-## Debugging format:
-# stabs
-# dwarf-2
-# gdb
-DEBUG ?=
 
 ## Optimization level,
 # can be 0, 1, 2, 3, s
@@ -55,22 +48,26 @@ USE_SOCK_UTILS ?= 0
 # set to 1 to enable, set to 0 to disable
 USE_HTTP_UTILS ?= 0
 
-## Shell server, from the nutensils project
-# set to 1 to enable, set to 0 to disable
-USE_SHELL ?= 0
-
 ## Threaded server module from the nutensils project
 # set to 1 to enable, set to 0 to disable
 USE_THREADED_SERVER ?= 0
+
+## HTTP server module from the nutensils project
+# set to 1 to enable, set to 0 to disable
+USE_HTTP_SERVER ?= 0
+
+## Shell server module from the nutensils project
+# set to 1 to enable, set to 0 to disable
+USE_SHELL ?= 0
 
 ## DRIVERS
 # set thse to 0 to remove from the build, 1 to include in the build
 # standalone drivers
 USE_DRIVER_RTC ?= 0
+USE_DRIVER_SYSTEM_TIMER ?= 0
 USE_DRIVER_DS1820 ?= 0
 USE_DRIVER_LEDS ?= 0
 USE_DRIVER_USART ?= 0
-USE_DRIVER_SYSTEM_TIMER ?= 0
 # LCD and touch panel go together
 USE_DRIVER_LCD ?= 0
 USE_DRIVER_TOUCH_PANEL ?= 0

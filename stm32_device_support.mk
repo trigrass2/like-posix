@@ -36,6 +36,41 @@ CFLAGS += -I$(DRIVERSDIR)/leds
 SOURCE += $(DRIVERSDIR)/leds/leds.c
 endif
 
+## LCD
+CFLAGS += -DUSE_DRIVER_LCD=$(USE_DRIVER_LCD)
+ifeq ($(USE_DRIVER_LCD), 1)
+CFLAGS += -I$(DRIVERSDIR)/lcd
+SOURCE += $(DRIVERSDIR)/lcd/lcd.c
+SOURCE += $(DRIVERSDIR)/lcd/graphics.c
+SOURCE += $(DRIVERSDIR)/lcd/text.c
+SOURCE += $(DRIVERSDIR)/lcd/widgets/touch_key.c
+SOURCE += $(DRIVERSDIR)/lcd/widgets/panel_meter.c
+SOURCE += $(DRIVERSDIR)/lcd/widgets/statusbar.c
+SOURCE += $(DRIVERSDIR)/lcd/fonts/Ubuntu_16.c
+SOURCE += $(DRIVERSDIR)/lcd/fonts/Ubuntu_20.c
+SOURCE += $(DRIVERSDIR)/lcd/fonts/Ubuntu_24.c
+SOURCE += $(DRIVERSDIR)/lcd/fonts/Ubuntu_32.c
+SOURCE += $(DRIVERSDIR)/lcd/fonts/Ubuntu_38.c
+SOURCE += $(DRIVERSDIR)/lcd/fonts/Ubuntu_48.c
+SOURCE += $(DRIVERSDIR)/lcd/fonts/Ubuntu_64.c
+SOURCE += $(DRIVERSDIR)/lcd/fonts/Ubuntu_48_bold.c
+SOURCE += $(DRIVERSDIR)/lcd/fonts/Ubuntu_64_bold.c
+SOURCE += $(DRIVERSDIR)/lcd/fonts/Digital_7_Italic_32.c
+SOURCE += $(DRIVERSDIR)/lcd/fonts/Digital_7_Italic_64.c
+SOURCE += $(DRIVERSDIR)/lcd/fonts/Digital_7_Italic_96.c
+SOURCE += $(DRIVERSDIR)/lcd/fonts/Digital_7_Italic_128.c
+SOURCE += $(DRIVERSDIR)/lcd/images/images.c
+
+SOURCE += $(DRIVERSDIR)/touch_panel/tsc2046.c
+SOURCE += $(DRIVERSDIR)/touch_panel/touch_panel.c
+
+CFLAGS += -I $(DRIVERSDIR)/touch_panel
+CFLAGS += -I $(DRIVERSDIR)/lcd
+CFLAGS += -I $(DRIVERSDIR)/lcd/fonts
+CFLAGS += -I $(DRIVERSDIR)/lcd/images
+CFLAGS += -I $(DRIVERSDIR)/lcd/widgets
+endif
+
 ## USART
 CFLAGS += -DUSE_DRIVER_USART=$(USE_DRIVER_USART)
 ifeq ($(USE_DRIVER_USART), 1)

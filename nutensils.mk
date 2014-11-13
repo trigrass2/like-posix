@@ -58,3 +58,16 @@ CFLAGS += -I $(NUTENSILS_DIR)/shell/builtins
 SOURCE += $(NUTENSILS_DIR)/shell/filesystem_cmds/fs_cmds.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell/filesystem_cmds
 endif
+
+USE_HTTP_SERVER_VALUES = 0 1
+
+ifeq ($(filter $(USE_HTTP_SERVER),$(USE_HTTP_SERVER_VALUES)), )
+$(error USE_HTTP_SERVER is not set. set to one of: $(USE_HTTP_SERVER_VALUES))
+endif
+
+CFLAGS += -DUSE_HTTP_SERVER=$(USE_HTTP_SERVER)
+
+ifeq ($(USE_HTTP_SERVER), 1)
+SOURCE += $(NUTENSILS_DIR)/http/http_server.c
+SOURCE += $(NUTENSILS_DIR)/http/http_api.c
+endif
