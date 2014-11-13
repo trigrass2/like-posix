@@ -37,7 +37,7 @@
 #include "shell_command.h"
 #include "shell_defs.h"
 
-#define SHELL_TASK_STACK_SIZE 	64
+#define SHELL_TASK_STACK_SIZE 	256
 #define SHELL_TASK_PRIORITY 	1
 
 #define DEFAULT_SHELL_CONFIG_PATH   "/etc/shell/shelld_config"
