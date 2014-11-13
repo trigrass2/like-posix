@@ -34,5 +34,6 @@
 #define SYSTIME_H_
 
 void init_systime();
+void set_hw_time(unsigned long secs, unsigned long usecs);
 
 #endif /* SYSTIME_H_ */
