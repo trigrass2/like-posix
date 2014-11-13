@@ -512,6 +512,18 @@ int fseek(FILE * stream, long int offset, int origin)
 	return _lseek((intptr_t)stream, offset, origin);
 }
 
+size_t fwrite(const void *data, size_t size, size_t count, FILE *stream)
+{
+	return _write((intptr_t)stream, (char*)data, size*count);
+}
+
+size_t fread(void *data, size_t size, size_t count, FILE *stream)
+{
+	return _read((intptr_t)stream, (char*)data, size*count);
+}
+
+
+
 
 /**
  * @}
