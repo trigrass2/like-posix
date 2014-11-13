@@ -32,7 +32,6 @@
 
 #include "board_config.h"
 #include "system.h"
-#include "gpio_controller.h"
 
 #if USE_DRIVER_USART
 #include "usart.h"
@@ -62,7 +61,6 @@ void init_target(void)
 #if USE_DRIVER_LEDS
     init_leds();
 #endif
-    gpioctrl_init();
 }
 
 
