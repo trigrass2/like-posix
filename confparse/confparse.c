@@ -399,6 +399,9 @@ bool edit_config_entry(uint8_t* buffer, uint16_t buffer_length, const uint8_t* f
     cfg.key = NULL;
     cfg.value = NULL;
     cfg.retain_comments_newlines = true;
+    const char* k;
+	const char* v;
+    const char* c;
 
     // use buffer temporarily to create backup config file name
     snprintf((char*)buffer, buffer_length-1, "%s.bak", filepath);
@@ -419,27 +422,33 @@ bool edit_config_entry(uint8_t* buffer, uint16_t buffer_length, const uint8_t* f
             	// iterate over entries in backup
 				while(get_next_config(&cfg))
 				{
-					if(cfg.comment && (!cfg.key || !cfg.value))
+					k = (const char*)get_config_key(&cfg);
+					v = (const char*)get_config_value(&cfg);
+					c = (const char*)get_config_comment(&cfg);
+
+					if(!c && !k && !v)
 					{
 						// the line contained only a comment - no key/value
-						fprintf(newconf, "%s", cfg.buffer);
+						fputs((const char*)cfg.buffer, newconf);
 					}
 					else if(config_key_match(&cfg, key))
 					{
 						// if we matched the desired key, add it with the new value
-						if(cfg.comment)
-							fprintf(newconf, "%s %s #%s\n", (const char*)key, (const char*)value, cfg.comment);
+						if(c)
+							fprintf(newconf, "%s %s #%s", (const char*)key, (const char*)value, c);
 						else
 							fprintf(newconf, "%s %s\n", (const char*)key, (const char*)value);
 						set = true;
 					}
 					else
 					{
-						// otherwise add the whole line from the backup back in
-//						fprintf(newconf, "%s %s\n", (const char*)get_config_key(&cfg), (const char*)get_config_value(&cfg));
-						fprintf(newconf, "%s\n", cfg.buffer);
+						if(k && v && c)
+							fprintf(newconf, "%s %s #%s", k, v, c);
+						else if(k && v)
+							fprintf(newconf, "%s %s\n", k, v);
 					}
 				}
+
 				// if we get here and the key wasnt modified, add it
 				if(!set)
 				{
@@ -454,6 +463,9 @@ bool edit_config_entry(uint8_t* buffer, uint16_t buffer_length, const uint8_t* f
 			close_config_file(&cfg);
         }
     }
+
+    cfg.retain_comments_newlines = false;
+
     return set;
 }
 

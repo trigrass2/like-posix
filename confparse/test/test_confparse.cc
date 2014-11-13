@@ -5,6 +5,9 @@
 #include "gtest/gtest.h"
 #include "confparse.h"
 
+//#define DEBGPRINTF(...)	printf(__VA_ARGS__)
+#define DEBGPRINTF(...)
+
 /**
  * fixture
  */
@@ -20,7 +23,7 @@ const char* valid_match_set[] = {
 		"efg", "456",
 		"xyz", "987",
 };
-const char* file_text_valid_with_comments = "# comment1\nabc 123\n#efg 456\n#comment2\nxyz 987";
+const char* file_text_valid_with_comments = "# comment1\nabc 123 #inlinecomment\n#efg 456\n#comment2\nxyz 987";
 const char* valid_match_set_with_comments[] = {
 		"abc", "123",
 		"xyz", "987",
@@ -43,6 +46,14 @@ const char* valid_match_set_combined_new_entries_with_modifications[] = {
 		"newkey1", "newvalue1",
 };
 
+const char* file_text_valid_with_comments_modified_retains_comments =
+"# comment1\n"
+"abc newvalue2 #inlinecomment\n"
+"#efg 456\n"
+"#comment2\n"
+"xyz newvalue2\n"
+"newkey1 newvalue1\n";
+
 void create_file(const char* text)
 {
 	FILE* f = fopen(filename, "w");
@@ -63,7 +74,6 @@ char* get_buffer()
 TEST(test_confparse, test_config_file_exists_no_file)
 {
 	bool ret = config_file_exists((const uint8_t*)filename);
-
 	ASSERT_FALSE(ret);
 }
 
@@ -275,6 +285,7 @@ TEST(test_confparse, test_add_config_entry_empty_file_add_twice)
 	int i = 0;
 	create_file(file_text_empty);
 	bool ret = add_config_entry((uint8_t*)get_buffer(), BUFFER_SIZE, (const uint8_t*)filename, (const uint8_t*)new_entries[0], (const uint8_t*)new_entries[1]);
+	ASSERT_TRUE(ret);
 	ret = add_config_entry((uint8_t*)get_buffer(), BUFFER_SIZE, (const uint8_t*)filename, (const uint8_t*)new_entries[2], (const uint8_t*)new_entries[3]);
 	ASSERT_TRUE(ret);
 
@@ -283,13 +294,13 @@ TEST(test_confparse, test_add_config_entry_empty_file_add_twice)
 	{
 		while(get_next_config(&cfg))
 		{
-			printf("%d %s %s\n", count, (const char*)get_config_key(&cfg),(const char*)get_config_value(&cfg));
-//			ASSERT_STREQ((const char*)get_config_key(&cfg), new_entries[i]);
-//			ASSERT_TRUE(config_key_match(&cfg, (const uint8_t*)new_entries[i]));
-//			i++;
-//			ASSERT_STREQ((const char*)get_config_value(&cfg), new_entries[i]);
-//			ASSERT_TRUE(config_value_match(&cfg, (const uint8_t*)new_entries[i]));
-//			i++;
+			DEBGPRINTF("%d %s %s %s\n", count, (const char*)get_config_key(&cfg),(const char*)get_config_value(&cfg),(const char*)get_config_comment(&cfg));
+			ASSERT_STREQ((const char*)get_config_key(&cfg), new_entries[i]);
+			ASSERT_TRUE(config_key_match(&cfg, (const uint8_t*)new_entries[i]));
+			i++;
+			ASSERT_STREQ((const char*)get_config_value(&cfg), new_entries[i]);
+			ASSERT_TRUE(config_value_match(&cfg, (const uint8_t*)new_entries[i]));
+			i++;
 			count++;
 		}
 	}
@@ -318,6 +329,7 @@ TEST(test_confparse, test_add_config_entry_empty_file_add_and_modify)
 	int i = 0;
 	create_file(file_text_empty);
 	bool ret = add_config_entry((uint8_t*)get_buffer(), BUFFER_SIZE, (const uint8_t*)filename, (const uint8_t*)new_entries[0], (const uint8_t*)new_entries[1]);
+	ASSERT_TRUE(ret);
 	ret = add_config_entry((uint8_t*)get_buffer(), BUFFER_SIZE, (const uint8_t*)filename, (const uint8_t*)new_entries[0], (const uint8_t*)new_entries[3]);
 	ASSERT_TRUE(ret);
 
@@ -327,6 +339,7 @@ TEST(test_confparse, test_add_config_entry_empty_file_add_and_modify)
 	{
 		while(get_next_config(&cfg))
 		{
+			DEBGPRINTF("%d %s %s %s\n", count, (const char*)get_config_key(&cfg),(const char*)get_config_value(&cfg),(const char*)get_config_comment(&cfg));
 			ASSERT_STREQ((const char*)get_config_key(&cfg), new_entries[0]);
 			ASSERT_TRUE(config_key_match(&cfg, (const uint8_t*)new_entries[0]));
 			ASSERT_STREQ((const char*)get_config_value(&cfg), new_entries[3]);
@@ -367,6 +380,7 @@ TEST(test_confparse, test_add_config_entry_file_already_has_content_add_twice)
 	int i = 0;
 	create_file(file_text_valid);
 	bool ret = add_config_entry((uint8_t*)get_buffer(), BUFFER_SIZE, (const uint8_t*)filename, (const uint8_t*)new_entries[0], (const uint8_t*)new_entries[1]);
+	ASSERT_TRUE(ret);
 	ret = add_config_entry((uint8_t*)get_buffer(), BUFFER_SIZE, (const uint8_t*)filename, (const uint8_t*)new_entries[2], (const uint8_t*)new_entries[3]);
 	ASSERT_TRUE(ret);
 
@@ -375,6 +389,7 @@ TEST(test_confparse, test_add_config_entry_file_already_has_content_add_twice)
 	{
 		while(get_next_config(&cfg))
 		{
+			DEBGPRINTF("%d %s %s %s\n", count, (const char*)get_config_key(&cfg),(const char*)get_config_value(&cfg),(const char*)get_config_comment(&cfg));
 			ASSERT_STREQ((const char*)get_config_key(&cfg), valid_match_set_combined_new_entries[i]);
 			ASSERT_TRUE(config_key_match(&cfg, (const uint8_t*)valid_match_set_combined_new_entries[i]));
 			i++;
@@ -417,7 +432,9 @@ TEST(test_confparse, test_add_config_entry_file_already_has_content_add_and_modi
 	int i = 0;
 	create_file(file_text_valid);
 	bool ret = add_config_entry((uint8_t*)get_buffer(), BUFFER_SIZE, (const uint8_t*)filename, (const uint8_t*)new_entries[0], (const uint8_t*)new_entries[1]);
+	ASSERT_TRUE(ret);
 	ret = add_config_entry((uint8_t*)get_buffer(), BUFFER_SIZE, (const uint8_t*)filename, (const uint8_t*)valid_match_set[0], (const uint8_t*)new_entries[3]);
+	ASSERT_TRUE(ret);
 	ret = add_config_entry((uint8_t*)get_buffer(), BUFFER_SIZE, (const uint8_t*)filename, (const uint8_t*)valid_match_set[4], (const uint8_t*)new_entries[3]);
 	ASSERT_TRUE(ret);
 
@@ -426,6 +443,7 @@ TEST(test_confparse, test_add_config_entry_file_already_has_content_add_and_modi
 	{
 		while(get_next_config(&cfg))
 		{
+			DEBGPRINTF("%d %s %s %s\n", count, (const char*)get_config_key(&cfg),(const char*)get_config_value(&cfg),(const char*)get_config_comment(&cfg));
 			ASSERT_STREQ((const char*)get_config_key(&cfg), valid_match_set_combined_new_entries_with_modifications[i]);
 			ASSERT_TRUE(config_key_match(&cfg, (const uint8_t*)valid_match_set_combined_new_entries_with_modifications[i]));
 			i++;
@@ -439,3 +457,57 @@ TEST(test_confparse, test_add_config_entry_file_already_has_content_add_and_modi
 	delete_file();
 	ASSERT_EQ(count, 4);
 }
+
+/**
+ * start with config file:
+ *
+ * # comment1
+ * abc 123
+ * #efg 456
+ * #comment2
+ * xyz 987"
+ *
+ * add 1 entries:
+ * newkey1 newvalue1
+ * modify 1 entry:
+ * abc newvalue2
+ * modify 1 entry:
+ * xyz newvalue2
+ *
+ * expect result:
+ * # comment1
+ * abc newvalue2
+ * #efg 456
+ * #comment2
+ * xyz newvalue2
+ * newkey1 newvalue1
+ *
+ * expect iterator to cycle 4 times
+ */
+TEST(test_confparse, test_add_config_entry_file_already_has_content_comments_retained)
+{
+	create_file(file_text_valid_with_comments);
+	bool ret = add_config_entry((uint8_t*)get_buffer(), BUFFER_SIZE, (const uint8_t*)filename, (const uint8_t*)new_entries[0], (const uint8_t*)new_entries[1]);
+	ASSERT_TRUE(ret);
+	ret = add_config_entry((uint8_t*)get_buffer(), BUFFER_SIZE, (const uint8_t*)filename, (const uint8_t*)valid_match_set[0], (const uint8_t*)new_entries[3]);
+	ASSERT_TRUE(ret);
+	ret = add_config_entry((uint8_t*)get_buffer(), BUFFER_SIZE, (const uint8_t*)filename, (const uint8_t*)valid_match_set[4], (const uint8_t*)new_entries[3]);
+	ASSERT_TRUE(ret);
+
+	int res = -1;
+	char buf[1024] = {0};
+	FILE* f = fopen(filename, "r");
+	if(f)
+	{
+		fread(buf, 1, 1024, f);
+		fclose(f);
+	}
+
+	DEBGPRINTF("expect:\n%s\n\n", file_text_valid_with_comments_modified_retains_comments);
+	DEBGPRINTF("got:\n%s\n\n", buf);
+
+	ASSERT_STREQ(buf, file_text_valid_with_comments_modified_retains_comments);
+
+	delete_file();
+}
+

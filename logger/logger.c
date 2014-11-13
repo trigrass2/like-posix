@@ -127,10 +127,13 @@ void log_remove_handler(int file)
 /**
  * @param sets the global log level.
  * 			all log levels below 'level' will not be logged.
+ * @retval returns the current log level.
  */
-void log_level(log_level_t level)
+log_level_t log_level(log_level_t level)
 {
-	_log_level = level;
+	if(level <= LOG_DISABLED && level >= LOG_SYSLOG)
+		_log_level = level;
+	return _log_level;
 }
 
 /**

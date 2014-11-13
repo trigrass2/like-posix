@@ -76,7 +76,8 @@
 
 
 typedef enum {
-	LOG_SYSLOG=0,
+	LOG_LEVEL_CHECK = -1,
+	LOG_SYSLOG,
 	LOG_EDEBUG,
 	LOG_DEBUG,
 	LOG_INFO,
@@ -96,7 +97,7 @@ typedef struct {
 void log_init(logger_t* logger, const char* name);
 void log_add_handler(int file);
 void log_remove_handler(int file);
-void log_level(log_level_t level);
+log_level_t log_level(log_level_t level);
 void log_syslog(logger_t* logger, char* message, ...);
 void log_edebug(logger_t* logger, char* message, ...);
 void log_debug(logger_t* logger, char* message, ...);
