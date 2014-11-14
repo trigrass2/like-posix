@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "stm32f10x.h"
+#include "board_config.h"
 
 #include "FreeRTOS.h"
 #include "queue.h"

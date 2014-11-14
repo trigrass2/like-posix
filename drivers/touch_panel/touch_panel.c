@@ -51,7 +51,6 @@ void touch_init()
 void touch_deinit()
 {
     vTaskDelete(&touch_task_data.touch_task_handle);
-    panel_deinit();
 }
 
 point_t touch_xy()

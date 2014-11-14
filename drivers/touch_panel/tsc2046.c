@@ -46,11 +46,12 @@ void tsc2046_init()
 
     // configure SPI port
    // enable spi clock
-   #if ((TSC2046_SPI == 3)||(TSC2046_SPI == 2))
-      RCC_APB1PeriphClockCmd(TSC2046_SPI_CLOCK, ENABLE);
-   #elif (TSC2046_SPI == 1)
-      RCC_APB2PeriphClockCmd(TSC2046_SPI_CLOCK, ENABLE);
-   #endif
+    if((TSC2046_SPI_CLOCK == RCC_APB1Periph_SPI2)||(TSC2046_SPI_CLOCK == RCC_APB1Periph_SPI3))
+        RCC_APB1PeriphClockCmd(TSC2046_SPI_CLOCK, ENABLE);
+    else if (TSC2046_SPI_CLOCK == RCC_APB2Periph_SPI1)
+        RCC_APB2PeriphClockCmd(TSC2046_SPI_CLOCK, ENABLE);
+    else
+        assert_true(0);
 
     SPI_InitTypeDef spi_init =
     {
@@ -71,53 +72,72 @@ void tsc2046_init()
     // configure IO's
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     // input, pullup
+#if FAMILY==STM32F1
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+#elif FAMILY==STM32F4
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+#endif
 //    GPIO_InitStructure.GPIO_Pin = TSC2046_BUSY_PIN;
 //    GPIO_Init(TSC2046_BUSY_PORT, &GPIO_InitStructure);
 
     // input, floating
+#if FAMILY==STM32F1
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_InitStructure.GPIO_Pin = TSC2046_MISO_PIN;
-    GPIO_Init(TSC2046_MISO_PORT, &GPIO_InitStructure);
+#elif FAMILY==STM32F4
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+#endif
     GPIO_InitStructure.GPIO_Pin = TSC2046_IRQ_PIN;
     GPIO_Init(TSC2046_IRQ_PORT, &GPIO_InitStructure);
 
+#if FAMILY==STM32F1
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+#elif FAMILY==STM32F4
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+#endif
+
+    GPIO_InitStructure.GPIO_Pin = TSC2046_MISO_PIN;
+    GPIO_Init(TSC2046_MISO_PORT, &GPIO_InitStructure);
+#if FAMILY==STM32F4
+    GPIO_PinAFConfig(TSC2046_MISO_PORT, TSC2046_MISO_PINSOURCE, TSC2046_AF_CONFIG);
+#endif
+
     // output push pull
+#if FAMILY==STM32F1
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+#elif FAMILY==STM32F4
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+#endif
     GPIO_InitStructure.GPIO_Pin = TSC2046_NCS_PIN;
     GPIO_Init(TSC2046_NCS_PORT, &GPIO_InitStructure);
 
     // output push pull alternate function
+
+#if FAMILY==STM32F1
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+#elif FAMILY==STM32F4
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+#endif
+
     GPIO_InitStructure.GPIO_Pin = TSC2046_SCK_PIN;
     GPIO_Init(TSC2046_SCK_PORT, &GPIO_InitStructure);
+#if FAMILY==STM32F4
+    GPIO_PinAFConfig(TSC2046_SCK_PORT, TSC2046_SCK_PINSOURCE, TSC2046_AF_CONFIG);
+#endif
+
     GPIO_InitStructure.GPIO_Pin = TSC2046_MOSI_PIN;
     GPIO_Init(TSC2046_MOSI_PORT, &GPIO_InitStructure);
+#if FAMILY==STM32F4
+    GPIO_PinAFConfig(TSC2046_MOSI_PORT, TSC2046_MOSI_PINSOURCE, TSC2046_AF_CONFIG);
+#endif
 }
-
-void tsc2046_deinit()
-{
-    GPIO_InitTypeDef GPIO_InitStructure;
-    
-    SPI_I2S_DeInit(TSC2046_SPI_PERIPH);
-
-    // configure IO's
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-//    GPIO_InitStructure.GPIO_Pin = TSC2046_BUSY_PIN;
-//    GPIO_Init(TSC2046_BUSY_PORT, &GPIO_InitStructure);
-    GPIO_InitStructure.GPIO_Pin = TSC2046_MISO_PIN;
-    GPIO_Init(TSC2046_MISO_PORT, &GPIO_InitStructure);
-    GPIO_InitStructure.GPIO_Pin = TSC2046_IRQ_PIN;
-    GPIO_Init(TSC2046_IRQ_PORT, &GPIO_InitStructure);
-    GPIO_InitStructure.GPIO_Pin = TSC2046_NCS_PIN;
-    GPIO_Init(TSC2046_NCS_PORT, &GPIO_InitStructure);
-    GPIO_InitStructure.GPIO_Pin = TSC2046_SCK_PIN;
-    GPIO_Init(TSC2046_SCK_PORT, &GPIO_InitStructure);
-    GPIO_InitStructure.GPIO_Pin = TSC2046_MOSI_PIN;
-    GPIO_Init(TSC2046_MOSI_PORT, &GPIO_InitStructure);
-}
-
 
 void tsc2046_write(uint8_t Data)
 {

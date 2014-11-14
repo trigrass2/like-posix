@@ -34,7 +34,6 @@
 #ifndef TSC2046_CONFIG_H_
 #define TSC2046_CONFIG_H_
 
-#define TSC2046_SPI         2
 #define TSC2046_SPI_PERIPH  SPI2
 #define TSC2046_SPI_CLOCK   RCC_APB1Periph_SPI2
 #define TSC2046_SPI_PRESC   SPI_BaudRatePrescaler_64
@@ -53,26 +52,5 @@
 
 #define TSC2046_FLIP_Y 		1
 #define TSC2046_FLIP_X 		0
-
-//#define TSC2046_SPI         1
-//#define TSC2046_SPI_PERIPH  SPI1
-//#define TSC2046_SPI_CLOCK   RCC_APB2Periph_SPI1
-//#define TSC2046_SPI_PRESC   SPI_BaudRatePrescaler_64
-//
-//#define TSC2046_NCS_PORT    GPIOB
-//#define TSC2046_NCS_PIN     GPIO_Pin_7
-//#define TSC2046_MISO_PORT   GPIOA
-//#define TSC2046_MISO_PIN    GPIO_Pin_6
-//#define TSC2046_MOSI_PORT   GPIOA
-//#define TSC2046_MOSI_PIN    GPIO_Pin_7
-//#define TSC2046_SCK_PORT    GPIOA
-//#define TSC2046_SCK_PIN     GPIO_Pin_5
-//#define TSC2046_BUSY_PORT   GPIOC
-//#define TSC2046_BUSY_PIN    GPIO_Pin_13
-//#define TSC2046_IRQ_PORT    GPIOB
-//#define TSC2046_IRQ_PIN     GPIO_Pin_6
-//
-//#define TSC2046_FLIP_Y      1
-//#define TSC2046_FLIP_X      0
 
 #endif // TSC2046_CONFIG_H_

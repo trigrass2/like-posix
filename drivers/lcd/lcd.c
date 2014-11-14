@@ -134,7 +134,12 @@ void lcd_set_power(void)
 
 void LCD_FSMCConfig(void)
 {
+#if FAMILY==STM32F1
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_FSMC, ENABLE);
+#elif FAMILY==STM32F4
+    RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_FSMC, ENABLE);
+#endif
+
     FSMC_NORSRAMInitTypeDef  FSMC_NORSRAM_init;
     FSMC_NORSRAMTimingInitTypeDef  FSMC_NORSRAMTimingInit;
 
@@ -180,28 +185,43 @@ void lcd_port_init(void)
     GPIO_InitTypeDef GPIO_InitStructure;
     uint16_t pins[] = FSMC_PINS;
     GPIO_TypeDef* ports[] = FSMC_PORTS;
-
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD | RCC_APB2Periph_GPIOE |
-               RCC_APB2Periph_GPIOF | RCC_APB2Periph_GPIOG |
-               RCC_APB2Periph_AFIO, ENABLE);
+#if FAMILY==STM32F4
+    uint8_t pinsources[] = FSMC_PINSOURCES;
+#endif
 
     // FSMC pins
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF_PP;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+#if FAMILY==STM32F1
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF_PP;
+#elif FAMILY==STM32F4
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+#endif
+
     for(uint8_t i = 0; i < sizeof(pins)/sizeof(pins[0]); i++)
     {
         GPIO_InitStructure.GPIO_Pin = pins[i];
         GPIO_Init(ports[i], &GPIO_InitStructure);
+#if FAMILY==STM32F4
+        GPIO_PinAFConfig(ports[i], pinsources[i], GPIO_AF_FSMC);
+#endif
     }
 
+#if FAMILY==STM32F1
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+#elif FAMILY==STM32F4
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+#endif
+
     // reset pin
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_InitStructure.GPIO_Pin = LCD_NRST_PIN;
     GPIO_Init(LCD_NRST_PORT, &GPIO_InitStructure);
 
     // Backlight pin
 #ifdef LCD_BL_PIN
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_InitStructure.GPIO_Pin = LCD_BL_PIN;
     GPIO_Init(LCD_BL_PORT, &GPIO_InitStructure);
 #endif

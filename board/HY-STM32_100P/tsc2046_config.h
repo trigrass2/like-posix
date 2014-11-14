@@ -34,7 +34,8 @@
 #define TSC2046_CONFIG_H_
 
 #define TSC2046_SPI_PERIPH  SPI1
-#define TSC2046_SPI_PRESC   SPI_BaudRatePrescaler_64
+#define TSC2046_SPI_CLOCK   RCC_APB2Periph_SPI1
+#define TSC2046_SPI_PRESC   SPI_BaudRatePrescaler_128
 
 #define TSC2046_NCS_PORT    GPIOB
 #define TSC2046_NCS_PIN     GPIO_Pin_7
