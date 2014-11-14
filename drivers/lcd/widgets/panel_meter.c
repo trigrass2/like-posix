@@ -72,7 +72,7 @@ void draw_panel_meter(panel_meter_t* meter)
 void update_panel_meter(panel_meter_t* meter, float value)
 {
     text_blank_text(&meter->textbox, meter->location);
-    snprintf((char*)meter->textbox.buffer, meter->length-1, meter->prescision, value);
+    snprintf((char*)meter->textbox.buffer, meter->length-1, meter->prescision, (double)value);
     redraw_textbox_text(&meter->textbox, meter->location);
 }
 
