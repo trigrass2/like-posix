@@ -41,6 +41,7 @@
  * @{
  */
 
+#include <stdbool.h>
 #include "stm32_eth.h" // includes "MII_RMII.h" for us
 
 static void ETH_GPIO_Config(void);
@@ -280,25 +281,21 @@ void ETH_GPIO_Config(void)
 #endif
 
 
-bool link_status(void)
+bool eth_link_status()
 {
 	return (bool)(ETH_ReadPHYRegister(PHY_ADDRESS, PHY_BSR) & PHY_Linked_Status);
 }
 
-bool auto_negotiation_status(void)
-{
-	return (bool)(ETH_ReadPHYRegister(PHY_ADDRESS, PHY_BSR) & PHY_AutoNego_Complete);
-}
-
-uint16_t link_speed(void)
+uint16_t eth_link_speed()
 {
 	return ETH_ReadPHYRegister(PHY_ADDRESS, PHY_SR) & PHY_SPEED_STATUS ? 100 : 10;
 }
 
-bool link_full_duplex(void)
+bool eth_link_full_duplex()
 {
 	return (bool)(ETH_ReadPHYRegister(PHY_ADDRESS, PHY_SR) & PHY_DUPLEX_STATUS);
 }
+
 /**
  * @}
  */

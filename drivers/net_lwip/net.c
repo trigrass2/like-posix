@@ -49,6 +49,7 @@
 #include "etharp.h"
 #include "tcpip.h"
 #include "init.h"
+#include "lwip/stats.h"
 
 #include "strutils.h"
 #include "cutensils.h"
@@ -272,3 +273,17 @@ void tcpip_init_done(void *arg)
 	log_info(&tcp_cb_log, "%s, %s", __FUNCTION__, netif->hostname);
 }
 
+unsigned long net_ip_packets_sent()
+{
+    return lwip_stats.ip.xmit;
+}
+
+unsigned long net_ip_packets_received()
+{
+    return lwip_stats.ip.recv;
+}
+
+unsigned long net_ip_packets_dropped()
+{
+    return lwip_stats.ip.drop;
+}

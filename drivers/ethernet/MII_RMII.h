@@ -151,11 +151,6 @@
                              ((REG) == PHY_SR))
 
 void ETH_Configuration(const uint8_t* macaddr);
-bool link_status(void);
-bool auto_negotiation_status(void);
-uint16_t link_speed(void);
-bool link_full_duplex(void);
-
 
 #ifdef __cplusplus
  }

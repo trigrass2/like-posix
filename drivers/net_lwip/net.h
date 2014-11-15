@@ -38,4 +38,8 @@
 void net_init(netconf_t* netconf);
 bool wait_for_address(netconf_t* netconf);
 
+unsigned long net_ip_packets_sent();
+unsigned long net_ip_packets_received();
+unsigned long net_ip_packets_dropped();
+
 #endif /* DRIVERS_NET_LWIP_NET_H_ */

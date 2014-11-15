@@ -41,6 +41,7 @@
 
 #include "enc28j60.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -507,6 +508,22 @@ void enc28j60_recv_packet_end()
     // Decrement packet counter
     enc28j60_bfs(ECON2, ECON2_PKTDEC);
 }
+
+bool eth_link_status()
+{
+    return (bool)(enc28j60_read_phy(PHSTAT2) & PHSTAT2_LSTAT);
+}
+
+uint16_t eth_link_speed()
+{
+    return 10;
+}
+
+bool eth_link_full_duplex()
+{
+    return (bool)(enc28j60_read_phy(PHSTAT2) & PHSTAT2_DPXSTAT);
+}
+
 /**
  * @}
  */

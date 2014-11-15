@@ -39,6 +39,12 @@
 #include "enc28j60.h"
 #endif
 
+#include <stdbool.h>
+
+bool eth_link_status();
+uint16_t eth_link_speed();
+bool eth_link_full_duplex();
+
 // TODO - clean up the following when adding UIP support
 ///**
 // *     ENC28J60 MAC/PHY with UIP
