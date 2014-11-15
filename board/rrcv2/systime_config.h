@@ -30,11 +30,14 @@
  *
  */
 
-#ifndef SYSTIME_H_
-#define SYSTIME_H_
+#ifndef SYSTIME_CONFIG_H_
+#define SYSTIME_CONFIG_H_
 
-void init_systime();
-void set_hw_time(unsigned long secs, unsigned long usecs);
-void get_hw_time(unsigned long* secs, unsigned long* usecs);
+#define SYSTIMER_PERIPH             TIM2
+#define SYSTIMER_CLOCK              RCC_APB1Periph_TIM2
+#define SYSTIMER_IRQ                TIM2_IRQn
+#define SYSTIMER_INT_PRIORITY       2
+#define SYSTIMER_BUS_CLOCK          (SystemCoreClock/2)
+#define SYSTIMER_INTERRUPT_HANDLER  TIM2_IRQHandler
 
-#endif /* SYSTIME_H_ */
+#endif // SYSTIME_CONFIG_H_

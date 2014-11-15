@@ -30,55 +30,59 @@
  *
  */
 
-#include <stdio.h>
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "board_config.h"
 #include "systime.h"
+#include "systime_config.h"
 
 static volatile unsigned long seconds;
 
-#define TIMER_INT_PRIORITY		2
-#define TIMER_BUS_CLOCK			84000000
-#define TIMER_TICK_RATE			10000
-#define TV_TICK_RATE			1000000
-#define PRESCALER				((TIMER_BUS_CLOCK / TIMER_TICK_RATE) - 1)
-#define OVERFLOW				(TIMER_TICK_RATE - 1)
+#define SYSTIMER_TICK_RATE          10000
+#define SYSTIMER_TV_TICK_RATE		1000000
+#define SYSTIMER_PRESCALER			((SYSTIMER_BUS_CLOCK / SYSTIMER_TICK_RATE) - 1)
+#define SYSTIMER_OVERFLOW			(SYSTIMER_TICK_RATE - 1)
 
 SemaphoreHandle_t sys_time_mutex;
+
 void init_systime()
 {
     seconds = 0;
+    if((SYSTIMER_PERIPH == TIM2)||(SYSTIMER_PERIPH == TIM3)||(SYSTIMER_PERIPH == TIM4)||(SYSTIMER_PERIPH == TIM5))
+        RCC_APB1PeriphClockCmd(SYSTIMER_CLOCK, ENABLE);
+    else if((SYSTIMER_PERIPH == TIM1)||(SYSTIMER_PERIPH == TIM8))
+        RCC_APB2PeriphClockCmd(SYSTIMER_CLOCK, ENABLE);
+    else
+        assert_true(0);
+
     sys_time_mutex = xSemaphoreCreateMutex();
-    // Audio input sample rate, select trigger
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+    assert_true(sys_time_mutex);
 
     TIM_TimeBaseInitTypeDef timer_init =
     {
-            PRESCALER,								// prescaler value
+            SYSTIMER_PRESCALER,								// prescaler value
             TIM_CounterMode_Up,				// counter mode
-            OVERFLOW,  							// period reload value
+            SYSTIMER_OVERFLOW,  							// period reload value
             TIM_CKD_DIV1,		      		// clock divider value (1, 2 or 4) (has no effect on OC/PWM)
             0						      	// repetition counter
     };
-    TIM_TimeBaseInit(TIM2, &timer_init);
+    TIM_TimeBaseInit(SYSTIMER_PERIPH, &timer_init);
 
-    // configure interrupt for card control timer
     NVIC_InitTypeDef timer_nvic =
     {
-        TIM2_IRQn,
-        2,
+        SYSTIMER_IRQ,
+        SYSTIMER_INT_PRIORITY,
         0,
         ENABLE
     };
     NVIC_Init(&timer_nvic);
-    TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
-    TIM_Cmd(TIM2, ENABLE);
+    TIM_ITConfig(SYSTIMER_PERIPH, TIM_IT_Update, ENABLE);
+    TIM_Cmd(SYSTIMER_PERIPH, ENABLE);
 }
 
-void TIM2_IRQHandler()
+void SYSTIMER_INTERRUPT_HANDLER()
 {
-    TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+    TIM_ClearITPendingBit(SYSTIMER_PERIPH, TIM_IT_Update);
     seconds++;
 }
 
@@ -86,7 +90,7 @@ void get_hw_time(unsigned long* secs, unsigned long* usecs)
 {
     xSemaphoreTake(sys_time_mutex, 0);
     *secs = seconds;
-    *usecs = TIM2->CNT * (TV_TICK_RATE / TIMER_TICK_RATE);
+    *usecs = SYSTIMER_PERIPH->CNT * (SYSTIMER_TV_TICK_RATE / SYSTIMER_TICK_RATE);
     xSemaphoreGive(sys_time_mutex);
 }
 
@@ -94,6 +98,6 @@ void set_hw_time(unsigned long secs, unsigned long usecs)
 {
     xSemaphoreTake(sys_time_mutex, 0);
     seconds = secs;
-    TIM2->CNT = usecs / (TV_TICK_RATE / TIMER_TICK_RATE);
+    SYSTIMER_PERIPH->CNT = usecs / (SYSTIMER_TV_TICK_RATE / SYSTIMER_TICK_RATE);
     xSemaphoreGive(sys_time_mutex);
 }
