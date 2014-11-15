@@ -78,6 +78,8 @@ USE_DRIVER_LWIP_NET ?= 0
 USE_DRIVER_SDCARD_SPI ?= 0
 USE_DRIVER_SDCARD_SDIO ?= 0
 USE_DRIVER_FAT_FILESYSTEM ?= 0
+# SDIO defaults to thread aware implementation...
+USE_THREAD_AWARE_SDIO ?= 1
 
 # the location of this stuff WRT the project
 STM32DEVSUPPORTDIR ?= ..
