@@ -40,10 +40,6 @@
 
 #include "statusbar-conf.h"
 
-#if STATUSBAR_INCLUDE_CLOCK
-#include "drtc.h"
-#endif
-
 #if STATUSBAR_INCLUDE_LINK_DATA_ICONS
 #include "net.h"
 #endif

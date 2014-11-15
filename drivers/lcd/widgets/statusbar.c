@@ -31,24 +31,24 @@
  */
 
 
+#include <time.h>
 #include "statusbar.h"
 
-#define CLOCK_BUFFER_SIZE   24
 #define STATUSBAR_SIZE          {STATUSBAR_SIZE_X, STATUSBAR_SIZE_Y}
 #define STATUSBAR_ORIGIN        {STATUSBAR_ORIGIN_X, STATUSBAR_ORIGIN_Y}
 
 #if STATUSBAR_INCLUDE_CLOCK
 #define CLOCK_FORMAT_STR                    "%d:%02d:%02d %s"
-#define CLOCK_BUFFER_SIZE                   13
+#define CLOCK_BUFFER_SIZE                   24
 #endif
 
 typedef struct {
     text_t* text;
     TaskHandle_t statusbar_task_handle;
     point_t location;
-    uint8_t clock_buffer[CLOCK_BUFFER_SIZE];
 #if STATUSBAR_INCLUDE_CLOCK
-    const uint8_t* clock_format;
+    char clock_buffer[CLOCK_BUFFER_SIZE];
+    const char* clock_format;
 #endif
 }statusbar_t;
 
@@ -80,14 +80,14 @@ static statusbar_t statusbar = {
     .statusbar_task_handle=NULL,
     .location=STATUSBAR_ORIGIN,
 #if STATUSBAR_INCLUDE_CLOCK
-    .clock_format=(const uint8_t*)CLOCK_FORMAT_STR,
+    .clock_format=CLOCK_FORMAT_STR,
 #endif
 };
 
 void statusbar_init()
 {
 #if STATUSBAR_INCLUDE_CLOCK
-    RTC_Configuration();
+//    RTC_Configuration();
 #endif
     statusbar.clock_buffer[0] = '\0';
     assert_true(xTaskCreate(statusbar_task,
@@ -101,19 +101,17 @@ void statusbar_init()
 #if STATUSBAR_INCLUDE_CLOCK
 void statusbar_update_clock()
 {
-    uint32_t hours;
-    uint32_t minutes;
-    uint32_t seconds;
-    const uint8_t* ampm;
+    const char* ampm;
     text_set_buffer(statusbar.text, statusbar.clock_buffer);
     text_set_justification(statusbar.text, CLOCK_JUSTIFICATION);
 
-    RTC_GetTime(&hours, &minutes, &seconds);
-    ampm = hours > 11 ? (const uint8_t*)"pm" : (const uint8_t*)"am";
-    hours %= 12;
+    time_t t = time(NULL);
+    struct tm* lt = localtime(&t);
+
+    ampm = lt->tm_hour > 11 ? "pm" : "am";
 
     text_blank_text(statusbar.text, statusbar.location);
-    snprintf((char*)statusbar.clock_buffer, sizeof(statusbar.clock_buffer)-1, (const char*)statusbar.clock_format, hours, minutes, seconds, ampm);
+    snprintf((char*)statusbar.clock_buffer, sizeof(statusbar.clock_buffer)-1, statusbar.clock_format, lt->tm_hour%12, lt->tm_min, lt->tm_sec, ampm);
     redraw_textbox_text(statusbar.text, statusbar.location);
 }
 #endif
@@ -123,8 +121,8 @@ void statusbar_task(void* pvParameters)
     (void)pvParameters;
     portTickType last_execution_time = xTaskGetTickCount();
 #if STATUSBAR_INCLUDE_LINK_DATA_ICONS
-    uip_stats_t sent = 0;
-    uip_stats_t received = 0;
+    unsigned long sent = 0;
+    unsigned long received = 0;
     bool up = true;
     bool down = true;
 #endif
