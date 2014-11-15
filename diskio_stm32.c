@@ -39,6 +39,7 @@
  * @{
  */
 
+#include <time.h>
 #include <stdio.h>
 #include "diskio.h"
 #include "sdcard.h"
@@ -92,60 +93,31 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
 {
 	DRESULT res = RES_ERROR;
 	SD_Error err = SD_OK;
-	SDTransferState xferstate = SD_TRANSFER_BUSY;
+	SDCardState cardstate = SD_CARD_ERROR;
 
-	// if drive invalid then parameter error
 	if (drv)
 		return RES_PARERR;
 
-	// if card is not initialised then not ready error
-	// if card is not inserted then not ready error
 	if(Status & (STA_NODISK | STA_NOINIT))
 		return RES_NOTRDY;
 
 	if(count == 1)
-	{
 		err = SD_ReadBlock((uint8_t*)buff, sector);
-		if(err == SD_OK)
-		{
-			err = SD_WaitReadOperation();
-			if(err == SD_OK)
-			{
-				while(xferstate != SD_TRANSFER_OK)
-					xferstate = SD_GetStatus();
-				if(xferstate == SD_TRANSFER_OK)
-					res = RES_OK;
-				else
-					log_error(NULL, "read block xfer failed: %d", xferstate);
-			}
-			else
-				log_error(NULL, "read block wait failed: %d", err);
-		}
-		else
-			log_error(NULL, "read block failed: %d", err);
-			
-	}
 	else if(count > 1)
-	{
 		err = SD_ReadMultiBlocks((uint8_t*)buff, sector, count);
-		if(err == SD_OK)
-		{
-			err = SD_WaitReadOperation();
-			if(err == SD_OK)
-			{
-				while(xferstate != SD_TRANSFER_OK)
-					xferstate = SD_GetStatus();
-				if(xferstate == SD_TRANSFER_OK)
-					res = RES_OK;
-				else
-					log_error(NULL, "read blocks xfer failed: %d", xferstate);
-			}
-			else
-				log_error(NULL, "read blocks wait failed: %d", err);
-		}
-		else
-			log_error(NULL, "read blocks failed: %d", err);
-	}
+    else
+        err = SD_INVALID_PARAMETER;
+
+	if(err == SD_OK)
+	    err = SD_WaitIOOperation(WAIT_WHILE_RX_ACTIVE);
+
+    if(err == SD_OK)
+    {
+        // TODO - how would I avoid polling here?
+        while(cardstate != SD_CARD_TRANSFER)
+            SD_QueryStatus(&cardstate);
+        res = RES_OK;
+    }
 
 	return res;
 }
@@ -155,64 +127,34 @@ DRESULT disk_write (BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
 {
 	DRESULT res = RES_ERROR;
 	SD_Error err = SD_OK;
-	SDTransferState xferstate = SD_TRANSFER_BUSY;
+	SDCardState cardstate = SD_CARD_ERROR;
 
-	// if drive invalid then parameter error
 	if (drv)
 		return RES_PARERR;
 
-	// if card is not initialised then not ready error
-	// if card is not inserted then not ready error
 	if(Status & (STA_NODISK | STA_NOINIT))
 		return RES_NOTRDY;
 
-	// if card is write protected then write protected error
 	if(Status & STA_PROTECT)
 		return RES_WRPRT;
 
 	if(count == 1)
-	{
 		err = SD_WriteBlock((const uint8_t*)buff, sector);
-		if(err == SD_OK)
-		{
-			err = SD_WaitWriteOperation();
-			if(err == SD_OK)
-			{
-				while(xferstate != SD_TRANSFER_OK)
-					xferstate = SD_GetStatus();
-				if(xferstate == SD_TRANSFER_OK)
-					res = RES_OK;
-				else
-					log_error(NULL, "write block xfer failed: %d", xferstate);
-			}
-			else
-				log_error(NULL, "write block wait failed: %d", err);
-		}
-		else
-			log_error(NULL, "write block failed: %d", err);
-	}
 	else if(count > 1)
-	{
 		err = SD_WriteMultiBlocks((const uint8_t*)buff, sector, count);
-		if(err == SD_OK)
-		{
-			err = SD_WaitWriteOperation();
-			if(err == SD_OK)
-			{
-				while(xferstate != SD_TRANSFER_OK)
-					xferstate = SD_GetStatus();
-				if(xferstate == SD_TRANSFER_OK)
-					res = RES_OK;
-				else
-					log_error(NULL, "write blocks xfer failed: %d", xferstate);
-			}
-			else
-				log_error(NULL, "write blocks wait failed: %d", err);
-		}
-		else
-			log_error(NULL, "write blocks failed: %d", err);
+	else
+	    err = SD_INVALID_PARAMETER;
 
-	}
+	if(err == SD_OK)
+	    err = SD_WaitIOOperation(WAIT_WHILE_TX_ACTIVE);
+
+    if(err == SD_OK)
+    {
+        // TODO - how would I avoid polling here?
+        while(cardstate != SD_CARD_TRANSFER)
+            SD_QueryStatus(&cardstate);
+        res = RES_OK;
+    }
 
 	return res;
 }
@@ -282,7 +224,7 @@ DRESULT disk_ioctl(BYTE drv, BYTE ctrl, void *buff)
 #endif // _USE_IOCTL != 0
 
 /**
- * @brief	returns fat fs compliant time stamp from scheduler time base.
+ * @brief	returns fat fs compliant time stamp.
  *
  * @retval	returns an integer of the following format:
  * 	bits  0:4 		5 bits 	Second/2 		(0..29)
@@ -294,24 +236,19 @@ DRESULT disk_ioctl(BYTE drv, BYTE ctrl, void *buff)
  */
 DWORD get_fattime(void)
 {
-	// uint64_t time = sched_get_time();
-	DWORD ftime = 0;
-
-	// time /= 2000;					// time -> '2 seconds'
-	// ftime = time%30;				// 2 second count
-	// time /= 30;						// time -> minutes
-	// ftime |= (time%59)<<5;			// minute count
-	// time /= 60;						// time -> hours
-	// ftime |= (time%23)<<11;			// hour count
-	// time /= 24;						// time -> days
-	// ftime |= ((time%30)+1)<<16;		// day count
-	// time /= 31;						// time -> months
-	// ftime |= ((time%11)+1)<<21;		// month count
-	// time /= 12;						// time -> years
-	// ftime |= (time%127)<<25;		// year count
-
-	return ftime;
+    time_t t;
+    DWORD ftime = 0;
+    time(&t);
+    struct tm* lt = localtime(&t);
+    ftime = ((lt->tm_year - 80) << 25) |
+            ((lt->tm_mon + 1) << 21) |
+            ((lt->tm_mday) << 16) |
+            ((lt->tm_hour) << 11) |
+            ((lt->tm_min) << 5) |
+            (lt->tm_sec/2);
+    return ftime;
 }
+
 
 /**
  * if disk is present, clears STA_NODISK flag.
