@@ -113,9 +113,9 @@
   */
 typedef enum
 {
-  SD_TRANSFER_OK  = 0,
-  SD_TRANSFER_BUSY = 1,
-  SD_TRANSFER_ERROR
+    SD_TRANSFER_OK  = 0,
+    SD_TRANSFER_BUSY = 1,
+    SD_TRANSFER_ERROR
 } SDTransferState;
 
 /**
@@ -123,15 +123,16 @@ typedef enum
   */
 typedef enum
 {
-  SD_CARD_READY                  = ((uint32_t)0x00000001),
-  SD_CARD_IDENTIFICATION         = ((uint32_t)0x00000002),
-  SD_CARD_STANDBY                = ((uint32_t)0x00000003),
-  SD_CARD_TRANSFER               = ((uint32_t)0x00000004),
-  SD_CARD_SENDING                = ((uint32_t)0x00000005),
-  SD_CARD_RECEIVING              = ((uint32_t)0x00000006),
-  SD_CARD_PROGRAMMING            = ((uint32_t)0x00000007),
-  SD_CARD_DISCONNECTED           = ((uint32_t)0x00000008),
-  SD_CARD_ERROR                  = ((uint32_t)0x000000FF)
+    SD_CARD_IDLE                   = ((uint32_t)0x00000000),
+    SD_CARD_READY                  = ((uint32_t)0x00000001),
+    SD_CARD_IDENTIFICATION         = ((uint32_t)0x00000002),
+    SD_CARD_STANDBY                = ((uint32_t)0x00000003),
+    SD_CARD_TRANSFER               = ((uint32_t)0x00000004),
+    SD_CARD_SENDING                = ((uint32_t)0x00000005),
+    SD_CARD_RECEIVING              = ((uint32_t)0x00000006),
+    SD_CARD_PROGRAMMING            = ((uint32_t)0x00000007),
+    SD_CARD_DISCONNECTED           = ((uint32_t)0x00000008),
+    SD_CARD_ERROR                  = ((uint32_t)0x000000FF)
 }SDCardState;
 
 /**
@@ -225,6 +226,10 @@ typedef struct
   uint8_t ERASE_OFFSET;
 } SD_CardStatus;
 
+typedef enum {
+    WAIT_WHILE_RX_ACTIVE = SDIO_FLAG_RXACT,
+    WAIT_WHILE_TX_ACTIVE = SDIO_FLAG_TXACT
+}sdio_wait_on_io_t;
 
 /**
  * Common SD card stuff
@@ -259,6 +264,18 @@ typedef struct
   */
 #define SD_SECTOR_SIZE 512
 
+
+#ifndef USE_THREAD_AWARE_SDIO
+#define USE_THREAD_AWARE_SDIO   0
+#endif
+
+#if USE_THREAD_AWARE_SDIO
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
+#endif
+
 SD_Error SD_PowerON(void);
 SD_Error SD_PowerOFF(void);
 SD_Error SD_Init(SD_CardInfo* sdcardinfo);
@@ -266,22 +283,21 @@ void SD_DeInit(void);
 SD_Error SD_GetCardInfo(SD_CardInfo *cardinfo);
 
 SD_Error SD_GetCardStatus(SD_CardStatus *cardstatus);
-SD_Error SD_WaitReadOperation(void);
-SD_Error SD_WaitWriteOperation(void);
+SD_Error SD_WaitIOOperation(sdio_wait_on_io_t io_flag);
 
-SDTransferState SD_GetStatus(void);
+SD_Error SD_QueryStatus(SDCardState* cardstatus);
+
+SDTransferState SD_GetTransferState(void);
 
 SD_Error SD_ReadBlock(uint8_t *readbuff, uint32_t sector);
 SD_Error SD_ReadMultiBlocks(uint8_t *readbuff, uint32_t sector, uint32_t NumberOfBlocks);
 SD_Error SD_WriteBlock(const uint8_t *writebuff, uint32_t sector);
 SD_Error SD_WriteMultiBlocks(const uint8_t *writebuff, uint32_t sector, uint32_t NumberOfBlocks);
 SD_Error SD_Erase(uint32_t startaddr, uint32_t endaddr);
-SDTransferState SD_GetTransferState(void);
 const uint8_t* SD_Get_Error_String(SD_Error err);
 void SD_WP_Card_Detect_init(void);
 uint8_t SD_Detect(void);
 uint8_t SD_WPDetect(void);
-SD_Error SD_ProcessIRQSrc(void);
 
 void set_diskstatus(uint8_t state);
 uint8_t get_diskstatus();
