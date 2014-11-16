@@ -105,6 +105,7 @@ void sdfs_init(void)
 
 void sdcard_task(void* pvParameters)
 {
+    TCHAR x;
     (void)pvParameters;
 
     for(;;)
@@ -113,22 +114,21 @@ void sdcard_task(void* pvParameters)
     	f_mount(sdfs.drive, NULL);
     	sdfs.mounted = false;
         set_diskstatus(SD_NOT_PRESENT);
-    	SD_DeInit();
-    	vTaskDelay(250/portTICK_RATE_MS);
 
     	log_syslog(NULL, "wait for disk");
+
         // wait for disk
         while(SD_Detect() != SD_PRESENT)
-        	 vTaskDelay(100/portTICK_RATE_MS);
+        	 vTaskDelay(250/portTICK_RATE_MS);
 
-        if(!(disk_initialize(sdfs.drive) & STA_NOINIT))
+        if(f_mount(sdfs.drive, &sdfs.fs) == FR_OK && f_getcwd(&x, 1) == FR_OK)
         {
-        	sdfs.mounted = f_mount(sdfs.drive, &sdfs.fs) == FR_OK;
-        	set_diskstatus(SD_PRESENT);
+            sdfs.mounted = true;
+            set_diskstatus(SD_PRESENT);
         }
 
         // wait for disk out
-        while((SD_Detect() == SD_PRESENT) && (get_diskstatus() == SD_PRESENT))
+        while((SD_Detect() == SD_PRESENT))
             vTaskDelay(250/portTICK_RATE_MS);
 
     	log_syslog(NULL, "disk out");

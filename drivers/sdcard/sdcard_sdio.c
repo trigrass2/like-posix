@@ -50,6 +50,7 @@
  */
 
 #include "sdcard.h"
+#include "cutensils.h"
 
 /**
  * @defgroup sd_card_sdio SD Card SDIO
@@ -286,6 +287,8 @@
 #define SD_CARD_CMD_PINSOURCE       GPIO_PinSource2
 
 
+logger_t sdiolog;
+
 typedef struct {
 #if USE_THREAD_AWARE_SDIO
     QueueHandle_t wait_on_io;
@@ -406,13 +409,19 @@ static void sdio_init_peripheral(uint8_t clock_div, uint32_t bus_width)
 SD_Error SD_Init(SD_CardInfo* sdcardinfo)
 {
     SD_Error errorstatus;
+
+    log_init(&sdiolog, "sdio");
+
     SD_NVIC_Configuration();
     SD_IO_Init();
     errorstatus = SD_PowerON();
 
 #if USE_THREAD_AWARE_SDIO
-    sdio_state.wait_on_io = xQueueCreate(2, 1);
-    assert_true(sdio_state.wait_on_io);
+    if(sdio_state.wait_on_io == NULL)
+    {
+        sdio_state.wait_on_io = xQueueCreate(2, 1);
+        assert_true(sdio_state.wait_on_io);
+    }
 #endif
 
     if(errorstatus == SD_OK)
@@ -740,9 +749,12 @@ static void SD_NVIC_Configuration(void)
 void SD_DeInit(void)
 {
     SD_IO_DeInit();
+    if(sdio_state.wait_on_io != NULL)
+    {
+        vQueueDelete(sdio_state.wait_on_io);
+        sdio_state.wait_on_io = NULL;
+    }
 }
-
-
 
 /**
   * @brief  Enquires cards about their operating voltage and configures
@@ -753,7 +765,8 @@ void SD_DeInit(void)
 SD_Error SD_PowerON(void)
 {
     SD_Error errorstatus = SD_OK;
-    uint32_t timeout;
+    uint32_t resp;
+    uint32_t acmdarg;
 
     /*!< Power ON Sequence -----------------------------------------------------*/
     /*!< Configure the SDIO peripheral */
@@ -784,48 +797,39 @@ SD_Error SD_PowerON(void)
     sdio_send_cmd(SD_CHECK_PATTERN, SDIO_SEND_IF_COND, SDIO_Response_Short);
     errorstatus = CmdResp7Error();
 
+    log_syslog(&sdiolog, "cmd8: err=%d", errorstatus);
+
     if(errorstatus == SD_OK)
+    {
         sdio_state.card_type = SDIO_STD_CAPACITY_SD_CARD_V2_0;
+        acmdarg = SD_VOLTAGE_WINDOW_SD | SD_HIGH_CAPACITY;
+    }
     else
     {
         sdio_state.card_type = SDIO_STD_CAPACITY_SD_CARD_V1_1;
-        /*!< CMD55 */
-        sdio_send_cmd(0x00, SD_CMD_APP_CMD, SDIO_Response_Short);
-        errorstatus = CmdResp1Error(SD_CMD_APP_CMD);
+        acmdarg = SD_VOLTAGE_WINDOW_SD;
     }
-    /*!< CMD55 */
-    sdio_send_cmd(0x00, SD_CMD_APP_CMD, SDIO_Response_Short);
-    errorstatus = CmdResp1Error(SD_CMD_APP_CMD);
 
-    /*!< If errorstatus is Command TimeOut, it is a MMC card */
-    /*!< If errorstatus is SD_OK it is a SD card: SD card 2.0 (voltage range mismatch)
-    or SD card 1.x */
-    if(errorstatus == SD_OK)
+    for(uint8_t i = 0; i < 20; i++)
     {
-        timeout = xTaskGetTickCount() + 2000;
-        /*!< Send ACMD41 SD_APP_OP_COND with Argument 0x80100000 */
-        while ((!(SDIO_GetResponse(SDIO_RESP1) & (1<<31))) && (xTaskGetTickCount() < timeout))
-        {
-            /*!< SEND CMD55 APP_CMD with RCA as 0 */
-            sdio_send_cmd(0x00, SD_CMD_APP_CMD, SDIO_Response_Short);
-            errorstatus = CmdResp1Error(SD_CMD_APP_CMD);
-            if(errorstatus != SD_OK)
-                return errorstatus;
-
-            sdio_send_cmd(SD_VOLTAGE_WINDOW_SD | SD_HIGH_CAPACITY, SD_CMD_SD_APP_OP_COND, SDIO_Response_Short);
-            errorstatus = CmdResp3Error();
-            if(errorstatus != SD_OK)
-                return errorstatus;
-        }
-        if(xTaskGetTickCount() >= timeout)
-        {
-            errorstatus = SD_INVALID_VOLTRANGE;
-            return errorstatus;
-        }
-
-        if(SDIO_GetResponse(SDIO_RESP1) & SD_HIGH_CAPACITY)
-            sdio_state.card_type = SDIO_HIGH_CAPACITY_SD_CARD;
+        sdio_send_cmd(0x00, SD_CMD_APP_CMD, SDIO_Response_Short);
+        CmdResp1Error(SD_CMD_APP_CMD);
+        sdio_send_cmd(acmdarg, SD_CMD_SD_APP_OP_COND, SDIO_Response_Short);
+        errorstatus = CmdResp3Error();
+        resp = SDIO_GetResponse(SDIO_RESP1);
+        log_syslog(&sdiolog, "cmd41: err=%d, resp=%x", errorstatus, resp);
+        if(resp & 0x80000000)
+            break;
+        vTaskDelay(100);
     }
+
+    if(!(resp & 0x80000000))
+        errorstatus = SD_INVALID_VOLTRANGE;
+    else
+        errorstatus = SD_OK;
+
+    if(resp & SD_HIGH_CAPACITY)
+        sdio_state.card_type = SDIO_HIGH_CAPACITY_SD_CARD;
 
   return errorstatus;
 }
