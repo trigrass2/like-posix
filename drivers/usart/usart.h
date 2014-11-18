@@ -46,12 +46,13 @@
 #ifndef USART_H_
 #define USART_H_
 
-bool init_usart(USART_TypeDef* usart, char* install_as, bool enable);
-void init_usart_device(USART_TypeDef* usart, FunctionalState enable);
-void init_usart_gpio(USART_TypeDef* usart);
-void init_usart_interrupt(USART_TypeDef* device, uint8_t priority, FunctionalState enable);
+bool usart_init(USART_TypeDef* usart, char* install_as, bool enable);
+void usart_init_device(USART_TypeDef* usart, FunctionalState enable);
+void usart_init_gpio(USART_TypeDef* usart);
+void usart_init_interrupt(USART_TypeDef* device, uint8_t priority, FunctionalState enable);
 
-void set_baudrate(USART_TypeDef* usart, uint32_t br);
+void usart_set_baudrate(USART_TypeDef* usart, uint32_t br);
+uint32_t usart_get_baudrate(USART_TypeDef* usart);
 
 void set_console_usart(USART_TypeDef* usart);
 char phy_getc(void);
