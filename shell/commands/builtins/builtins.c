@@ -30,26 +30,65 @@
  *
  */
 
-/**
-* @addtogroup threaded_server
-*
-* @{
-* @file threaded_server.h
-*/
+#include <stdlib.h>
+#include <time.h>
+#include <sys/time.h>
+#include "builtins.h"
 
+int sh_help(int fdes, const char** args, unsigned char nargs)
+{
+    (void)fdes;
+    (void)args;
+    (void)nargs;
+    return SHELL_CMD_PRINT_CMDS;
+}
 
-#ifndef THREADED_SERVER_H_
-#define THREADED_SERVER_H_
+int sh_exit(int fdes, const char** args, unsigned char nargs)
+{
+    (void)fdes;
+    (void)args;
+    (void)nargs;
+    return SHELL_CMD_KILL;
+}
 
-#include "sock_utils.h"
+int sh_date(int fdes, const char** args, unsigned char nargs)
+{
+    (void)fdes;
+    (void)args;
+    (void)nargs;
+    int length;
+    char* buffer = malloc(128);
+    if(buffer)
+    {
+		struct timeval tv;
+		if(gettimeofday(&tv, NULL) == 0)
+		{
+		    struct tm* lt = localtime(&tv.tv_sec);
+		    length = strftime(buffer, 128, "%Y-%m-%d %H:%M:%S%z", lt) - 1;
+		    if(length > 0)
+		        send(fdes, buffer, length, 0);
+		}
+		free(buffer);
+    }
 
-#define THREADED_SERVER_PRIORITY		1
-#define THREADED_SERVER_STACK_SIZE		128
+    return SHELL_CMD_EXIT;
+}
 
-int start_threaded_server(sock_server_t* servinfo, const char* config, sock_service_fptr_t threadfunc, const char* name, void* data, int stacksize, int prio);
+shell_cmd_t sh_help_cmd = {
+     .name = "help",
+     .usage = "prints a list of available commands",
+     .cmdfunc = sh_help
+};
 
-#endif /* THREADED_SERVER_H_ */
+shell_cmd_t sh_exit_cmd = {
+    .name = "exit",
+    .usage = "causes the shell session to terminate",
+    .cmdfunc = sh_exit
+};
 
-/**
- * @}
- */
+shell_cmd_t sh_date_cmd = {
+    .name = "date",
+    .usage = "prints current date/time",
+    .cmdfunc = sh_date
+};
+

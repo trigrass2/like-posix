@@ -79,11 +79,11 @@ static void shell_instance_thread(sock_conn_t* conn);
  * @param   config file is a filepath to a configuration file. it must contain port and conns settings.
  * @retval  returns -1 on error, and a non zero value on success.
  */
-int start_shell(shellserver_t* shellserver, char* configfile)
+int start_shell(shellserver_t* shellserver, const char* configfile)
 {
-    shellserver->name = "shell";
-
     memset(shellserver, 0, sizeof(shellserver_t));
+
+    shellserver->name = "shell";
 
 	register_command(shellserver, &sh_help_cmd, NULL, NULL, NULL);
 	register_command(shellserver, &sh_exit_cmd, NULL, NULL, NULL);

@@ -71,7 +71,7 @@
 
  \endcode
  */
-int sock_connect(char *host, int port, int type)
+int sock_connect(const char *host, int port, int type)
 {
 	logger_t log;
 	char portbuf[16];
@@ -128,7 +128,7 @@ int sock_connect(char *host, int port, int type)
  * @retval	returns the socket listener file descriptor, or -1 on error.
  *
  */
-int sock_server(int port, int type, int conns, sock_server_t* servinfo, sock_handle_incoming_fptr_t handle_incoming, sock_service_fptr_t service, void* ctx, char* name, int stacksize, int prio)
+int sock_server(int port, int type, int conns, sock_server_t* servinfo, sock_handle_incoming_fptr_t handle_incoming, sock_service_fptr_t service, void* ctx, const char* name, int stacksize, int prio)
 {
 	struct sockaddr_in servaddr;
 	servinfo->service = service;

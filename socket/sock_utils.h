@@ -61,7 +61,7 @@ typedef struct _sock_conn_t {
 typedef struct _sock_server_t {
 	int listenfd;
 	logger_t log;
-	char* name;
+	const char* name;
 	void* ctx;
 	sock_handle_incoming_fptr_t handle_incoming;
 	sock_service_fptr_t service;
@@ -69,10 +69,10 @@ typedef struct _sock_server_t {
 	int prio;
 }sock_server_t;
 
-int sock_connect(char *host, int port, int type);
+int sock_connect(const char *host, int port, int type);
 int sock_server(int port, int type, int conns, sock_server_t* servinfo,
 				sock_handle_incoming_fptr_t handle_incoming, sock_service_fptr_t service,
-				void* ctx, char* name, int stacksize, int prio);
+				void* ctx, const char* name, int stacksize, int prio);
 void sock_server_thread(void* parameters);
 
 #endif /* SOCKET_SOCK_UTILS_H_ */

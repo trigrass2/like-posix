@@ -52,14 +52,14 @@
 #define SHELL_CWD_LENGTH_MAX        256
 
 typedef struct {
-    char* name;
+    const char* name;
     shell_cmd_t* head_cmd;
     sock_server_t server;
 }shellserver_t;
 
 typedef struct _shell_t shell_t;
 
-int start_shell(shellserver_t* shell, char* configfile);
+int start_shell(shellserver_t* shell, const char* configfile);
 void register_command(shellserver_t* sh, shell_cmd_t* cmd, shell_cmd_func_t cmdfunc, const char* name, const char* usage);
 
 #endif /* SHELL_H_ */

@@ -54,7 +54,7 @@
 void handle_connection(sock_conn_t* conn);
 int spawn_connection(sock_server_t* server, sock_conn_t* conn);
 
-int start_threaded_server(sock_server_t* servinfo, char* config, sock_service_fptr_t threadfunc, char* name, void* data, int stacksize, int prio)
+int start_threaded_server(sock_server_t* servinfo, const char* config, sock_service_fptr_t threadfunc, const char* name, void* data, int stacksize, int prio)
 {
     logger_t startuplog;
 	uint8_t buffer[32];
