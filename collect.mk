@@ -67,9 +67,6 @@ CFLAGS += -D USE_STDPERIPH_DRIVER
 CFLAGS += -D inline=
 
 ## compile options
-ifneq ($(DEBUG), )
-CFLAGS += -g$(DEBUG)
-endif
 CFLAGS += -O$(OPT)
 CFLAGS += -std=gnu99
 CFLAGS += -I ./
@@ -90,11 +87,6 @@ CFLAGS += -Wno-attributes
 LINKER_FLAGS += -Xlinker -o$(OUTPUT_PREFIX).elf -Xlinker -M -Xlinker -Map=$(OUTPUT_PREFIX).map -Xlinker
 ## note, if debug is enabled use -no-gc-sections - binaries will be unoptimised, read enormous
 LINKER_FLAGS +=  -gc-sections
-#ifeq ($(DEBUG), )
-#LINKER_FLAGS +=  -gc-sections
-#else
-#LINKER_FLAGS +=  -no-gc-sections
-#endif
 
 ## add any libraries here
 LIBS += -lm
