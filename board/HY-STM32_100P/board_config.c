@@ -59,7 +59,7 @@ void init_target(void)
 #endif
 
 #if USE_DRIVER_USART
-	init_usart(CONSOLE_USART, NULL, true);
+	usart_init(CONSOLE_USART, NULL, true);
 	set_console_usart(CONSOLE_USART);
 #endif
 #if USE_DRIVER_LEDS

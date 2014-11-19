@@ -70,8 +70,8 @@
 #include "asserts.h"
 #include "cutensils.h"
 
-#define CR1_OVER8_Set             ((u16)0x8000)  /* USART OVER8 mode Enable Mask, used by set_baudrate */
-#define CR1_OVER8_Reset           ((u16)0x7FFF)  /* USART OVER8 mode Disable Mask, used by set_baudrate */
+#define CR1_OVER8_Set             ((u16)0x8000)  /* USART OVER8 mode Enable Mask, used by usart_set_baudrate */
+#define CR1_OVER8_Reset           ((u16)0x7FFF)  /* USART OVER8 mode Disable Mask, used by usart_set_baudrate */
 
 static USART_TypeDef* console_usart;
 dev_ioctl_t* usart_dev_ioctls[6];
@@ -104,7 +104,7 @@ char phy_getc(void)
 /**
  * initialize the specified USART device.
  *
- * **note:** this function is called by init_usart.
+ * **note:** this function is called by usart_init.
  */
 void init_usart_device(USART_TypeDef* usart, FunctionalState enable)
 {
@@ -143,7 +143,7 @@ void init_usart_device(USART_TypeDef* usart, FunctionalState enable)
  *
  * **note:** pin mapping is set in serial_config.h.
  *
- * **note:** this function is called by init_usart.
+ * **note:** this function is called by usart_init.
  */
 void init_usart_gpio(USART_TypeDef* usart)
 {
@@ -324,7 +324,7 @@ int8_t get_usart_devno(USART_TypeDef* usart)
  * 			function is invoked on its device file.
  * @retval	returns true if the operation succeeded, false otherwise.
  */
-bool init_usart(USART_TypeDef* usart, char* install, bool enable)
+bool usart_init(USART_TypeDef* usart, char* install, bool enable)
 {
 	bool ret = true;
 	int8_t usart_devno = get_usart_devno(usart);
@@ -361,7 +361,7 @@ bool init_usart(USART_TypeDef* usart, char* install, bool enable)
 /**
  * initialize interrupts for the specified USART.
  *
- * **note:** this functuion is called by init_usart.
+ * **note:** this functuion is called by usart_init.
  */
 void init_usart_interrupt(USART_TypeDef* usart, uint8_t priority, FunctionalState enable)
 {
@@ -401,7 +401,7 @@ void set_console_usart(USART_TypeDef* usart)
 /**
  * sets the usart baudrate.
  */
-void set_baudrate(USART_TypeDef* usart, uint32_t br)
+void usart_set_baudrate(USART_TypeDef* usart, uint32_t br)
 {
 	uint32_t apbclock;
 	uint32_t tmpreg;
