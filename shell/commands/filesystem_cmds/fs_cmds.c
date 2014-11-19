@@ -44,6 +44,9 @@
 #define IS_NOT_A_DIRECTORY          " is not a directory"
 #define FORMATTING_SDCARD           "formatting sdcard"
 #define ARGUMENT_NOT_SPECIFIED      "argument not specified"
+#define ERROR_OPENING_SOURCE_FILE      "couldnt open source file"
+#define ERROR_OPENING_DEST_FILE      "couldnt open destination file"
+#define ERROR_MOVING_FILE            "error moving file"
 
 const char* units[] = {
        "B", "kB", "MB", "GB"
@@ -57,6 +60,8 @@ void install_fs_cmds(shellserver_t* sh)
     register_command(sh, &sh_mkdir_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_echo_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_cat_cmd, NULL, NULL, NULL);
+    register_command(sh, &sh_mv_cmd, NULL, NULL, NULL);
+    register_command(sh, &sh_cp_cmd, NULL, NULL, NULL);
 }
 
 int sh_ls(int fdes, const char** args, unsigned char nargs)
@@ -67,44 +72,53 @@ int sh_ls(int fdes, const char** args, unsigned char nargs)
     DIR *dir;
     struct dirent *ent;
     bool ll = has_switch((const char*)"-l", args, nargs);
+    const char* rel = final_arg(args, nargs);
+    char* buffer = malloc(256);
 
-    char* cwd = getcwd(NULL, SHELL_CWD_LENGTH_MAX);
-
-    if(cwd)
+    if(buffer)
     {
-        dir = opendir(cwd);
-        free(cwd);
-        if(dir)
+        if(getcwd(buffer, SHELL_CWD_LENGTH_MAX))
         {
-            while(1)
+            if((nargs == 1 && !ll) || (nargs == 2 && ll))
             {
-                ent = readdir(dir);
-                if(ent == NULL)
-                    break;
-
-                send(fdes, ent->d_name, strlen(ent->d_name), 0);
-                send(fdes, "\t", 1, 0);
-
-                if(ll)
-                {
-                    if(ent->d_type == DT_REG)
-                    {
-                        if(stat(ent->d_name, &st) == 0)
-                        {
-                            i = 0;
-                            while(st.st_size > 1000 && (i < sizeof(units)/sizeof(units[0])))
-                            {
-                                i++;
-                                st.st_size /= 1000;
-                            }
-                            sprintf(size, "%d%s", st.st_size, units[i]);
-                            send(fdes, size, strlen(size), 0);
-                        }
-                    }
-                    send(fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1, 0);
-                }
+                strcat(buffer, rel);
             }
-            closedir(dir);
+
+            dir = opendir(buffer);
+            free(buffer);
+
+            if(dir)
+            {
+                while(1)
+                {
+                    ent = readdir(dir);
+                    if(ent == NULL)
+                        break;
+
+                    send(fdes, ent->d_name, strlen(ent->d_name), 0);
+                    send(fdes, "\t", 1, 0);
+
+                    if(ll)
+                    {
+                        if(ent->d_type == DT_REG)
+                        {
+                            if(stat(ent->d_name, &st) == 0)
+                            {
+                                i = 0;
+                                while(st.st_size > 1000 && (i < sizeof(units)/sizeof(units[0])))
+                                {
+                                    i++;
+                                    st.st_size /= 1000;
+                                }
+                                sprintf(size, "%d%s", st.st_size, units[i]);
+                                send(fdes, size, strlen(size), 0);
+                            }
+                        }
+                        send(fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1, 0);
+                    }
+                }
+                closedir(dir);
+            }
         }
     }
     return SHELL_CMD_EXIT;
@@ -129,12 +143,18 @@ int sh_cd(int fdes, const char** args, unsigned char nargs)
 
 int sh_rm(int fdes, const char** args, unsigned char nargs)
 {
-    const char* path = final_arg(args, nargs);
+    unsigned char arg = 0;
 
-    if(path)
-        unlink(path);
-    else
+    if(!nargs)
+    {
         send(fdes, ARGUMENT_NOT_SPECIFIED, sizeof(ARGUMENT_NOT_SPECIFIED)-1, 0);
+    }
+
+    while(arg < nargs)
+    {
+        unlink(arg_by_index(arg, args, nargs));
+        arg++;
+    }
 
     return SHELL_CMD_EXIT;
 }
@@ -198,11 +218,67 @@ int sh_cat(int fdes, const char** args, unsigned char nargs)
     return SHELL_CMD_EXIT;
 }
 
+int sh_mv(int fdes, const char** args, unsigned char nargs)
+{
+    const char* path = arg_by_index(0, args, nargs);
+    const char* newpath = arg_by_index(1, args, nargs);
+
+    if(path && newpath)
+    {
+        if(rename(path, newpath) == -1)
+            send(fdes, ERROR_MOVING_FILE, sizeof(ERROR_MOVING_FILE)-1, 0);
+    }
+    else
+        send(fdes, ARGUMENT_NOT_SPECIFIED, sizeof(ARGUMENT_NOT_SPECIFIED)-1, 0);
+
+    return SHELL_CMD_EXIT;
+}
+
+int sh_cp(int fdes, const char** args, unsigned char nargs)
+{
+    FILE* f1;
+    FILE* f2;
+    const char* path = arg_by_index(0, args, nargs);
+    const char* newpath = arg_by_index(0, args, nargs);
+    char buffer[64];
+    int length;
+
+    if(path && newpath)
+    {
+        f1 = fopen(path, "r");
+        if(f1)
+        {
+            f2 = fopen(path, "w");
+            if(f2)
+            {
+                length = 1;
+                while(length > 0)
+                {
+                    length = fread(buffer, 1, sizeof(buffer), f1);
+                    fwrite(buffer, 1, length, f2);
+                }
+                fclose(f2);
+            }
+            else
+                send(fdes, ERROR_OPENING_DEST_FILE, sizeof(ERROR_OPENING_DEST_FILE)-1, 0);
+            fclose(f1);
+        }
+        else
+            send(fdes, ERROR_OPENING_SOURCE_FILE, sizeof(ERROR_OPENING_SOURCE_FILE)-1, 0);
+    }
+    else
+        send(fdes, ARGUMENT_NOT_SPECIFIED, sizeof(ARGUMENT_NOT_SPECIFIED)-1, 0);
+
+    return SHELL_CMD_EXIT;
+}
+
 shell_cmd_t sh_ls_cmd = {
     .name = "ls",
     .usage =
+"prints directory content, relative to the current directory" SHELL_NEWLINE \
 "flags:" SHELL_NEWLINE \
-"\t-l  print details",
+"\t-l  print details" SHELL_NEWLINE \
+"ls [-l] [relpath]",
     .cmdfunc = sh_ls
 };
 
@@ -214,7 +290,8 @@ shell_cmd_t sh_cd_cmd = {
 
 shell_cmd_t sh_rm_cmd = {
     .name = "rm",
-    .usage = "removes the specified file",
+    .usage = "removes the specified file(s)" SHELL_NEWLINE \
+"rm file [file file ...]",
     .cmdfunc = sh_rm
 };
 
@@ -237,8 +314,22 @@ shell_cmd_t sh_echo_cmd = {
 };
 
 shell_cmd_t sh_cat_cmd = {
-		.name = "cat",
-		.usage = "reads the entire content of a file to the sceen",
-		.cmdfunc = sh_cat
+        .name = "cat",
+        .usage = "reads the entire content of a file to the screen",
+        .cmdfunc = sh_cat
+};
+
+shell_cmd_t sh_mv_cmd = {
+		.name = "mv",
+		.usage = "moves/renames a file" SHELL_NEWLINE \
+"mv oldname newname",
+		.cmdfunc = sh_mv
+};
+
+shell_cmd_t sh_cp_cmd = {
+        .name = "cp",
+        .usage = "copies a file from one location to another" SHELL_NEWLINE \
+"cp file newfile",
+        .cmdfunc = sh_cp
 };
 

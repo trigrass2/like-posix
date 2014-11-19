@@ -42,6 +42,8 @@ extern shell_cmd_t sh_rm_cmd;
 extern shell_cmd_t sh_mkdir_cmd;
 extern shell_cmd_t sh_echo_cmd;
 extern shell_cmd_t sh_cat_cmd;
+extern shell_cmd_t sh_mv_cmd;
+extern shell_cmd_t sh_cp_cmd;
 
 
 void install_fs_cmds(shellserver_t* sh);
