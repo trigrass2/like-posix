@@ -64,6 +64,7 @@
  * @{
  */
 
+#include <termios.h>
 #include "usart.h"
 #include "base_usart.h"
 #include "syscalls.h"
@@ -106,7 +107,7 @@ char phy_getc(void)
  *
  * **note:** this function is called by usart_init.
  */
-void init_usart_device(USART_TypeDef* usart, FunctionalState enable)
+void usart_init_device(USART_TypeDef* usart, FunctionalState enable)
 {
 	USART_InitTypeDef usart_init;
 
@@ -134,6 +135,8 @@ void init_usart_device(USART_TypeDef* usart, FunctionalState enable)
     usart_init.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
     usart_init.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
 
+    usart->CR1 &= ~CR1_OVER8_Set;
+
     USART_Init((USART_TypeDef*)usart, &usart_init);
     USART_Cmd((USART_TypeDef*)usart, enable);
 }
@@ -145,7 +148,7 @@ void init_usart_device(USART_TypeDef* usart, FunctionalState enable)
  *
  * **note:** this function is called by usart_init.
  */
-void init_usart_gpio(USART_TypeDef* usart)
+void usart_init_gpio(USART_TypeDef* usart)
 {
 #if FAMILY == STM32F1
     GPIO_InitTypeDef rx_init = {
@@ -257,38 +260,74 @@ void init_usart_gpio(USART_TypeDef* usart)
 #endif
 }
 
-
-int usart_enable_rx_ioctl(void* ctx)
+int usart_enable_rx_ioctl(dev_ioctl_t* dev)
 {
-	USART_TypeDef* usart = (USART_TypeDef*)ctx;
-	USART_ITConfig(usart, USART_IT_RXNE, ENABLE);
-	return 0;
+    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
+    USART_ITConfig(usart, USART_IT_RXNE, ENABLE);
+    return 0;
 }
 
-int usart_enable_tx_ioctl(void* ctx)
+int usart_enable_tx_ioctl(dev_ioctl_t* dev)
 {
-	USART_TypeDef* usart = (USART_TypeDef*)ctx;
-	USART_ITConfig(usart, USART_IT_TXE, ENABLE);
-	return 0;
+    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
+    USART_ITConfig(usart, USART_IT_TXE, ENABLE);
+    return 0;
 }
 
-int usart_open_ioctl(void* ctx)
+int usart_open_ioctl(dev_ioctl_t* dev)
 {
-	USART_TypeDef* usart = (USART_TypeDef*)ctx;
-	init_usart_gpio(usart);
-	init_usart_device(usart, ENABLE);
-	return 0;
+    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
+    usart_init_gpio(usart);
+    usart_init_device(usart, ENABLE);
+    return 0;
 }
 
-int usart_close_ioctl(void* ctx)
+int usart_close_ioctl(dev_ioctl_t* dev)
 {
-	USART_TypeDef* usart = (USART_TypeDef*)ctx;
-	USART_ITConfig(usart, USART_IT_RXNE, DISABLE);
-	USART_ITConfig(usart, USART_IT_TXE, DISABLE);
-	init_usart_device(usart, DISABLE);
-	return 0;
+    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
+    USART_ITConfig(usart, USART_IT_RXNE, DISABLE);
+    USART_ITConfig(usart, USART_IT_TXE, DISABLE);
+    usart_init_device(usart, DISABLE);
+    return 0;
 }
 
+int usart_ioctl(dev_ioctl_t* dev)
+{
+    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
+
+    uint32_t baudrate = dev->termios->c_ispeed ?
+            dev->termios->c_ispeed : dev->termios->c_ospeed;
+    if(baudrate)
+    {
+        // set baudrate
+        usart_set_baudrate(usart, baudrate);
+    }
+    else
+    {
+        // read baudrate
+        dev->termios->c_ispeed = usart_get_baudrate(usart);
+        dev->termios->c_ospeed = dev->termios->c_ispeed;
+    }
+
+    // set character size
+
+    // set character size
+
+    // set parity
+
+    // get parity
+
+    // set parity polarity
+
+    // get parity polarity
+
+    // set stopbits
+
+    // get stopbits
+
+
+    return 0;
+}
 
 int8_t get_usart_devno(USART_TypeDef* usart)
 {
@@ -336,14 +375,15 @@ bool usart_init(USART_TypeDef* usart, char* install, bool enable)
     if(install)
     {
     	// installed USART can only work with interrupt enabled
-    	init_usart_interrupt(usart, USART_INTERRUPT_PRIORITY, true);
+    	usart_init_interrupt(usart, USART_INTERRUPT_PRIORITY, true);
 
     	usart_dev_ioctls[usart_devno] = install_device(install,
 														usart,
 														usart_enable_rx_ioctl,
 														usart_enable_tx_ioctl,
 														usart_open_ioctl,
-														usart_close_ioctl);
+														usart_close_ioctl,
+														usart_ioctl);
     	ret = usart_dev_ioctls[usart_devno] != NULL;
     	log_syslog(NULL, "install usart%d: %d", usart_devno, ret);
     }
@@ -351,7 +391,8 @@ bool usart_init(USART_TypeDef* usart, char* install, bool enable)
     if(enable)
     {
     	// installed usarts are opened automatically... this is optional
-    	usart_open_ioctl(usart);
+        usart_init_gpio(usart);
+        usart_init_device(usart, ENABLE);
     }
 
     return ret;
@@ -363,7 +404,7 @@ bool usart_init(USART_TypeDef* usart, char* install, bool enable)
  *
  * **note:** this functuion is called by usart_init.
  */
-void init_usart_interrupt(USART_TypeDef* usart, uint8_t priority, FunctionalState enable)
+void usart_init_interrupt(USART_TypeDef* usart, uint8_t priority, FunctionalState enable)
 {
 	NVIC_InitTypeDef nvic_init;
 
@@ -400,10 +441,15 @@ void set_console_usart(USART_TypeDef* usart)
 
 /**
  * sets the usart baudrate.
+ *
+ * The baud rate is computed using the following formula:
+ * - IntegerDivider = ((PCLKx) / (8 * (OVR8+1) * baudrate))
+ * - FractionalDivider = ((IntegerDivider - IntegerDivider) * 8 * (OVR8+1)) + 0.5
+ * Where OVR8 is the "oversampling by 8 mode" configuration bit in the CR1 register.
  */
 void usart_set_baudrate(USART_TypeDef* usart, uint32_t br)
 {
-	uint32_t apbclock;
+    uint32_t apbclock;
 	uint32_t tmpreg;
 	uint32_t integerdivider;
     uint32_t fractionaldivider;
@@ -412,22 +458,16 @@ void usart_set_baudrate(USART_TypeDef* usart, uint32_t br)
 	RCC_GetClocksFreq(&RCC_ClocksStatus);
 
 #if defined(STM32F10X_HD) || defined(STM32F10X_CL)
-	if(usart == USART1)
-		apbclock = RCC_ClocksStatus.PCLK2_Frequency;
-	else
-		apbclock = RCC_ClocksStatus.PCLK1_Frequency;
+    if(usart == USART1)
 #elif FAMILY == STM32F4
-	if(usart == USART1 || usart == USART6)
-		apbclock = RCC_ClocksStatus.PCLK2_Frequency;
-	else
-		apbclock = RCC_ClocksStatus.PCLK1_Frequency;
+    if(usart == USART1 || usart == USART6)
 #endif
+        apbclock = RCC_ClocksStatus.PCLK2_Frequency;
+    else
+        apbclock = RCC_ClocksStatus.PCLK1_Frequency;
 
 	// Determine the integer part
-	if (usart->CR1 & CR1_OVER8_Set)
-		integerdivider = ((25 * apbclock) / (2 * br)); // Integer part computing in case Oversampling mode is 8 Samples
-	else
-		integerdivider = ((25 * apbclock) / (4 * br)); // Integer part computing in case Oversampling mode is 16 Samples
+	integerdivider = ((25 * apbclock) / (4 * br)); // Integer part computing in case Oversampling mode is 16 Samples
 
 	tmpreg = (integerdivider / 100) << 4;
 
@@ -435,15 +475,34 @@ void usart_set_baudrate(USART_TypeDef* usart, uint32_t br)
 	fractionaldivider = integerdivider - (100 * (tmpreg >> 4));
 
 	// Implement the fractional part in the register
-	if (usart->CR1 & CR1_OVER8_Set)
-		tmpreg |= ((((fractionaldivider * 8) + 50) / 100)) & ((uint8_t)0x07);
-	else
-		tmpreg |= ((((fractionaldivider * 16) + 50) / 100)) & ((uint8_t)0x0F);
+	tmpreg |= ((((fractionaldivider * 16) + 50) / 100)) & ((uint8_t)0x0F);
 
 	/* Write to USART BRR */
 	usart->BRR = (uint16_t)tmpreg;
 }
 
+/**
+ * reads the current baudrate.
+ */
+uint32_t usart_get_baudrate(USART_TypeDef* usart)
+{
+    uint32_t pclock;
+    RCC_ClocksTypeDef RCC_ClocksStatus;
+    RCC_GetClocksFreq(&RCC_ClocksStatus);
+
+#if defined(STM32F10X_HD) || defined(STM32F10X_CL)
+    if(usart == USART1)
+#elif FAMILY == STM32F4
+    if(usart == USART1 || usart == USART6)
+#endif
+        pclock = RCC_ClocksStatus.PCLK2_Frequency;
+    else
+        pclock = RCC_ClocksStatus.PCLK1_Frequency;
+
+    // multiply by 25 as 25 * max of 168MHz just avoids overflow and give better prescicon
+    uint32_t div = (25 * (usart->BRR >> 4)) + ((25 * (usart->BRR & 0x000f))/16);
+    return ((pclock * 25) / div) / 16;
+}
 
 /**
  * @}
