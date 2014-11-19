@@ -287,3 +287,8 @@ unsigned long net_ip_packets_dropped()
 {
     return lwip_stats.ip.drop;
 }
+
+unsigned long net_ip_errors()
+{
+    return lwip_stats.ip.err;
+}
