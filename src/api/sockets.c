@@ -2371,4 +2371,104 @@ lwip_fcntl(int s, int cmd, int val)
   return ret;
 }
 
+/**
+ * added by Mike stuart.
+ * code obtained originally from:
+ * http://lwip.100.n7.nabble.com/count-active-connection-on-server-side-td23014.html
+ */
+void lwip_sock_stat(lwip_sock_stat_t* stats, int length)
+{
+    struct lwip_sock *sock;
+
+    for(int i=0; i < length; i++)
+    {
+        stats[i].type = "none";
+        stats[i].rip.addr = 0;
+        stats[i].lip.addr = 0;
+        stats[i].lport = 0;
+        stats[i].rport = 0;
+        stats[i].state = "none";
+
+        sock = get_socket(i);
+
+        if(sock)
+        {
+            switch(sock->conn->type)
+            {
+                case NETCONN_TCP:
+                    stats[i].type = "tcp";
+
+                    if(sock->conn->pcb.tcp == NULL)
+                    {
+                        stats[i].state = "zombie";
+                        break;
+                    }
+                    else
+                    {
+                        portENTER_CRITICAL();
+                        //get all states during disabled preemption so that the pcb pointer can't be nulled in between
+                        switch(sock->conn->pcb.tcp->state)
+                        {
+                            case CLOSED:
+                                stats[i].state = "CLOSED";
+                            break;
+                            case LISTEN:
+                                stats[i].state = "LISTEN";
+                            break;
+                            case ESTABLISHED:
+                                stats[i].state = "ESTABLISHED";
+                            break;
+                            case FIN_WAIT_1:
+                                stats[i].state = "FIN_WAIT_1";
+                            break;
+                            case FIN_WAIT_2:
+                                stats[i].state = "FIN_WAIT_2";
+                            break;
+                            case CLOSE_WAIT:
+                                stats[i].state = "CLOSE_WAIT";
+                            break;
+                            case TIME_WAIT:
+                                stats[i].state = "TIME_WAIT";
+                            break;
+                            case SYN_SENT:
+                            case SYN_RCVD:
+                                stats[i].state = "CONNECTING";
+                            break;
+                            case CLOSING:
+                                stats[i].state = "CLOSING";
+                            break;
+                            case LAST_ACK:
+                                stats[i].state = "LAST_ACK";
+                            break;
+                            default:
+                                stats[i].state = "unknown";
+                            break;
+                        }
+                        stats[i].lport = sock->conn->pcb.tcp->local_port;
+                        stats[i].rport = sock->conn->pcb.tcp->remote_port;
+                        stats[i].rip = sock->conn->pcb.tcp->remote_ip;
+                        stats[i].lip = sock->conn->pcb.tcp->local_ip;
+                        portEXIT_CRITICAL();
+                    }
+                break;
+
+                case NETCONN_UDP:
+
+                    stats[i].type = "udp";
+                    portENTER_CRITICAL();
+                    //get all states during disabled preemption so that the pcb pointer can't be nulled in between
+                    stats[i].lport = sock->conn->pcb.udp->local_port;
+                    stats[i].lip = sock->conn->pcb.udp->local_ip;
+                    portEXIT_CRITICAL();
+                break;
+
+                default:
+                    stats[i].type = "unknown";
+                    stats[i].state = "error";
+                break;
+            }
+        }
+    }
+}
+
 #endif /* LWIP_SOCKET */
