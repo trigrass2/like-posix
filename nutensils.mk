@@ -57,6 +57,8 @@ SOURCE += $(NUTENSILS_DIR)/shell/commands/builtins/builtins.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/builtins
 SOURCE += $(NUTENSILS_DIR)/shell/commands/filesystem_cmds/fs_cmds.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/filesystem_cmds
+SOURCE += $(NUTENSILS_DIR)/shell/commands/network_cmds/net_cmds.c
+CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/network_cmds
 SOURCE += $(NUTENSILS_DIR)/shell/commands/texted/texted.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/texted
 endif
