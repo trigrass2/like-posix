@@ -47,6 +47,7 @@
 #define USART_H_
 
 bool usart_init(USART_TypeDef* usart, char* install_as, bool enable);
+
 void usart_init_device(USART_TypeDef* usart, FunctionalState enable);
 void usart_init_gpio(USART_TypeDef* usart);
 void usart_init_interrupt(USART_TypeDef* device, uint8_t priority, FunctionalState enable);

@@ -69,6 +69,7 @@ static void link_callback(struct netif *netif);
 static void status_callback(struct netif *netif);
 static void tcpip_init_done(void *arg);
 
+extern struct netif *netif_list;
 
 void net_init(netconf_t* netconf)
 {
@@ -287,3 +288,34 @@ unsigned long net_ip_packets_dropped()
 {
     return lwip_stats.ip.drop;
 }
+
+unsigned long net_ip_errors()
+{
+    return lwip_stats.ip.err;
+}
+
+unsigned short net_mtu()
+{
+    return netif_list->mtu;
+}
+
+unsigned char* net_hwaddr()
+{
+    return netif_list->hwaddr;
+}
+
+ip_addr_t net_ipaddr()
+{
+    return netif_list->ip_addr;
+}
+
+ip_addr_t net_gwaddr()
+{
+    return netif_list->gw;
+}
+
+ip_addr_t net_netmask()
+{
+    return netif_list->netmask;
+}
+

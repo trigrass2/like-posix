@@ -38,8 +38,16 @@
 void net_init(netconf_t* netconf);
 bool wait_for_address(netconf_t* netconf);
 
+const netconf_t* get_netconf();
+
 unsigned long net_ip_packets_sent();
 unsigned long net_ip_packets_received();
 unsigned long net_ip_packets_dropped();
+unsigned long net_ip_errors();
+unsigned short net_mtu();
+unsigned char* net_hwaddr();
+ip_addr_t net_ipaddr();
+ip_addr_t net_gwaddr();
+ip_addr_t net_netmask();
 
 #endif /* DRIVERS_NET_LWIP_NET_H_ */
