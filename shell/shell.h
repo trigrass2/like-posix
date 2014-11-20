@@ -52,7 +52,6 @@
 #define SHELL_CWD_LENGTH_MAX        256
 
 typedef struct {
-    const char* name;
     shell_cmd_t* head_cmd;
     sock_server_t server;
 }shellserver_t;

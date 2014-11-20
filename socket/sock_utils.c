@@ -159,6 +159,15 @@ int sock_server(int port, int type, int conns, sock_server_t* servinfo, sock_han
 	return servinfo->listenfd;
 }
 
+void sock_server_kill(sock_server_t* servinfo)
+{
+    shutdown(servinfo->listenfd, SHUT_RDWR);
+    closesocket(servinfo->listenfd);
+}
+
+/**
+ * this is a thread function - when run, is the the listener.
+ */
 void sock_server_thread(void* parameters)
 {
 	sock_server_t* servinfo = (sock_server_t*)parameters;
@@ -169,48 +178,56 @@ void sock_server_thread(void* parameters)
 
 	newconn.ctx = servinfo->ctx;
 	newconn.service = servinfo->service;
+    newconn.service = servinfo->service;
+    newconn.connfd = 0;
 
-	for(;;)
+	while(newconn.connfd != -1)
 	{
 		newconn.clilen = sizeof(newconn.cliaddr);
 		newconn.connfd = accept(servinfo->listenfd, (struct sockaddr *)&newconn.cliaddr, &newconn.clilen);
 
-		log_debug(&servinfo->log, "%s accepted conn with %d.%d.%d.%d",
-								servinfo->name,
-								((char*)&newconn.cliaddr.sin_addr)[0],
-								((char*)&newconn.cliaddr.sin_addr)[1],
-								((char*)&newconn.cliaddr.sin_addr)[2],
-								((char*)&newconn.cliaddr.sin_addr)[3]);
-		handled = false;
-		conn = NULL;
-
-		if(servinfo->handle_incoming)
+		if(newconn.connfd != -1)
 		{
-			conn = malloc(sizeof(sock_conn_t));
+            log_debug(&servinfo->log, "%s accepted conn with %d.%d.%d.%d",
+                                    servinfo->name,
+                                    ((char*)&newconn.cliaddr.sin_addr)[0],
+                                    ((char*)&newconn.cliaddr.sin_addr)[1],
+                                    ((char*)&newconn.cliaddr.sin_addr)[2],
+                                    ((char*)&newconn.cliaddr.sin_addr)[3]);
+            handled = false;
+            conn = NULL;
 
-			if(conn)
-			{
-				memcpy(conn, &newconn, sizeof(sock_conn_t));
-				if(servinfo->handle_incoming(servinfo, conn) == 0)
-				{
-					log_debug(&servinfo->log, "handled service successfully");
-					handled = true;
-				}
-			}
-			else
-				log_debug(&servinfo->log, "couldnt allocate connection data");
-		}
-		else
-			log_debug(&servinfo->log, "service function not set");
+            if(servinfo->handle_incoming)
+            {
+                conn = malloc(sizeof(sock_conn_t));
 
-		if(!handled)
-		{
-			log_debug(&servinfo->log, "closing unhandled connection");
-			closesocket(newconn.connfd);
-			if(conn)
-				free(conn);
+                if(conn)
+                {
+                    memcpy(conn, &newconn, sizeof(sock_conn_t));
+                    if(servinfo->handle_incoming(servinfo, conn) == 0)
+                    {
+                        log_debug(&servinfo->log, "handled service successfully");
+                        handled = true;
+                    }
+                }
+                else
+                    log_debug(&servinfo->log, "couldnt allocate connection data");
+            }
+            else
+                log_debug(&servinfo->log, "service function not set");
+
+            if(!handled)
+            {
+                log_debug(&servinfo->log, "closing unhandled connection");
+                closesocket(newconn.connfd);
+                if(conn)
+                    free(conn);
+            }
 		}
 	}
+	log_debug(&servinfo->log, "closing listener");
+
+	vTaskDelete(NULL);
 }
 
 

@@ -90,7 +90,7 @@ int init_http_server(httpserver_t* httpserver, char* configfile, const http_api_
 
 	log_debug(&httpserver->log, "fsroot: %s", httpserver->fsroot);
 
-	return start_threaded_server(&httpserver->server, configfile, http_server_connection, "http_server", httpserver, 512, 1);
+	return start_threaded_server(&httpserver->server, configfile, http_server_connection, httpserver, 512, 1);
 }
 
 /**

@@ -58,7 +58,6 @@ typedef struct _shell_instance_t{
 	unsigned char history_save_index;						///< points to the last item in history
 	shell_cmd_t* head_cmd;
 	bool exitflag;
-	const char* name;							///< a pointer to the name string of the shell.
 	int fdes;
 	current_command_t current_command;
 }shell_instance_t;
@@ -83,13 +82,11 @@ int start_shell(shellserver_t* shellserver, const char* configfile)
 {
     memset(shellserver, 0, sizeof(shellserver_t));
 
-    shellserver->name = "shell";
-
 	register_command(shellserver, &sh_help_cmd, NULL, NULL, NULL);
 	register_command(shellserver, &sh_exit_cmd, NULL, NULL, NULL);
 	register_command(shellserver, &sh_date_cmd, NULL, NULL, NULL);
 
-	return start_threaded_server(&shellserver->server, configfile, shell_instance_thread, shellserver->name, shellserver, SHELL_TASK_STACK_SIZE, SHELL_TASK_PRIORITY);
+	return start_threaded_server(&shellserver->server, configfile, shell_instance_thread, shellserver, SHELL_TASK_STACK_SIZE, SHELL_TASK_PRIORITY);
 }
 
 /**
@@ -152,7 +149,6 @@ void shell_instance_thread(sock_conn_t* conn)
 		sh->input_index = 0;
 		sh->cursor_index = 0;
 		sh->head_cmd = shellserver->head_cmd;
-		sh->name = (const char*)shellserver->name;
 		sh->history_index = -1;
 		sh->history_save_index = 0;
 		sh->fdes = conn->connfd;
