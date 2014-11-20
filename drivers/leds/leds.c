@@ -135,12 +135,14 @@ void switch_led(uint8_t led, bool state)
 
 void led_flash_task( void *pvParameters )
 {
+    uint8_t led = *(uint8_t*)pvParameters;
+    clear_led(led);
     for (;;)
     {
         vTaskDelay(1000/portTICK_RATE_MS );
-        toggle_led(*(uint8_t*)pvParameters);
-        vTaskDelay(50/portTICK_RATE_MS );
-        toggle_led(*(uint8_t*)pvParameters);
+        toggle_led(led);
+        vTaskDelay(60/portTICK_RATE_MS );
+        toggle_led(led);
         taskYIELD();
     }
 }
