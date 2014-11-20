@@ -52,6 +52,12 @@
 #include "sdcard.h"
 #include "cutensils.h"
 
+#if USE_THREAD_AWARE_SDIO
+#pragma message("using threaded aware SDIO")
+#else
+#pragma message("using polled SDIO")
+#endif
+
 /**
  * @defgroup sd_card_sdio SD Card SDIO
  *
