@@ -370,6 +370,22 @@ int lwip_fcntl(int s, int cmd, int val);
 
 #endif /* LWIP_COMPAT_SOCKETS */
 
+
+#include "lwip/tcp.h"
+typedef struct _lwip_sock_stat lwip_sock_stat_t;
+
+struct _lwip_sock_stat{
+    const char* type;
+    const char* state;
+    ip_addr_t lip;
+    ip_addr_t rip;
+    u16_t lport;
+    u16_t rport;
+};
+
+void lwip_sock_stat(lwip_sock_stat_t* stats, int length);
+
+
 #ifdef __cplusplus
 }
 #endif
