@@ -1151,6 +1151,7 @@ FRESULT dir_next (	/* FR_OK:Succeeded, FR_NO_FILE:End of table, FR_DENIED:EOT an
 					}
 					dj->fs->winsect -= c;						/* Rewind window address */
 #else
+					(void)stretch;
 					return FR_NO_FILE;			/* Report EOT */
 #endif
 				}
@@ -2038,7 +2039,9 @@ FRESULT chk_mounted (	/* FR_OK(0): successful, !=0: any error occurred */
 	if (fs->fs_type) {					/* If the logical drive has been mounted */
 		stat = disk_status(fs->drv);
 		if (!(stat & STA_NOINIT)) {		/* and the physical drive is kept initialized (has not been changed), */
-#if !_FS_READONLY
+#if _FS_READONLY
+                    (void)chk_wp;
+#else
 			if (chk_wp && (stat & STA_PROTECT))	/* Check write protection if needed */
 				return FR_WRITE_PROTECTED;
 #endif

@@ -178,7 +178,11 @@ void* ff_memalloc (	/* Returns pointer to the allocated memory block */
 	UINT size		/* Number of bytes to allocate */
 )
 {
+#if USE_FREERTOS
 	return pvPortMalloc(size);
+#else
+	return malloc(size);
+#endif
 }
 
 
@@ -190,7 +194,11 @@ void ff_memfree(
 	void* mblock	/* Pointer to the memory block to free */
 )
 {
+#if USE_FREERTOS
 	vPortFree(mblock);
+#else
+    free(mblock);
+#endif
 }
 
 #endif
