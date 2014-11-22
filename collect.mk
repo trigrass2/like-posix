@@ -62,9 +62,11 @@ include $(BUILD_ENV_DIR)/programming.mk
 CFLAGS += -D FAMILY=$(FAMILY)
 CFLAGS += -D DEVICE=$(DEVICE)
 CFLAGS += -D HSE_VALUE=$(HSE_VALUE)
-CFLAGS += -D USE_FULL_ASSERT
 CFLAGS += -D USE_STDPERIPH_DRIVER
 CFLAGS += -D inline=
+ifeq ($(USE_FULL_ASSERT), 1)
+CFLAGS += -D USE_FULL_ASSERT
+endif
 
 ## compile options
 CFLAGS += -O$(OPT)
