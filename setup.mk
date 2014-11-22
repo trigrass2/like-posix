@@ -3,6 +3,9 @@
 release: OPT = 2
 release: all
 
+small: OPT = s
+small: all
+
 debug: CFLAGS += -g
 debug: OPT = 0
 debug: all
@@ -19,9 +22,16 @@ BOARD ?= stm32f4_discovery
 ## Project name
 PROJECT_NAME ?= main
 
+#use assertions
+USE_FULL_ASSERT ?= 1
+
 ## Optimization level,
 # can be 0, 1, 2, 3, s
 OPT ?= 2
+
+## to use many of the following options, FreeRTOS is required.
+# set to 1 to enable freertos
+USE_FREERTOS ?= 0
 
 ## there are some small alternatives to the standard libraries
 # set to 1 to enable those (may reduce code size by several 10's of kb)
@@ -78,8 +88,8 @@ USE_DRIVER_LWIP_NET ?= 0
 USE_DRIVER_SDCARD_SPI ?= 0
 USE_DRIVER_SDCARD_SDIO ?= 0
 USE_DRIVER_FAT_FILESYSTEM ?= 0
-# SDIO defaults to thread aware implementation...
-USE_THREAD_AWARE_SDIO ?= 1
+# SDIO mode, polled or thread aware
+USE_THREAD_AWARE_SDIO ?= 0
 
 # the location of this stuff WRT the project
 STM32DEVSUPPORTDIR ?= ..

@@ -1,4 +1,14 @@
 
+USE_FREERTOS_VALUES = 0 1
+
+ifeq ($(filter $(USE_FREERTOS),$(USE_FREERTOS_VALUES)), )
+$(error USE_FREERTOS is not set. set to one of: $(USE_FREERTOS_VALUES))
+endif
+
+CFLAGS += -DUSE_FREERTOS=$(USE_FREERTOS)
+
+ifeq ($(USE_FREERTOS), 1)
+
 FREERTOSDIR = $(FREERTOS_DIR)/Source
 
 CFLAGS += -I$(FREERTOSDIR)/include
@@ -18,4 +28,6 @@ CFLAGS += -I$(FREERTOSDIR)/portable/GCC/ARM_CM4F
 else
 $(error the FAMILY specified '$(FAMILY)' is invalid, it is meant to be set in board.mk)
 endif
+endif
+
 endif

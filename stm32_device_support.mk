@@ -19,7 +19,9 @@ CFLAGS += -I$(SYSTEMDIR)
 SOURCE += $(SYSTEMDIR)/system.c
 SOURCE += $(SYSTEMDIR)/asserts.c
 SOURCE += $(SYSTEMDIR)/hardware_exception.c
+ifeq ($(USE_FREERTOS), 1)
 SOURCE += $(SYSTEMDIR)/stackoverflow.c
+endif
 
 ###############################################################
 # Drivers defined here must build for all targets
@@ -39,6 +41,11 @@ endif
 ## LCD
 CFLAGS += -DUSE_DRIVER_LCD=$(USE_DRIVER_LCD)
 ifeq ($(USE_DRIVER_LCD), 1)
+
+ifneq ($(USE_FREERTOS), 1) 
+$(error to use posix style IO, USE_FREERTOS must be set to 1)
+endif
+
 CFLAGS += -I$(DRIVERSDIR)/lcd
 SOURCE += $(DRIVERSDIR)/lcd/lcd.c
 SOURCE += $(DRIVERSDIR)/lcd/graphics.c
@@ -109,6 +116,11 @@ endif
 
 CFLAGS += -DUSE_DRIVER_LWIP_NET=$(USE_DRIVER_LWIP_NET)
 ifeq ($(USE_DRIVER_LWIP_NET), 1)
+
+ifneq ($(USE_FREERTOS), 1) 
+$(error to use posix style IO, USE_FREERTOS must be set to 1)
+endif
+
 CFLAGS += -I$(DRIVERSDIR)/net_lwip
 CFLAGS += -I$(DRIVERSDIR)/net_lwip/netif
 
