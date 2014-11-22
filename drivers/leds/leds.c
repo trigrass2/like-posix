@@ -71,8 +71,10 @@
 
 #include "leds.h"
 
+#if USE_FREERTOS
 static void led_flash_task(void *pvParameters);
 static TaskHandle_t led_task = NULL;
+#endif
 static led_t leds[] = LED_PORT_MAP;
 static uint8_t flashing_led = 0;
 
@@ -100,6 +102,7 @@ void flash_led(uint8_t led)
 {
     flashing_led = led;
 
+#if USE_FREERTOS
     if(led_task != NULL)
         vTaskDelete(led_task);
     xTaskCreate( led_flash_task,
@@ -107,7 +110,8 @@ void flash_led(uint8_t led)
                  configMINIMAL_STACK_SIZE+LED_FLASHER_TASK_STACK,
                  &flashing_led,
                  tskIDLE_PRIORITY+LED_FLASHER_TASK_PRIORITY,
-                 &led_task);    
+                 &led_task);
+#endif
 }
 
 void toggle_led(uint8_t led)
@@ -133,6 +137,7 @@ void switch_led(uint8_t led, bool state)
     GPIO_WriteBit(leds[led].port, leds[led].pin, state);
 }
 
+#if USE_FREERTOS
 void led_flash_task( void *pvParameters )
 {
     uint8_t led = *(uint8_t*)pvParameters;
@@ -146,6 +151,7 @@ void led_flash_task( void *pvParameters )
         taskYIELD();
     }
 }
+#endif
 
 /**
  * @}

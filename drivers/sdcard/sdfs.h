@@ -38,12 +38,14 @@
  */
 #include <stdio.h>
 #include "diskio.h"
-#include "sdcard.h"
 #include "sdcard_config.h"
 #include "ff.h"
+#include "sdcard.h"
 
+#if USE_FREERTOS
 #include "FreeRTOS.h"
 #include "task.h"
+#endif
 
 #ifndef SDFS_H_
 #define SDFS_H_

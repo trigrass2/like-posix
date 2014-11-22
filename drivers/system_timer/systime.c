@@ -30,8 +30,7 @@
  *
  */
 
-#include "FreeRTOS.h"
-#include "semphr.h"
+
 #include "board_config.h"
 #include "systime.h"
 #include "systime_config.h"

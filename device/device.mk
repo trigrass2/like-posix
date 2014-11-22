@@ -59,11 +59,11 @@ ifeq ($(DEVICE), stm32f103ve)
 STARTUP_FILE = startup_stm32f10x_hd.c
 DENSITY = STM32F10X_HD
 # stm32f103ve memory setup 
-RAM_LENGTH=64K
-CCRAM_LENGTH=0K				# no ccram
-FLASH_LENGTH=512K
-MIN_HEAP_SIZE=0x3000
-MIN_STACK_SIZE=0x0400
+RAM_LENGTH ?= 64K
+CCRAM_LENGTH ?= 0K				# no ccram
+FLASH_LENGTH ?= 512K
+MIN_HEAP_SIZE ?= 0x3000
+MIN_STACK_SIZE ?= 0x0400
 endif
 
 ifeq ($(DEVICE), stm32f107rc)
@@ -71,11 +71,11 @@ ifeq ($(DEVICE), stm32f107rc)
 STARTUP_FILE = startup_stm32f10x_cl.c
 DENSITY = STM32F10X_CL
 # stm32f107rc memory setup 
-RAM_LENGTH=64K
-CCRAM_LENGTH=0K				# no ccram
-FLASH_LENGTH=256K
-MIN_HEAP_SIZE=0x3000
-MIN_STACK_SIZE=0x0400
+RAM_LENGTH ?= 64K
+CCRAM_LENGTH ?= 0K				# no ccram
+FLASH_LENGTH ?= 256K
+MIN_HEAP_SIZE ?= 0x3000
+MIN_STACK_SIZE ?= 0x0400
 endif
 
 ifeq ($(DEVICE), stm32f407ve)
@@ -83,11 +83,11 @@ ifeq ($(DEVICE), stm32f407ve)
 STARTUP_FILE = startup_stm32f4xx.c
 DENSITY = STM32F4XX
 # stm32f407ve memory setup 
-RAM_LENGTH=128K
-CCRAM_LENGTH=64K
-FLASH_LENGTH=512K
-MIN_HEAP_SIZE=0x3000
-MIN_STACK_SIZE=0x0000			# stack in ccram
+RAM_LENGTH ?= 128K
+CCRAM_LENGTH ?= 64K
+FLASH_LENGTH ?= 512K
+MIN_HEAP_SIZE ?= 0x3000
+MIN_STACK_SIZE ?= 0x0000			# stack in ccram
 endif
 
 ifeq ($(DEVICE), stm32f407vg)
@@ -95,11 +95,11 @@ ifeq ($(DEVICE), stm32f407vg)
 STARTUP_FILE = startup_stm32f4xx.c
 DENSITY = STM32F4XX
 # stm32f407vg memory setup 
-RAM_LENGTH=128K
-CCRAM_LENGTH=64K
-FLASH_LENGTH=1024K
-MIN_HEAP_SIZE=0x3000
-MIN_STACK_SIZE=0x0000			# stack in ccram
+RAM_LENGTH ?= 128K
+CCRAM_LENGTH ?= 64K
+FLASH_LENGTH ?= 1024K
+MIN_HEAP_SIZE ?= 0x3000
+MIN_STACK_SIZE ?= 0x0000			# stack in ccram
 endif
 
 ## TODO - this linker script is good for c++ - can it be make simpler for c only projects?

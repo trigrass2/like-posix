@@ -40,8 +40,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
+#if USE_FREERTOS
 #include "FreeRTOS.h"
 #include "task.h"
+#endif
 #include "led_config.h"
 #include "board_config.h"
 

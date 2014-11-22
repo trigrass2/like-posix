@@ -318,3 +318,4 @@ ip_addr_t net_netmask()
 {
     return netif_list->netmask;
 }
+

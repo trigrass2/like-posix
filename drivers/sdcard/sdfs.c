@@ -62,7 +62,7 @@
 
 #define SDCARD_IT_PRIORITY          5
 #define SDCARD_TASK_PRIORITY        2
-#define SDCARD_TASK_STACK        	1024
+#define SDCARD_TASK_STACK           1024
 
 #endif // SDCARD_CONFIG_H_
 
@@ -72,17 +72,23 @@
  * @{
  */
 
+#include <unistd.h>
+#include <time.h>
 #include "sdfs.h"
 #include "cutensils.h"
 
 typedef struct {
     FATFS fs;
+#if USE_FREERTOS
     TaskHandle_t sdcard_task_handle;
+#endif
     uint8_t drive;
     bool mounted;
 }sdfs_t;
 
+#if USE_FREERTOS
 static void sdcard_task(void* pvParameters);
+#endif
 
 static sdfs_t sdfs;
 
@@ -91,18 +97,21 @@ static sdfs_t sdfs;
  */
 void sdfs_init(void)
 {
-	sdfs.drive = 0;
-	sdfs.mounted = false;
-	log_syslog(NULL, "sdfs init");
+    sdfs.drive = 0;
+    sdfs.mounted = false;
+    log_syslog(NULL, "sdfs init");
 
+#if USE_FREERTOS
     xTaskCreate(sdcard_task,
                "sdcard",
                configMINIMAL_STACK_SIZE + SDCARD_TASK_STACK,
                NULL,
                tskIDLE_PRIORITY + SDCARD_TASK_PRIORITY,
                &sdfs.sdcard_task_handle);
+#endif
 }
 
+#if USE_FREERTOS
 void sdcard_task(void* pvParameters)
 {
     TCHAR x;
@@ -110,35 +119,47 @@ void sdcard_task(void* pvParameters)
 
     for(;;)
     {
-    	// after power on or any card not present event, wait a while with the IO in an idle state
-    	f_mount(sdfs.drive, NULL);
-    	sdfs.mounted = false;
+        // after power on or any card not present event, wait a while with the IO in an idle state
+        f_mount(sdfs.drive, NULL);
         set_diskstatus(SD_NOT_PRESENT);
+        SD_DeInit();
+        vTaskDelay(250/portTICK_RATE_MS);
 
-    	log_syslog(NULL, "wait for disk");
-
+        log_syslog(NULL, "wait for disk");
         // wait for disk
         while(SD_Detect() != SD_PRESENT)
-        	 vTaskDelay(250/portTICK_RATE_MS);
+             vTaskDelay(100/portTICK_RATE_MS);
 
-        if(f_mount(sdfs.drive, &sdfs.fs) == FR_OK && f_getcwd(&x, 1) == FR_OK)
+        if(f_mount(sdfs.drive, &sdfs.fs) == FR_OK)
         {
-            sdfs.mounted = true;
-            set_diskstatus(SD_PRESENT);
+            // HACK - alll the f_ functions do perform the chk_mounted routine,
+            // which calls disk_initialize for us.
+            // loop here to give disk_initialize a few tries to actually work.
+            x = 10;
+            while(x-- && f_getcwd(&x, 1) != FR_OK)
+                vTaskDelay(250/portTICK_RATE_MS);
+
+            if(x)
+            {
+                set_diskstatus(SD_PRESENT);
+                sdfs.mounted = true;
+            }
         }
 
         // wait for disk out
-        while((SD_Detect() == SD_PRESENT))
+        while((SD_Detect() == SD_PRESENT) && (get_diskstatus() == SD_PRESENT))
             vTaskDelay(250/portTICK_RATE_MS);
 
-    	log_syslog(NULL, "disk out");
+        log_syslog(NULL, "disk out");
     }
 }
+#endif
 
 
 bool sdfs_ready()
 {
     return sdfs.mounted;
+    usleep(1000);
 }
 
 uint32_t sdfs_card_capacity()
@@ -146,9 +167,9 @@ uint32_t sdfs_card_capacity()
     uint32_t capacity = 0;
     uint32_t sectorsize = 0;
     uint32_t sectorcount = 0;
-	disk_ioctl(sdfs.drive, GET_SECTOR_SIZE, &sectorsize);
-	disk_ioctl(sdfs.drive, GET_SECTOR_COUNT, &sectorcount);
-	capacity = sectorsize * (sectorcount / 1024);
+    disk_ioctl(sdfs.drive, GET_SECTOR_SIZE, &sectorsize);
+    disk_ioctl(sdfs.drive, GET_SECTOR_COUNT, &sectorcount);
+    capacity = sectorsize * (sectorcount / 1024);
     return capacity;
 }
 

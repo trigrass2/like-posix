@@ -13,8 +13,11 @@
 #include <stdio.h>
 #include "board_config.h"
 
+#define DEBUG_EXCEPTIONS 0
+
 void prvGetRegistersFromStack(unsigned int *pulFaultStackAddress )
 {
+#if DEBUG_EXCEPTIONS
     printf("hardfault:\n"
 "\tr0\t=\t%x\n"
 "\tr1\t=\t%x\n"
@@ -34,6 +37,9 @@ void prvGetRegistersFromStack(unsigned int *pulFaultStackAddress )
     pulFaultStackAddress[6], // pc
     pulFaultStackAddress[7] // psr
     );
+#else
+    (void)pulFaultStackAddress;
+#endif
 
     for( ;; );
 }
@@ -76,7 +82,9 @@ void HardFault_Handler()
 void MemManage_Handler()
 {
   /* Go to infinite loop when Memory Manage exception occurs */
-  printf("memanage fault\n");
+#if DEBUG_EXCEPTIONS
+    printf("memanage fault\n");
+#endif
   while(1);
 }
 
@@ -88,7 +96,9 @@ void MemManage_Handler()
 void BusFault_Handler()
 {
   /* Go to infinite loop when Bus Fault exception occurs */
-  printf("bus fault\n");
+#if DEBUG_EXCEPTIONS
+    printf("bus fault\n");
+#endif
   while (1);
 }
 
@@ -100,7 +110,9 @@ void BusFault_Handler()
 void UsageFault_Handler()
 {
   /* Go to infinite loop when Usage Fault exception occurs */
-  printf("usage fault\n");
+#if DEBUG_EXCEPTIONS
+    printf("usage fault\n");
+#endif
   while (1);
 }
 
