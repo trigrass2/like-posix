@@ -293,7 +293,7 @@ void http_server_connection(sock_conn_t* conn)
 	if(httpconn->header != (char*)http_200_header_title)
 	{
 		log_error(&httpserver->log, (char*)httpconn->header);
-		sprintf(httpconn->scratch, "oops...<br>%s: %s", httpconn->header, httpconn->url);
+		snprintf(httpconn->scratch, sizeof(httpconn->scratch)-1, "oops...<br>%s: %s", httpconn->header, httpconn->url);
 		message_response(conn->connfd, httpconn->scratch);
 	}
 	// POST or GET, RPC response
