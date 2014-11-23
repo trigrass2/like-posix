@@ -70,8 +70,7 @@ SD_Error SD_WaitReadOperation(void);
 SD_Error SD_WaitWriteOperation(void);
 //SD_Error SD_WaitIOOperation(sdio_wait_on_io_t io_flag);
 
-SDTransferState SD_GetStatus(void);
-//SD_Error SD_QueryStatus(SDCardState* cardstatus);
+SD_Error SD_QueryStatus(SDCardState* cardstatus);
 
 SD_Error SD_ReadBlock(uint8_t *readbuff, uint32_t sector);
 SD_Error SD_ReadMultiBlocks(uint8_t *readbuff, uint32_t sector, uint32_t NumberOfBlocks);

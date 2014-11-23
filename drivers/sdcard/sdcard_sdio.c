@@ -121,12 +121,10 @@ volatile sdio_state_t sdio_state = {
     .rca = 0,
 };
 
-SDCardState SD_GetState(void);
 SD_Error SD_InitializeCards(void);
 SD_Error SD_EnableWideBusOperation(uint32_t WideMode);
 SD_Error SD_SelectDeselect(uint32_t addr);
 SD_Error SD_StopTransfer(void);
-SD_Error SD_SendStatus(uint32_t *pcardstatus);
 
 
 static void SD_IO_DeInit(void);
@@ -544,133 +542,26 @@ void SD_DeInit(void)
     SD_IO_DeInit();
 }
 
-// TODO - SDIO and SPI versions dont match
 /**
- * @brief  Gets the cuurent sd card data transfer status.
- *
- * @retval SDTransferState: Data Transfer state.
- *   This value can be:
- *        - SD_TRANSFER_OK: No data transfer is acting
- *        - SD_TRANSFER_BUSY: Data transfer is acting
- */
-SDTransferState SD_GetStatus(void)
+  * @brief  Returns the current card's status.
+  * @param  pcardstatus: pointer to the buffer that will contain the SD card
+  *         status (Card Status register).
+  * @retval SD_Error: SD Card Error code.
+  */
+SD_Error SD_QueryStatus(SDCardState* cardstatus)
 {
-    SDCardState cardstate = SD_GetState();
+    SD_Error errorstatus;
 
-    if(cardstate == SD_CARD_TRANSFER)
-        return SD_TRANSFER_OK;
-    else if(cardstate == SD_CARD_ERROR)
-        return SD_TRANSFER_ERROR;
+    sdio_send_cmd((uint32_t)sdio_state.rca << 16, SD_CMD_SEND_STATUS, SDIO_Response_Short);
+    errorstatus = CmdResp1Error(SD_CMD_SEND_STATUS);
 
-    return SD_TRANSFER_BUSY;
+    if(errorstatus == SD_OK)
+        *cardstatus = (SDIO_GetResponse(SDIO_RESP1) >> 9)&0x0F;
+    else
+        *cardstatus = SD_CARD_ERROR;
+
+    return errorstatus;
 }
-
-// TODO - SDIO and SPI versions dont match
-/**
- * @brief  Returns the current card's state.
- *
- * @retval SDCardState: SD Card Error or SD Card Current State.
- */
-SDCardState SD_GetState(void)
-{
-    uint32_t resp1 = 0;
-
-    if(SD_Detect() == SD_PRESENT)
-    {
-        if(SD_SendStatus(&resp1) != SD_OK)
-            return SD_CARD_ERROR;
-        else
-            return (SDCardState)((resp1 >> 9) & 0x0F);
-    }
-
-    return SD_CARD_ERROR;
-}
-
-///**
-//  * @brief  Enquires cards about their operating voltage and configures
-//  *   clock controls.
-//  *
-//  * @retval SD_Error: SD Card Error code.
-//  */
-//SD_Error SD_PowerON(void)
-//{
-//    SD_Error errorstatus = SD_OK;
-//    uint32_t timeout;
-//
-//    /*!< Power ON Sequence -----------------------------------------------------*/
-//    /*!< Configure the SDIO peripheral */
-//    /*!< SDIOCLK = HCLK, SDIO_CK = HCLK/(2 + SDIO_INIT_CLK_DIV) */
-//    /*!< SDIO_CK for initialization should not exceed 400 KHz */
-//    sdio_init_peripheral(SDIO_INIT_CLK_DIV, SDIO_BusWide_1b);
-//
-//    /*!< Set Power State to ON */
-//    SDIO_SetPowerState(SDIO_PowerState_ON);
-//
-//    /*!< Enable SDIO Clock */
-//    SDIO_ClockCmd(ENABLE);
-//
-//    /*!< CMD0: GO_IDLE_STATE ---------------------------------------------------*/
-//    /*!< No CMD response required */
-//    sdio_send_cmd(0x0, SD_CMD_GO_IDLE_STATE, SDIO_Response_No);
-//    errorstatus = CmdError();
-//
-//    if(errorstatus != SD_OK)
-//        return errorstatus;
-//
-//    /*!< CMD8: SEND_IF_COND ----------------------------------------------------*/
-//    /*!< Send CMD8 to verify SD card interface operating condition */
-//    /*!< Argument: - [31:12]: Reserved (shall be set to '0')
-//           - [11:8]: Supply Voltage (VHS) 0x1 (Range: 2.7-3.6 V)
-//           - [7:0]: Check Pattern (recommended 0xAA) */
-//    /*!< CMD Response: R7 */
-//    sdio_send_cmd(SD_CHECK_PATTERN, SDIO_SEND_IF_COND, SDIO_Response_Short);
-//    errorstatus = CmdResp7Error();
-//
-//    if(errorstatus == SD_OK)
-//        sdio_state.card_type = SDIO_STD_CAPACITY_SD_CARD_V2_0;
-//    else
-//    {
-//        sdio_state.card_type = SDIO_STD_CAPACITY_SD_CARD_V1_1;
-//        /*!< CMD55 */
-//        sdio_send_cmd(0x00, SD_CMD_APP_CMD, SDIO_Response_Short);
-//        errorstatus = CmdResp1Error(SD_CMD_APP_CMD);
-//    }
-//    /*!< CMD55 */
-//    sdio_send_cmd(0x00, SD_CMD_APP_CMD, SDIO_Response_Short);
-//    errorstatus = CmdResp1Error(SD_CMD_APP_CMD);
-//
-//    /*!< If errorstatus is Command TimeOut, it is a MMC card */
-//    /*!< If errorstatus is SD_OK it is a SD card: SD card 2.0 (voltage range mismatch)
-//    or SD card 1.x */
-//    if(errorstatus == SD_OK)
-//    {
-//        timeout = gettime_ms() + 2000;
-//        /*!< Send ACMD41 SD_APP_OP_COND with Argument 0x80100000 */
-//        while ((!(SDIO_GetResponse(SDIO_RESP1) & (1<<31))) && (gettime_ms() < timeout))
-//        {
-//            /*!< SEND CMD55 APP_CMD with RCA as 0 */
-//            sdio_send_cmd(0x00, SD_CMD_APP_CMD, SDIO_Response_Short);
-//            errorstatus = CmdResp1Error(SD_CMD_APP_CMD);
-//            if(errorstatus != SD_OK)
-//                return errorstatus;
-//
-//            sdio_send_cmd(SD_VOLTAGE_WINDOW_SD | SD_HIGH_CAPACITY, SD_CMD_SD_APP_OP_COND, SDIO_Response_Short);
-//            errorstatus = CmdResp3Error();
-//            if(errorstatus != SD_OK)
-//                return errorstatus;
-//        }
-//        if(gettime_ms() >= timeout)
-//        {
-//            errorstatus = SD_INVALID_VOLTRANGE;
-//            return errorstatus;
-//        }
-//
-//        if(SDIO_GetResponse(SDIO_RESP1) & SD_HIGH_CAPACITY)
-//            sdio_state.card_type = SDIO_HIGH_CAPACITY_SD_CARD;
-//    }
-//
-//  return errorstatus;
-//}
 
 /**
   * @brief  Enquires cards about their operating voltage and configures
@@ -1542,32 +1433,6 @@ SD_Error SD_Erase(uint32_t startaddr, uint32_t endaddr)
 
     return errorstatus;
 }
-
-/**
-  * @brief  Returns the current card's status.
-  * @param  pcardstatus: pointer to the buffer that will contain the SD card
-  *         status (Card Status register).
-  * @retval SD_Error: SD Card Error code.
-  */
-SD_Error SD_SendStatus(uint32_t *pcardstatus)
-{
-    SD_Error errorstatus = SD_OK;
-
-    if(pcardstatus == NULL)
-        return SD_INVALID_PARAMETER;
-
-    sdio_send_cmd((uint32_t) sdio_state.rca << 16, SD_CMD_SEND_STATUS, SDIO_Response_Short);
-    errorstatus = CmdResp1Error(SD_CMD_SEND_STATUS);
-
-    if(errorstatus != SD_OK)
-        return errorstatus;
-
-    *pcardstatus = SDIO_GetResponse(SDIO_RESP1);
-
-    return errorstatus;
-}
-
-
 
 /**
   * @brief  Allows to process all the interrupts that are high.
