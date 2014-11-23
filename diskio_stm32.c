@@ -93,67 +93,36 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
 {
     DRESULT res = RES_ERROR;
     SD_Error err = SD_OK;
-//    SDTransferState xferstate = SD_TRANSFER_BUSY;
     SDCardState cardstate = SD_CARD_ERROR;
 
-    // if drive invalid then parameter error
     if (drv)
         return RES_PARERR;
 
-    // if card is not initialised then not ready error
-    // if card is not inserted then not ready error
     if(Status & (STA_NODISK | STA_NOINIT))
         return RES_NOTRDY;
 
-    if(count == 1)
-    {
-        err = SD_ReadBlock((uint8_t*)buff, sector);
-        if(err == SD_OK)
-        {
-            err = SD_WaitReadOperation();
-            if(err == SD_OK)
-            {
-                // TODO - how would I avoid polling here?
-                while(err == SD_OK)
-                {
-                    err = SD_QueryStatus(&cardstate);
-                    if(cardstate == SD_CARD_TRANSFER)
-                        break;
-                    usleep(1000);
-                }
-                res = RES_OK;
-            }
-            else
-                log_error(NULL, "read block wait failed: %d", err);
-        }
-        else
-            log_error(NULL, "read block failed: %d", err);
 
-    }
-    else if(count > 1)
-    {
+    if(count == 1)
+        err = SD_ReadBlock((uint8_t*)buff, sector);
+    else
         err = SD_ReadMultiBlocks((uint8_t*)buff, sector, count);
-        if(err == SD_OK)
+
+    if(err == SD_OK)
+        err = SD_WaitIOOperation(WAIT_WHILE_RX_ACTIVE);
+
+    while(err == SD_OK)
+    {
+        err = SD_QueryStatus(&cardstate);
+        if(cardstate == SD_CARD_TRANSFER)
         {
-            err = SD_WaitReadOperation();
-            if(err == SD_OK)
-            {
-                // TODO - how would I avoid polling here?
-                while(err == SD_OK)
-                {
-                    err = SD_QueryStatus(&cardstate);
-                    if(cardstate == SD_CARD_TRANSFER)
-                        break;
-                    usleep(1000);
-                }
-                res = RES_OK;
-            }
-            else
-                log_error(NULL, "read blocks wait failed: %d", err);
+            res = RES_OK;
+            break;
         }
-        else
-            log_error(NULL, "read blocks failed: %d", err);
+        usleep(1000);
     }
+
+    if(err != SD_OK)
+        log_error("read error: %d", err)
 
     return res;
 }
@@ -163,71 +132,38 @@ DRESULT disk_write (BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
 {
     DRESULT res = RES_ERROR;
     SD_Error err = SD_OK;
-//    SDTransferState xferstate = SD_TRANSFER_BUSY;
     SDCardState cardstate = SD_CARD_ERROR;
 
-    // if drive invalid then parameter error
     if (drv)
         return RES_PARERR;
 
-    // if card is not initialised then not ready error
-    // if card is not inserted then not ready error
     if(Status & (STA_NODISK | STA_NOINIT))
         return RES_NOTRDY;
 
-    // if card is write protected then write protected error
     if(Status & STA_PROTECT)
         return RES_WRPRT;
 
     if(count == 1)
-    {
         err = SD_WriteBlock((const uint8_t*)buff, sector);
-        if(err == SD_OK)
-        {
-            err = SD_WaitWriteOperation();
-            if(err == SD_OK)
-            {
-                // TODO - how would I avoid polling here?
-                while(err == SD_OK)
-                {
-                    err = SD_QueryStatus(&cardstate);
-                    if(cardstate == SD_CARD_TRANSFER)
-                        break;
-                    usleep(1000);
-                }
-                res = RES_OK;
-            }
-            else
-                log_error(NULL, "write block wait failed: %d", err);
-        }
-        else
-            log_error(NULL, "write block failed: %d", err);
-    }
     else if(count > 1)
-    {
         err = SD_WriteMultiBlocks((const uint8_t*)buff, sector, count);
-        if(err == SD_OK)
-        {
-            err = SD_WaitWriteOperation();
-            if(err == SD_OK)
-            {
-                // TODO - how would I avoid polling here?
-                while(err == SD_OK)
-                {
-                    err = SD_QueryStatus(&cardstate);
-                    if(cardstate == SD_CARD_TRANSFER)
-                        break;
-                    usleep(1000);
-                }
-                res = RES_OK;
-            }
-            else
-                log_error(NULL, "write blocks wait failed: %d", err);
-        }
-        else
-            log_error(NULL, "write blocks failed: %d", err);
 
+    if(err == SD_OK)
+        err = SD_WaitIOOperation(WAIT_WHILE_TX_ACTIVE);
+
+    while(err == SD_OK)
+    {
+        err = SD_QueryStatus(&cardstate);
+        if(cardstate == SD_CARD_TRANSFER)
+        {
+            res = RES_OK;
+            break;
+        }
+        usleep(1000);
     }
+
+    if(err != SD_OK)
+        log_error("write error: %d", err)
 
     return res;
 }
