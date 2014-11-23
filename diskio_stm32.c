@@ -39,6 +39,7 @@
  * @{
  */
 
+#include <unistd.h>
 #include <stdio.h>
 #include "diskio.h"
 #include "sdcard.h"
@@ -92,7 +93,8 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
 {
     DRESULT res = RES_ERROR;
     SD_Error err = SD_OK;
-    SDTransferState xferstate = SD_TRANSFER_BUSY;
+//    SDTransferState xferstate = SD_TRANSFER_BUSY;
+    SDCardState cardstate = SD_CARD_ERROR;
 
     // if drive invalid then parameter error
     if (drv)
@@ -111,12 +113,15 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
             err = SD_WaitReadOperation();
             if(err == SD_OK)
             {
-                while(xferstate != SD_TRANSFER_OK)
-                    xferstate = SD_GetStatus();
-                if(xferstate == SD_TRANSFER_OK)
-                    res = RES_OK;
-                else
-                    log_error(NULL, "read block xfer failed: %d", xferstate);
+                // TODO - how would I avoid polling here?
+                while(err == SD_OK)
+                {
+                    err = SD_QueryStatus(&cardstate);
+                    if(cardstate == SD_CARD_TRANSFER)
+                        break;
+                    usleep(1000);
+                }
+                res = RES_OK;
             }
             else
                 log_error(NULL, "read block wait failed: %d", err);
@@ -133,12 +138,15 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
             err = SD_WaitReadOperation();
             if(err == SD_OK)
             {
-                while(xferstate != SD_TRANSFER_OK)
-                    xferstate = SD_GetStatus();
-                if(xferstate == SD_TRANSFER_OK)
-                    res = RES_OK;
-                else
-                    log_error(NULL, "read blocks xfer failed: %d", xferstate);
+                // TODO - how would I avoid polling here?
+                while(err == SD_OK)
+                {
+                    err = SD_QueryStatus(&cardstate);
+                    if(cardstate == SD_CARD_TRANSFER)
+                        break;
+                    usleep(1000);
+                }
+                res = RES_OK;
             }
             else
                 log_error(NULL, "read blocks wait failed: %d", err);
@@ -155,7 +163,8 @@ DRESULT disk_write (BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
 {
     DRESULT res = RES_ERROR;
     SD_Error err = SD_OK;
-    SDTransferState xferstate = SD_TRANSFER_BUSY;
+//    SDTransferState xferstate = SD_TRANSFER_BUSY;
+    SDCardState cardstate = SD_CARD_ERROR;
 
     // if drive invalid then parameter error
     if (drv)
@@ -178,12 +187,15 @@ DRESULT disk_write (BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
             err = SD_WaitWriteOperation();
             if(err == SD_OK)
             {
-                while(xferstate != SD_TRANSFER_OK)
-                    xferstate = SD_GetStatus();
-                if(xferstate == SD_TRANSFER_OK)
-                    res = RES_OK;
-                else
-                    log_error(NULL, "write block xfer failed: %d", xferstate);
+                // TODO - how would I avoid polling here?
+                while(err == SD_OK)
+                {
+                    err = SD_QueryStatus(&cardstate);
+                    if(cardstate == SD_CARD_TRANSFER)
+                        break;
+                    usleep(1000);
+                }
+                res = RES_OK;
             }
             else
                 log_error(NULL, "write block wait failed: %d", err);
@@ -199,12 +211,15 @@ DRESULT disk_write (BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
             err = SD_WaitWriteOperation();
             if(err == SD_OK)
             {
-                while(xferstate != SD_TRANSFER_OK)
-                    xferstate = SD_GetStatus();
-                if(xferstate == SD_TRANSFER_OK)
-                    res = RES_OK;
-                else
-                    log_error(NULL, "write blocks xfer failed: %d", xferstate);
+                // TODO - how would I avoid polling here?
+                while(err == SD_OK)
+                {
+                    err = SD_QueryStatus(&cardstate);
+                    if(cardstate == SD_CARD_TRANSFER)
+                        break;
+                    usleep(1000);
+                }
+                res = RES_OK;
             }
             else
                 log_error(NULL, "write blocks wait failed: %d", err);
