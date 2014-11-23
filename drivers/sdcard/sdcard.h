@@ -63,15 +63,8 @@ SD_Error SD_PowerOFF(void);
 SD_Error SD_Init(SD_CardInfo* sdcardinfo);
 void SD_DeInit(void);
 SD_Error SD_GetCardInfo(SD_CardInfo *cardinfo);
-
-SD_Error SD_GetCardStatus(SD_CardStatus *cardstatus);
-
-SD_Error SD_WaitReadOperation(void);
-SD_Error SD_WaitWriteOperation(void);
-//SD_Error SD_WaitIOOperation(sdio_wait_on_io_t io_flag);
-
+SD_Error SD_WaitIOOperation(sdio_wait_on_io_t io_flag);
 SD_Error SD_QueryStatus(SDCardState* cardstatus);
-
 SD_Error SD_ReadBlock(uint8_t *readbuff, uint32_t sector);
 SD_Error SD_ReadMultiBlocks(uint8_t *readbuff, uint32_t sector, uint32_t NumberOfBlocks);
 SD_Error SD_WriteBlock(const uint8_t *writebuff, uint32_t sector);

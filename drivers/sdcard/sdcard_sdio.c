@@ -1194,10 +1194,10 @@ SD_Error SD_WriteMultiBlocks(const uint8_t *writebuff, uint32_t sector, uint32_t
   *         This function should be called after SDIO_ReadMultiBlocks() function
   *         to insure that all data sent by the card are already transferred by
   *         the DMA controller.
-  * .
+  * @param  the sdio status flag to wait on... WAIT_WHILE_RX_ACTIVE or WAIT_WHILE_TX_ACTIVE
   * @retval SD_Error: SD Card Error code.
   */
-SD_Error SD_WaitReadOperation(void)
+SD_Error SD_WaitIOOperation(sdio_wait_on_io_t io_flag)
 {
     SD_Error errorstatus = SD_OK;
     uint32_t timeout;
@@ -1208,16 +1208,16 @@ SD_Error SD_WaitReadOperation(void)
             !sdio_state.sdio_xfer_end &&
             (sdio_state.sdio_xfer_error == SD_OK) &&
             (gettime_ms() < timeout)){
-        // usleep(1000);
+         usleep(1000);
     }
 
     sdio_state.dma_xfer_end = false;
 
     timeout = gettime_ms() + SDIO_WAITTIMEOUT;
 
-    while((SDIO->STA & SDIO_FLAG_RXACT) &&
+    while((SDIO->STA & io_flag) &&
             (gettime_ms() < timeout)){
-        // usleep(1000);
+         usleep(1000);
     }
 
     if((gettime_ms() >= timeout) && (errorstatus == SD_OK))
@@ -1231,97 +1231,6 @@ SD_Error SD_WaitReadOperation(void)
 
     return errorstatus;
 }
-
-/**
-  * @brief  This function waits until the SDIO DMA data transfer is finished.
-  *         This function should be called after SDIO_WriteBlock() and
-  *         SDIO_WriteMultiBlocks() function to insure that all data sent by the
-  *         card are already transferred by the DMA controller.
-  * .
-  * @retval SD_Error: SD Card Error code.
-  */
-SD_Error SD_WaitWriteOperation(void)
-{
-    SD_Error errorstatus = SD_OK;
-    uint32_t timeout;
-
-    timeout = gettime_ms() + SDIO_WAITTIMEOUT;
-
-    while (!sdio_state.dma_xfer_end &&
-            !sdio_state.sdio_xfer_end &&
-            (sdio_state.sdio_xfer_error == SD_OK) &&
-            (gettime_ms() < timeout)){
-        // usleep(1000);
-    }
-
-    sdio_state.dma_xfer_end = false;
-
-    timeout = gettime_ms() + SDIO_WAITTIMEOUT;
-
-    while((SDIO->STA & SDIO_FLAG_TXACT) &&
-            (gettime_ms() < timeout)){
-        // usleep(1000);
-    }
-
-    if((gettime_ms() >= timeout) && (errorstatus == SD_OK))
-        errorstatus = SD_DATA_TIMEOUT;
-
-
-    SDIO_ClearFlag(SDIO_STATIC_FLAGS);
-
-    if(sdio_state.sdio_xfer_error != SD_OK)
-        return sdio_state.sdio_xfer_error;
-
-    return errorstatus;
-}
-
-///**
-//  * @brief  This function waits until the SDIO DMA data transfer is finished.
-//  *         This function should be called after SDIO_ReadMultiBlocks() function
-//  *         to insure that all data sent by the card are already transferred by
-//  *         the DMA controller.
-//  * @param  the sdio status flag to wait on... WAIT_WHILE_RX_ACTIVE or WAIT_WHILE_TX_ACTIVE
-//  * @retval SD_Error: SD Card Error code.
-//  */
-//SD_Error SD_WaitIOOperation(sdio_wait_on_io_t io_flag)
-//{
-//    SD_Error errorstatus = SD_OK;
-//
-//#if USE_THREAD_AWARE_SDIO
-//    (void)io_flag;
-//    uint8_t dummy;
-//    // wait for DMA end
-//    xQueueReceive(sdio_state.wait_on_io, &dummy, 5000/portTICK_PERIOD_MS);
-//    // wait for SDIO end
-//    xQueueReceive(sdio_state.wait_on_io, &dummy, 5000/portTICK_PERIOD_MS);
-//    errorstatus = sdio_state.sdio_xfer_error;
-//#else
-//    uint32_t timeout = gettime_ms() + SDIO_WAITTIMEOUT;
-//
-//    while(!sdio_state.dma_xfer_end &&
-//          (sdio_state.sdio_xfer_error == SD_ACTIVE) &&
-//          (gettime_ms() < timeout)) {
-//        // usleep(1000);
-//    }
-//
-//    sdio_state.dma_xfer_end = false;
-//
-//    timeout = gettime_ms() + SDIO_WAITTIMEOUT;
-//
-//    while((SDIO->STA & io_flag) && (gettime_ms() < timeout)){
-//        // usleep(1000);
-//    }
-//
-//    if((gettime_ms() >= timeout) && (errorstatus == SD_OK))
-//        errorstatus = SD_DATA_TIMEOUT;
-//
-//    if(sdio_state.sdio_xfer_error != SD_OK)
-//        errorstatus = sdio_state.sdio_xfer_error;
-//#endif
-//
-//    SDIO_ClearFlag(SDIO_STATIC_FLAGS);
-//    return errorstatus;
-//}
 
 
 /**
