@@ -39,12 +39,16 @@
  * @{
  */
 
+#include <time.h>
 #include <unistd.h>
 #include <stdio.h>
 #include "diskio.h"
 #include "sdcard.h"
 #include "cutensils.h"
 
+#if USE_LOGGER
+logger_t diskiolog;
+#endif
 SD_CardInfo SDCardInfo;             // card information
 DSTATUS Status = STA_NOINIT;        // Disk status
 
@@ -55,7 +59,9 @@ DSTATUS disk_initialize(BYTE drv)      /* Physical drive number (0) */
     // reset Status to not initialised
     Status = STA_NOINIT;
 
-    log_syslog(NULL, "disk init");
+    log_init(&diskiolog, "diskio");
+
+    log_syslog(&diskiolog, "disk init");
 
     // update status, based on hardware state
     // SD card must be present and drive number set to 0
@@ -76,15 +82,15 @@ DSTATUS disk_initialize(BYTE drv)      /* Physical drive number (0) */
         err = SD_Init(&SDCardInfo);
         if(err == SD_OK)
         {
-            log_syslog(NULL, "capacity: %uMB", (unsigned int)((SDCardInfo.CardBlockSize/512)*(SDCardInfo.CardCapacity/(2*1000))));
-            log_syslog(NULL, "sector size: %uB", (unsigned int)SDCardInfo.CardBlockSize);
-            log_syslog(NULL, "card type: %u", (unsigned int)SDCardInfo.CardType);
+            log_syslog(&diskiolog, "capacity: %uMB", (unsigned int)((SDCardInfo.CardBlockSize/512)*(SDCardInfo.CardCapacity/(2*1000))));
+            log_syslog(&diskiolog, "sector size: %uB", (unsigned int)SDCardInfo.CardBlockSize);
+            log_syslog(&diskiolog, "card type: %u", (unsigned int)SDCardInfo.CardType);
             Status &= ~STA_NOINIT;           // indicate success
         }
     }
 
     if(Status & STA_NOINIT)
-        log_error(NULL, "disk init error: sderror=%d, status=%d", (int)err, (int)Status);
+        log_error(&diskiolog, "disk init error: sderror=%d, status=%d", (int)err, (int)Status);
 
     return Status;
 }
@@ -122,7 +128,7 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
     }
 
     if(err != SD_OK)
-        log_error("read error: %d", err)
+        log_error(&diskiolog, "read error: %d", err);
 
     return res;
 }
@@ -163,7 +169,7 @@ DRESULT disk_write (BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
     }
 
     if(err != SD_OK)
-        log_error("write error: %d", err)
+        log_error(&diskiolog, "write error: %d", err);
 
     return res;
 }
@@ -245,21 +251,16 @@ DRESULT disk_ioctl(BYTE drv, BYTE ctrl, void *buff)
  */
 DWORD get_fattime(void)
 {
-    // uint64_t time = sched_get_time();
+    time_t t;
     DWORD ftime = 0;
-
-    // time /= 2000;                    // time -> '2 seconds'
-    // ftime = time%30;             // 2 second count
-    // time /= 30;                      // time -> minutes
-    // ftime |= (time%59)<<5;           // minute count
-    // time /= 60;                      // time -> hours
-    // ftime |= (time%23)<<11;          // hour count
-    // time /= 24;                      // time -> days
-    // ftime |= ((time%30)+1)<<16;      // day count
-    // time /= 31;                      // time -> months
-    // ftime |= ((time%11)+1)<<21;      // month count
-    // time /= 12;                      // time -> years
-    // ftime |= (time%127)<<25;     // year count
+    time(&t);
+    struct tm* lt = localtime(&t);
+    ftime = ((lt->tm_year - 80) << 25) |
+    ((lt->tm_mon + 1) << 21) |
+    ((lt->tm_mday) << 16) |
+    ((lt->tm_hour) << 11) |
+    ((lt->tm_min) << 5) |
+    (lt->tm_sec/2);
 
     return ftime;
 }
