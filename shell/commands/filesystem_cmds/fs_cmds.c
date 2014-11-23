@@ -49,8 +49,11 @@
 #define ERROR_MOVING_FILE            "error moving file"
 
 const char* units[] = {
-       "B", "kB", "MB", "GB"
+       "b", "kb", "Mb", "Gb"
 };
+
+#define PAD_TO_FILESIZE     40
+#define PAD_TO_NEXT_FILE    16
 
 void install_fs_cmds(shellserver_t* sh)
 {
@@ -95,13 +98,25 @@ int sh_ls(int fdes, const char** args, unsigned char nargs)
                     if(ent == NULL)
                         break;
 
-                    send(fdes, ent->d_name, strlen(ent->d_name), 0);
-                    send(fdes, "\t", 1, 0);
+                    if(ent->d_type == DT_DIR)
+                        send(fdes, DIR_TEXT_START, sizeof(DIR_TEXT_START)-1, 0);
+
+                    i = strlen(ent->d_name);
+                    send(fdes, ent->d_name, i, 0);
+
+                    if(ent->d_type == DT_DIR)
+                        send(fdes, DIR_TEXT_STOP, sizeof(DIR_TEXT_STOP)-1, 0);
 
                     if(ll)
                     {
+                        // pad spaces
+                        while(i++ < PAD_TO_FILESIZE)
+                            send(fdes, " ", 1, 0);
+
                         if(ent->d_type == DT_REG)
                         {
+
+                            // if its a regular file
                             if(stat(ent->d_name, &st) == 0)
                             {
                                 i = 0;
@@ -114,7 +129,16 @@ int sh_ls(int fdes, const char** args, unsigned char nargs)
                                 send(fdes, size, strlen(size), 0);
                             }
                         }
+                        else
+                            send(fdes, "-", 1, 0);
+
                         send(fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1, 0);
+                    }
+                    else
+                    {
+                        // pad spaces
+                        while(i++ < PAD_TO_NEXT_FILE)
+                            send(fdes, " ", 1, 0);
                     }
                 }
                 closedir(dir);

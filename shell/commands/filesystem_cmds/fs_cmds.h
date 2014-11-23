@@ -36,6 +36,9 @@
 
 #include "shell.h"
 
+#define DIR_TEXT_START  "\x1b[34m"
+#define DIR_TEXT_STOP   "\x1b[0m"
+
 extern shell_cmd_t sh_ls_cmd;
 extern shell_cmd_t sh_cd_cmd;
 extern shell_cmd_t sh_rm_cmd;
