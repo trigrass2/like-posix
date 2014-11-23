@@ -84,6 +84,9 @@ typedef struct {
 #endif
     uint8_t drive;
     bool mounted;
+#if USE_LOGGER
+    logger_t log;
+#endif
 }sdfs_t;
 
 #if USE_FREERTOS
@@ -99,11 +102,12 @@ void sdfs_init(void)
 {
     sdfs.drive = 0;
     sdfs.mounted = false;
-    log_syslog(NULL, "sdfs init");
+    log_init(&sdfs.log, "sdfs");
+    log_syslog(&sdfs.log, "sdfs init");
 
 #if USE_FREERTOS
     xTaskCreate(sdcard_task,
-               "sdcard",
+               "sdfs",
                configMINIMAL_STACK_SIZE + SDCARD_TASK_STACK,
                NULL,
                tskIDLE_PRIORITY + SDCARD_TASK_PRIORITY,
@@ -125,7 +129,7 @@ void sdcard_task(void* pvParameters)
         SD_DeInit();
         vTaskDelay(250/portTICK_RATE_MS);
 
-        log_syslog(NULL, "wait for disk");
+        log_syslog(&sdfs.log, "wait for disk");
         // wait for disk
         while(SD_Detect() != SD_PRESENT)
              vTaskDelay(100/portTICK_RATE_MS);
@@ -150,7 +154,7 @@ void sdcard_task(void* pvParameters)
         while((SD_Detect() == SD_PRESENT) && (get_diskstatus() == SD_PRESENT))
             vTaskDelay(250/portTICK_RATE_MS);
 
-        log_syslog(NULL, "disk out");
+        log_syslog(&sdfs.log, "disk out");
     }
 }
 #endif

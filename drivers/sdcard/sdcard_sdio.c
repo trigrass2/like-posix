@@ -103,7 +103,6 @@ static logger_t sdiolog;
 
 typedef struct {
     bool dma_xfer_end;
-    bool sdio_xfer_end;
     SD_Error sdio_xfer_error;
     bool sdio_xfer_multi_block;
     uint8_t card_type;
@@ -114,8 +113,7 @@ typedef struct {
 
 volatile sdio_state_t sdio_state = {
     .dma_xfer_end = false,
-    .sdio_xfer_end = false,
-    .sdio_xfer_error = SD_OK,
+    .sdio_xfer_error = SD_ACTIVE,
     .sdio_xfer_multi_block = false,
     .card_type = SDIO_UNKNOWN_CARD_TYPE,
     .rca = 0,
@@ -225,6 +223,9 @@ static void sdio_init_peripheral(uint8_t clock_div, uint32_t bus_width)
 SD_Error SD_Init(SD_CardInfo* sdcardinfo)
 {
     SD_Error errorstatus;
+
+    log_init(&sdiolog, "sdio");
+
     SD_NVIC_Configuration();
     SD_IO_Init();
     errorstatus = SD_PowerON();
@@ -1009,7 +1010,7 @@ SD_Error SD_ReadBlock(uint8_t *readbuff, uint32_t sector)
     if(!readbuff)
         return SD_INVALID_PARAMETER;
 
-    sdio_state.sdio_xfer_error = SD_OK;
+    sdio_state.sdio_xfer_error = SD_ACTIVE;
     sdio_state.sdio_xfer_multi_block = false;
     SDIO->DCTRL = 0x0;
 
@@ -1058,8 +1059,7 @@ SD_Error SD_ReadMultiBlocks(uint8_t *readbuff, uint32_t sector, uint32_t NumberO
         return SD_INVALID_PARAMETER;
     }
 
-    sdio_state.sdio_xfer_error = SD_OK;
-    sdio_state.sdio_xfer_end = false;
+    sdio_state.sdio_xfer_error = SD_ACTIVE;
     sdio_state.sdio_xfer_multi_block = true;
     SDIO->DCTRL = 0x0;
 
@@ -1102,8 +1102,7 @@ SD_Error SD_WriteBlock(const uint8_t *writebuff, uint32_t sector)
     if(!writebuff)
         return SD_INVALID_PARAMETER;
 
-    sdio_state.sdio_xfer_end = false;
-    sdio_state.sdio_xfer_error = SD_OK;
+    sdio_state.sdio_xfer_error = SD_ACTIVE;
     sdio_state.sdio_xfer_multi_block = false;
     SDIO->DCTRL = 0x0;
 
@@ -1151,8 +1150,7 @@ SD_Error SD_WriteMultiBlocks(const uint8_t *writebuff, uint32_t sector, uint32_t
         return SD_INVALID_PARAMETER;
     }
 
-    sdio_state.sdio_xfer_error = SD_OK;
-    sdio_state.sdio_xfer_end = false;
+    sdio_state.sdio_xfer_error = SD_ACTIVE;
     sdio_state.sdio_xfer_multi_block = true;
     SDIO->DCTRL = 0x0;
 
@@ -1205,8 +1203,7 @@ SD_Error SD_WaitIOOperation(sdio_wait_on_io_t io_flag)
     timeout = gettime_ms() + SDIO_WAITTIMEOUT;
 
     while (!sdio_state.dma_xfer_end &&
-            !sdio_state.sdio_xfer_end &&
-            (sdio_state.sdio_xfer_error == SD_OK) &&
+            (sdio_state.sdio_xfer_error == SD_ACTIVE) &&
             (gettime_ms() < timeout)){
          usleep(1000);
     }
@@ -1348,12 +1345,11 @@ SD_Error SD_Erase(uint32_t startaddr, uint32_t endaddr)
   *
   * @retval SD_Error: SD Card Error code.
   */
-SD_Error SDIO_IRQHandler(void)
+void SDIO_IRQHandler(void)
 {
     if(SDIO_GetITStatus(SDIO_IT_DATAEND) != RESET)
     {
         SDIO_ClearITPendingBit(SDIO_IT_DATAEND);
-        sdio_state.sdio_xfer_end = true;
 
         if(sdio_state.sdio_xfer_multi_block)
             sdio_state.sdio_xfer_error = SD_StopTransfer();
@@ -1394,8 +1390,6 @@ SD_Error SDIO_IRQHandler(void)
     SDIO_ITConfig(SDIO_IT_DCRCFAIL | SDIO_IT_DTIMEOUT | SDIO_IT_DATAEND |
                 SDIO_IT_TXFIFOHE | SDIO_IT_RXFIFOHF | SDIO_IT_TXUNDERR |
                 SDIO_IT_RXOVERR | SDIO_IT_STBITERR, DISABLE);
-
-    return sdio_state.sdio_xfer_error;
 }
 
 /**
