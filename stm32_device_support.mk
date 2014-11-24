@@ -50,9 +50,15 @@ CFLAGS += -I$(DRIVERSDIR)/lcd
 SOURCE += $(DRIVERSDIR)/lcd/lcd.c
 SOURCE += $(DRIVERSDIR)/lcd/graphics.c
 SOURCE += $(DRIVERSDIR)/lcd/text.c
+ifeq ($(USE_LCD_WIDGET_TOUCH_KEY), 1)
 SOURCE += $(DRIVERSDIR)/lcd/widgets/touch_key.c
+endif
+ifeq ($(USE_LCD_WIDGET_PANEL_METER), 1)
 SOURCE += $(DRIVERSDIR)/lcd/widgets/panel_meter.c
+endif
+ifeq ($(USE_LCD_WIDGET_STATUSBAR), 1)
 SOURCE += $(DRIVERSDIR)/lcd/widgets/statusbar.c
+endif
 SOURCE += $(DRIVERSDIR)/lcd/fonts/Ubuntu_16.c
 SOURCE += $(DRIVERSDIR)/lcd/fonts/Ubuntu_20.c
 SOURCE += $(DRIVERSDIR)/lcd/fonts/Ubuntu_24.c
