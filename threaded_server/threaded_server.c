@@ -82,6 +82,8 @@ int start_threaded_server(sock_server_t* servinfo, const char* config, sock_serv
             strcpy((char*)name, (const char*)confstr);
         }
 
+        log_info(&startuplog, "name: %sport: %d,  conns: %d", name, port, conns);
+
         if(port && conns)
         {
             // create the socket server structures
@@ -91,7 +93,7 @@ int start_threaded_server(sock_server_t* servinfo, const char* config, sock_serv
                 xTaskCreate(sock_server_thread, name, configMINIMAL_STACK_SIZE + THREADED_SERVER_STACK_SIZE, servinfo, tskIDLE_PRIORITY + THREADED_SERVER_PRIORITY, NULL);
         }
         else
-            log_error(&startuplog, "port and/or conns settings invalid, %d and %d", port, conns);
+            log_error(&startuplog, "port and/or conns settings invalid", port, conns);
 	}
 	else
 	    log_error(&startuplog, "couldnt stat config file %s", config);
