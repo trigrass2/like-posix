@@ -75,58 +75,6 @@
 // #define LCD_ROTATION  ROTATE_0_DEGREES
 #endif
 
-#define MAX_ALPHA 255
-
-typedef uint16_t colour_t;
-typedef uint8_t alpha_t;
-
-typedef enum {
-    WHITE = 0xFFFF,
-    BLACK = 0x0000,
-    RED = 0xF98A,
-    GREEN = 0x07E0,
-    BLUE = 0x001F,
-    MAGENTA = 0xF81F,
-    CYAN = 0x7FFF,
-    YELLOW = 0xFFE0,
-
-    VERY_DARK_GREY = 0x18E3,
-    DARK_GREY = 0x4A49,
-    MID_GREY = 0x8410,
-    LIGHT_GREY = 0xA534,
-    VERY_LIGHT_GREY = 0xD69A,
-
-    VERY_DARK_BLUE = 0x01B8,
-    DARK_BLUE = 0x135D,
-    MID_BLUE = 0x4C9F,
-    LIGHT_BLUE = 0x861F,
-    VERY_LIGHT_BLUE = 0xC6FF,
-
-    VERY_DARK_GREEN = 0x0280,
-    DARK_GREEN = 0x03C4,
-    MID_GREEN = 0x0505,
-    LIGHT_GREEN = 0x3DEA,
-    VERY_LIGHT_GREEN = 0x8FB1,
-
-    VERY_DARK_ORANGE = 0xFA40,
-    DARK_ORANGE = 0xFB20,
-    MID_ORANGE = 0xFCA3,
-    LIGHT_ORANGE = 0xFD28,
-    VERY_LIGHT_ORANGE = 0xFE31,
-
-    DARK_RED = 0xF804,
-    PINK = 0xFAF3,
-    VIOLET = 0x841F,
-    PURPLE = 0x619F,
-    SLATE = 0x534F,
-
-} preset_colour_t;
-
-typedef struct {
-    int16_t x;
-    int16_t y;
-}point_t;
-
 #define LCD_RED_MASK	0xF800
 #define LCD_GREEN_MASK	0x07E0
 #define LCD_BLUE_MASK	0x001F

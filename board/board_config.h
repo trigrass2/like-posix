@@ -45,7 +45,7 @@
  extern "C" {
 #endif
 
-void init_target(void);
+void init_target();
 
 #ifdef __cplusplus
  }

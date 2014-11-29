@@ -36,57 +36,7 @@
      during debugging
 */
 
-/* Includes ------------------------------------------------------------------*/
-#include "stm32f4xx.h"
-#include "board_config.h"
-
-/* Private typedef -----------------------------------------------------------*/
-/* Private typedef -----------------------------------------------------------*/
-
-/* Private define ------------------------------------------------------------*/
-#define WEAK        __attribute__ ((weak))
-#define BSS_FILL    0
-#define STACK_FILL  0xA5A5A5A5
-
-#ifndef EXTENDED_UNHANDLED_INTERRUPT_HANDLER
-#define EXTENDED_UNHANDLED_INTERRUPT_HANDLER 0
-#endif
-
-/* Private macro -------------------------------------------------------------*/
-extern unsigned long _etext;
-/* start address for the initialization values of the .data section.
-defined in linker script */
-extern unsigned long _sidata;
-
-/* start address for the .data section. defined in linker script */
-extern unsigned long _sdata;
-
-/* end address for the .data section. defined in linker script */
-extern unsigned long _edata;
-
-/* start address for the .bss section. defined in linker script */
-extern unsigned long _sbss;
-
-/* end address for the .bss section. defined in linker script */
-extern unsigned long _ebss;
-
-/* init value for the stack pointer. defined in linker script */
-extern unsigned long _estack;
-
-/* size of the stack. defined in linker script */
-extern unsigned long _sstack;
-
-/* Private variables ---------------------------------------------------------*/
-
-/* Private function prototypes -----------------------------------------------*/
-void Reset_Handler() __attribute__((__interrupt__));
-void __Init_Data();
-void Default_Handler();
-void SystemInit_ExtMemCtl_Dummy();
-
-/* External function prototypes ----------------------------------------------*/
-extern int main();                /* Application's main function */
-extern void __libc_init_array();  /* calls CTORS of static objects */
+#include "startup.c"
 
 /*******************************************************************************
 *
@@ -189,8 +139,6 @@ void WEAK HASH_RNG_IRQHandler(void);            /* Hash and Rng                 
 void WEAK FPU_IRQHandler(void);                    /* FPU                          */
 
 
-
-/* Private functions ---------------------------------------------------------*/
 /******************************************************************************
 *
 * mthomas: If been built with VECT_TAB_RAM this creates two tables:
@@ -311,59 +259,6 @@ void (* const g_pfnVectors[])(void) =
     FPU_IRQHandler                    /* FPU                          */
 };
 
-/**
- * @brief  This is the code that gets called when the processor first
- *          starts execution following a reset event. Only the absolutely
- *          necessary set is performed, after which the application
- *          supplied main() routine is called.
-*/
-
-void Reset_Handler()
-{
-	/* Initialize data and bss */
-	__Init_Data();
-
-	/* Call CTORS of static objects */
-	__libc_init_array();
-
-	/* Call Clock/RCC init */
-	SystemInit();
-
-	// call init_target (in board_config.c)
-	init_target();
-
-	/* Call the application's entry point.*/
-	main();
-
-	while(1);
-}
-
-/**
- * @brief  initializes data and bss sections
- */
-void __Init_Data()
-{
-    unsigned long *pulSrc, *pulDest;
-
-    /* Copy the data segment initializers from flash to SRAM */
-    pulSrc  = &_sidata;
-    pulDest = &_sdata;
-
-    if(pulSrc != pulDest)
-    {
-        while(pulDest < &_edata)
-            *(pulDest++) = *(pulSrc++);
-    }
-
-    /* Zero fill the bss segment. */
-    for(pulDest = &_sbss; pulDest < &_ebss; pulDest++)
-        *pulDest = BSS_FILL;
-
-    // Fill the stack with a known value.
-    for(pulDest = &_sstack; pulDest < &_estack; pulDest++)
-        *pulDest = STACK_FILL;
-}
-
 /*******************************************************************************
 *
 * Provide weak aliases for each Exception handler to the Default_Handler.
@@ -373,17 +268,6 @@ void __Init_Data()
 *******************************************************************************/
 
 #if EXTENDED_UNHANDLED_INTERRUPT_HANDLER
-
-/**
- * @brief  unexpected interrupt handler
-*/
-void Default_Handler(const char* file, const char* function, const char* line)
-{
-    printf("unhandled interrupt: %s, %s, line %s\n", file, function, line);
-    while(1);
-}
-
-#define MESSAGE() Default_Handler(__FILE__, __FUNCTION__, __LINE__);
 
 /* External Interrupts */
 static inline void __WWDG_IRQHandler(void){MESSAGE()}                /* Window WatchDog              */
@@ -467,7 +351,17 @@ static inline void __OTG_HS_IRQHandler(void){MESSAGE()}              /* USB OTG 
 static inline void __DCMI_IRQHandler(void){MESSAGE()}                /* DCMI                         */
 static inline void __CRYP_IRQHandler(void){MESSAGE()}                /* CRYP crypto                  */
 static inline void __HASH_RNG_IRQHandler(void){MESSAGE()}            /* Hash and Rng                 */
-static inline void __FPU_IRQHandler(void){MESSAGE()}                    /* FPU                          */
+static inline void __FPU_IRQHandler(void){MESSAGE()}                 /* FPU                          */
+
+static inline void __MMI_Handler (void){MESSAGE()}
+static inline void __MemManage_Handler (void){MESSAGE()}
+static inline void __BusFault_Handler (void){MESSAGE()}
+static inline void __UsageFault_Handler (void){MESSAGE()}
+static inline void __DebugMon_Handler (void){MESSAGE()}
+static inline void __SVC_Handler (void){MESSAGE()}
+static inline void __PendSV_Handler (void){MESSAGE()}
+static inline void __SysTick_Handler (void){MESSAGE()}
+
 
 
 #pragma weak MMI_Handler = __MMI_Handler
@@ -564,14 +458,6 @@ static inline void __FPU_IRQHandler(void){MESSAGE()}                    /* FPU  
 #pragma weak FPU_IRQHandler = __FPU_IRQHandler                    /* FPU           */
 
 #else // EXTENDED_UNHANDLED_INTERRUPT_HANDLER
-
-/**
- * @brief  unexpected interrupt handler
-*/
-void Default_Handler()
-{
-    while(1);
-}
 
 #pragma weak MMI_Handler = Default_Handler
 #pragma weak MemManage_Handler = Default_Handler

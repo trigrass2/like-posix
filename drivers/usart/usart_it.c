@@ -39,25 +39,32 @@
 
 #include "usart_it.h"
 #include "board_config.h"
-#include "syscalls.h"
 #include "asserts.h"
+#if USE_POSIX_STYLE_IO
+#include "syscalls.h"
+#endif
 
 /**
  * lives in usart.c
  */
-extern dev_ioctl_t* usart_dev_ioctls[6];
+extern void* usart_dev_ioctls[6];
 
 /**
   * @brief	function called by the USART receive register not empty interrupt.
   * 		the USART RX register contents are inserted into the RX FIFO.
   */
-inline void usart_rx_isr(USART_TypeDef* usart, dev_ioctl_t* usart_dev)
+inline void usart_rx_isr(USART_TypeDef* usart, void* usart_dev)
 {
 	if(USART_GetITStatus(usart, USART_IT_RXNE) == SET)
 	{
+#if USE_POSIX_STYLE_IO
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-		xQueueSendFromISR(usart_dev->pipe.read, (char*)&(usart->DR), &xHigherPriorityTaskWoken);
+		xQueueSendFromISR(((dev_ioctl_t*)usart_dev)->pipe.read, (char*)&(usart->DR), &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+#else
+        (void)usart_dev;
+		// todo - fifo put
+#endif
 		USART_ClearITPendingBit(usart, USART_IT_RXNE);
 	}
 }
@@ -66,16 +73,22 @@ inline void usart_rx_isr(USART_TypeDef* usart, dev_ioctl_t* usart_dev)
   * @brief	function called by the USART transmit register empty interrupt.
   * 		data is sent from USART till no data is left in the tx fifo.
   */
-inline void usart_tx_isr(USART_TypeDef* usart, dev_ioctl_t* usart_dev)
+inline void usart_tx_isr(USART_TypeDef* usart, void* usart_dev)
 {
 	if(USART_GetITStatus(usart, USART_IT_TXE) == SET)
 	{
+#if USE_POSIX_STYLE_IO
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-		if(xQueueReceiveFromISR(usart_dev->pipe.write, (char*)&(usart->DR), &xHigherPriorityTaskWoken) == pdFALSE)
+		if(xQueueReceiveFromISR(((dev_ioctl_t*)usart_dev)->pipe.write, (char*)&(usart->DR), &xHigherPriorityTaskWoken) == pdFALSE)
 			USART_ITConfig(usart, USART_IT_TXE, DISABLE);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+#else
+		(void)usart_dev;
+        // todo - fifo get
+#endif
 	}
 }
+
 
 /**
   * @brief  This function handles USART1 interrupt.
@@ -140,6 +153,9 @@ void UART5_IRQHandler(void)
  }
 #endif
 #endif
+
+
+
 
 /**
  * @}

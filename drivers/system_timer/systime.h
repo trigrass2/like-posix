@@ -36,5 +36,6 @@
 void init_systime();
 void set_hw_time(unsigned long secs, unsigned long usecs);
 void get_hw_time(unsigned long* secs, unsigned long* usecs);
+unsigned long get_hw_time_ms();
 
 #endif /* SYSTIME_H_ */

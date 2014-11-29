@@ -56,7 +56,7 @@ endif
 
 ifeq ($(DEVICE), stm32f103ve)
 # device specification
-STARTUP_FILE = startup_stm32f10x_hd.c
+INTERRUPT_HANDLER_SOURCE = interrupt_handlers_hd.c
 DENSITY = STM32F10X_HD
 # stm32f103ve memory setup 
 RAM_LENGTH ?= 64K
@@ -68,7 +68,7 @@ endif
 
 ifeq ($(DEVICE), stm32f107rc)
 # device specification
-STARTUP_FILE = startup_stm32f10x_cl.c
+INTERRUPT_HANDLER_SOURCE = interrupt_handlers_cl.c
 DENSITY = STM32F10X_CL
 # stm32f107rc memory setup 
 RAM_LENGTH ?= 64K
@@ -80,7 +80,7 @@ endif
 
 ifeq ($(DEVICE), stm32f407ve)
 # device specification
-STARTUP_FILE = startup_stm32f4xx.c
+INTERRUPT_HANDLER_SOURCE = interrupt_handlers.c
 DENSITY = STM32F4XX
 # stm32f407ve memory setup 
 RAM_LENGTH ?= 128K
@@ -92,7 +92,7 @@ endif
 
 ifeq ($(DEVICE), stm32f407vg)
 # device specification
-STARTUP_FILE = startup_stm32f4xx.c
+INTERRUPT_HANDLER_SOURCE = interrupt_handlers.c
 DENSITY = STM32F4XX
 # stm32f407vg memory setup 
 RAM_LENGTH ?= 128K
@@ -107,7 +107,8 @@ BASE_LINKER_SCRIPT = atollic_arm_cpp.ld
 LDSCRIPT = stm32.ld
 LINKERSCRIPTPATH = $(DEVICEDIR)
 
-STARTUP_SOURCE = $(CHIPSUPPORTDIR)/$(STARTUP_FILE)
+#STARTUP_SOURCE = $(DEVICEDIR)/startup.c
+STARTUP_SOURCE += $(CHIPSUPPORTDIR)/$(INTERRUPT_HANDLER_SOURCE)
 
 ## configure  CFLAGS
 # linker script

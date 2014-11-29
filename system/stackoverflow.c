@@ -61,6 +61,18 @@ void vApplicationStackOverflowHook(xTaskHandle* pxTask, signed portCHAR* pcTaskN
 
 #endif
 
+#if configUSE_MALLOC_FAILED_HOOK
+
+void vApplicationMallocFailedHook(void)
+{
+#if USE_DRIVER_LEDS && defined(ERROR_LED)
+    set_led(ERROR_LED);
+#endif
+    for( ;; );
+}
+
+#endif
+
 /**
  * @}
  */

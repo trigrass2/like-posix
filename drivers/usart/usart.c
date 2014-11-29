@@ -64,18 +64,31 @@
  * @{
  */
 
+#if USE_POSIX_STYLE_IO
 #include <termios.h>
+#include "syscalls.h"
+#endif
+
 #include "usart.h"
 #include "base_usart.h"
-#include "syscalls.h"
 #include "asserts.h"
 #include "cutensils.h"
+#include "system.h"
 
 #define CR1_OVER8_Set             ((u16)0x8000)  /* USART OVER8 mode Enable Mask, used by usart_set_baudrate */
 #define CR1_OVER8_Reset           ((u16)0x7FFF)  /* USART OVER8 mode Disable Mask, used by usart_set_baudrate */
 
 static USART_TypeDef* console_usart;
-dev_ioctl_t* usart_dev_ioctls[6];
+
+#if USE_POSIX_STYLE_IO
+static int usart_ioctl(dev_ioctl_t* dev);
+static int usart_close_ioctl(dev_ioctl_t* dev);
+static int usart_open_ioctl(dev_ioctl_t* dev);
+static int usart_enable_tx_ioctl(dev_ioctl_t* dev);
+static int usart_enable_rx_ioctl(dev_ioctl_t* dev);
+#endif
+
+void* usart_dev_ioctls[6];
 
 /**
  * write a character to the console usart.
@@ -260,75 +273,6 @@ void usart_init_gpio(USART_TypeDef* usart)
 #endif
 }
 
-int usart_enable_rx_ioctl(dev_ioctl_t* dev)
-{
-    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
-    USART_ITConfig(usart, USART_IT_RXNE, ENABLE);
-    return 0;
-}
-
-int usart_enable_tx_ioctl(dev_ioctl_t* dev)
-{
-    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
-    USART_ITConfig(usart, USART_IT_TXE, ENABLE);
-    return 0;
-}
-
-int usart_open_ioctl(dev_ioctl_t* dev)
-{
-    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
-    usart_init_gpio(usart);
-    usart_init_device(usart, ENABLE);
-    return 0;
-}
-
-int usart_close_ioctl(dev_ioctl_t* dev)
-{
-    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
-    USART_ITConfig(usart, USART_IT_RXNE, DISABLE);
-    USART_ITConfig(usart, USART_IT_TXE, DISABLE);
-    usart_init_device(usart, DISABLE);
-    return 0;
-}
-
-int usart_ioctl(dev_ioctl_t* dev)
-{
-    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
-
-    uint32_t baudrate = dev->termios->c_ispeed ?
-            dev->termios->c_ispeed : dev->termios->c_ospeed;
-    if(baudrate)
-    {
-        // set baudrate
-        usart_set_baudrate(usart, baudrate);
-    }
-    else
-    {
-        // read baudrate
-        dev->termios->c_ispeed = usart_get_baudrate(usart);
-        dev->termios->c_ospeed = dev->termios->c_ispeed;
-    }
-
-    // set character size
-
-    // set character size
-
-    // set parity
-
-    // get parity
-
-    // set parity polarity
-
-    // get parity polarity
-
-    // set stopbits
-
-    // get stopbits
-
-
-    return 0;
-}
-
 int8_t get_usart_devno(USART_TypeDef* usart)
 {
 	if(usart == USART1)
@@ -374,18 +318,23 @@ bool usart_init(USART_TypeDef* usart, char* install, bool enable)
 
     if(install)
     {
+#if USE_POSIX_STYLE_IO
     	// installed USART can only work with interrupt enabled
     	usart_init_interrupt(usart, USART_INTERRUPT_PRIORITY, true);
-
-    	usart_dev_ioctls[usart_devno] = install_device(install,
+    	usart_dev_ioctls[usart_devno] = (void*)install_device(install,
 														usart,
 														usart_enable_rx_ioctl,
 														usart_enable_tx_ioctl,
 														usart_open_ioctl,
 														usart_close_ioctl,
 														usart_ioctl);
+#else
+    	// todo - init fifo's - and interrupts
+//        usart_init_interrupt(usart, USART_INTERRUPT_PRIORITY, true);
+    	usart_dev_ioctls[usart_devno] = NULL;
+#endif
     	ret = usart_dev_ioctls[usart_devno] != NULL;
-    	log_syslog(NULL, "install usart%d: %d", usart_devno, ret);
+        log_syslog(NULL, "install usart%d: %s", usart_devno, ret ? "successful" : "failed");
     }
 
     if(enable)
@@ -503,6 +452,78 @@ uint32_t usart_get_baudrate(USART_TypeDef* usart)
     uint32_t div = (25 * (usart->BRR >> 4)) + ((25 * (usart->BRR & 0x000f))/16);
     return ((pclock * 25) / div) / 16;
 }
+
+#if USE_POSIX_STYLE_IO
+static int usart_enable_rx_ioctl(dev_ioctl_t* dev)
+{
+    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
+    USART_ITConfig(usart, USART_IT_RXNE, ENABLE);
+    return 0;
+}
+
+static int usart_enable_tx_ioctl(dev_ioctl_t* dev)
+{
+    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
+    USART_ITConfig(usart, USART_IT_TXE, ENABLE);
+    return 0;
+}
+
+static int usart_open_ioctl(dev_ioctl_t* dev)
+{
+    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
+    usart_init_gpio(usart);
+    usart_init_device(usart, ENABLE);
+    return 0;
+}
+
+static int usart_close_ioctl(dev_ioctl_t* dev)
+{
+    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
+    USART_ITConfig(usart, USART_IT_RXNE, DISABLE);
+    USART_ITConfig(usart, USART_IT_TXE, DISABLE);
+    usart_init_device(usart, DISABLE);
+    return 0;
+}
+
+static int usart_ioctl(dev_ioctl_t* dev)
+{
+    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
+
+    uint32_t baudrate = dev->termios->c_ispeed ?
+            dev->termios->c_ispeed : dev->termios->c_ospeed;
+    if(baudrate)
+    {
+        // set baudrate
+        usart_set_baudrate(usart, baudrate);
+    }
+    else
+    {
+        // read baudrate
+        dev->termios->c_ispeed = usart_get_baudrate(usart);
+        dev->termios->c_ospeed = dev->termios->c_ispeed;
+    }
+
+    // set character size
+
+    // set character size
+
+    // set parity
+
+    // get parity
+
+    // set parity polarity
+
+    // get parity polarity
+
+    // set stopbits
+
+    // get stopbits
+
+
+    return 0;
+}
+
+#endif
 
 /**
  * @}

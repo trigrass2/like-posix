@@ -97,9 +97,9 @@
 #define SD_HALFFIFO                     ((uint32_t)0x00000008)
 #define SD_HALFFIFOBYTES                ((uint32_t)0x00000020)
 
-#if USE_LOGGER
+
 static logger_t sdiolog;
-#endif
+
 
 typedef struct {
     bool dma_xfer_end;
@@ -576,7 +576,7 @@ SD_Error SD_PowerON(void)
     uint32_t resp;
     uint32_t acmdarg;
     uint32_t timer = 0;
-    uint32_t wait = 10000; // microseconds
+    uint32_t wait = 50000; // microseconds
 
     /*!< Power ON Sequence -----------------------------------------------------*/
     /*!< Configure the SDIO peripheral */
@@ -607,7 +607,7 @@ SD_Error SD_PowerON(void)
     sdio_send_cmd(SD_CHECK_PATTERN, SDIO_SEND_IF_COND, SDIO_Response_Short);
     errorstatus = CmdResp7Error();
 
-    log_syslog(&sdiolog, "cmd8: err=%d", errorstatus);
+    log_syslog(&sdiolog, "cmd8: code=%d", errorstatus);
 
     if(errorstatus == SD_OK)
     {
@@ -627,7 +627,7 @@ SD_Error SD_PowerON(void)
         sdio_send_cmd(acmdarg, SD_CMD_SD_APP_OP_COND, SDIO_Response_Short);
         errorstatus = CmdResp3Error();
         resp = SDIO_GetResponse(SDIO_RESP1);
-        log_syslog(&sdiolog, "cmd41: err=%d, resp=%#08x", errorstatus, resp);
+        log_syslog(&sdiolog, "cmd41: code=%d, resp=%#08x", errorstatus, resp);
         if(resp & 0x80000000)
         {
             errorstatus = SD_OK;

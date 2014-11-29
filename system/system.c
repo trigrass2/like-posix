@@ -95,8 +95,13 @@ void enable_bod()
  */
 void delay(volatile uint32_t count)
 {
+#if USE_DRIVER_SYSTEM_TIMER
+    uint32_t t = get_hw_time_ms() + count;
+    while(get_hw_time_ms() < t);
+#else
     count *= SystemCoreClock/8960;
     while(count-- > 0);
+#endif
 }
 
 /**

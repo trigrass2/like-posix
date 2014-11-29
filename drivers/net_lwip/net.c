@@ -248,6 +248,7 @@ void status_callback(struct netif *netif)
 {
 	logger_t status_cb_log;
 	log_init(&status_cb_log, "net_status_callback");
+#if USE_LOGGER
 	uint8_t* pt;
 	pt = (uint8_t*)&(netif->ip_addr.addr);
 	log_info(&status_cb_log, "ip: %d.%d.%d.%d", pt[0], pt[1], pt[2], pt[3]);
@@ -258,6 +259,7 @@ void status_callback(struct netif *netif)
 	pt = netif->hwaddr;
 	log_info(&status_cb_log, "mac: %02x:%02x:%02x:%02x:%02x:%02x", pt[0], pt[1], pt[2], pt[3], pt[4], pt[5]);
 
+#endif
 	if(netif_is_up(netif))
 	{
 #ifdef NET_LINK_LED
@@ -270,8 +272,12 @@ void tcpip_init_done(void *arg)
 {
 	logger_t tcp_cb_log;
 	log_init(&tcp_cb_log, "tcpip_init_done");
+#if USE_LOGGER
 	struct netif* netif = (struct netif*)arg;
 	log_info(&tcp_cb_log, "%s, %s", __FUNCTION__, netif->hostname);
+#else
+	(void)arg;
+#endif
 }
 
 unsigned long net_ip_packets_sent()

@@ -33,13 +33,6 @@
 #include "board_config.h"
 #include "system.h"
 
-#if USE_DRIVER_USART
-#include "usart.h"
-#endif
-#if USE_DRIVER_LEDS
-#include "leds.h"
-#endif
-
 void init_target(void)
 {
 	// clear reset source flags
@@ -54,17 +47,6 @@ void init_target(void)
 	// GPIO_PinRemapConfig(GPIO_Remap_SWJ_Disable, ENABLE);
 
 	configure_nvic();
-#if USE_DRIVER_SYSTEM_TIMER
-	init_systime();
-#endif
-
-#if USE_DRIVER_USART
-	usart_init(CONSOLE_USART, NULL, true);
-	set_console_usart(CONSOLE_USART);
-#endif
-#if USE_DRIVER_LEDS
-	init_leds();
-#endif
 }
 
 

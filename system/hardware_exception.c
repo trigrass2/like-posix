@@ -11,32 +11,35 @@
  */
 
 #include <stdio.h>
+#include "system.h"
 #include "board_config.h"
 
-#define DEBUG_EXCEPTIONS 0
+const char* stack_regs[] = {
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R12",
+        "LR",
+        "PC",
+        "PSR"
+};
 
 void prvGetRegistersFromStack(unsigned int *pulFaultStackAddress )
 {
-#if DEBUG_EXCEPTIONS
-    printf("hardfault:\n"
-"\tr0\t=\t%x\n"
-"\tr1\t=\t%x\n"
-"\tr2\t=\t%x\n"
-"\tr3\t=\t%x\n"
-"\tr12\t=\t%x\n"
-"\tlr\t=\t%x\n"
-"\tpc\t=\t%x\n"
-"\tpsr\t=\t%x\n",
-    pulFaultStackAddress[0], // r0
-    pulFaultStackAddress[1], // r1
-    pulFaultStackAddress[2], // r2
-    pulFaultStackAddress[3], // r3
+#if DEBUG_PRINTF_EXCEPTIONS
 
-    pulFaultStackAddress[4], // r12
-    pulFaultStackAddress[5], // lr
-    pulFaultStackAddress[6], // pc
-    pulFaultStackAddress[7] // psr
-    );
+    int frame;
+    int reg;
+    printf("hardfault:\n");
+
+    for(frame = 0; frame < STACKTRACE_DEPTH; frame++)
+    {
+        for(reg = 0; reg < STACKFRAME_DEPTH; reg++)
+        {
+            printf("%d\t%s=%#08x\n", frame, stack_regs[reg], pulFaultStackAddress[(frame * STACKFRAME_DEPTH) + reg]);
+        }
+    }
 #else
     (void)pulFaultStackAddress;
 #endif
@@ -82,7 +85,7 @@ void HardFault_Handler()
 void MemManage_Handler()
 {
   /* Go to infinite loop when Memory Manage exception occurs */
-#if DEBUG_EXCEPTIONS
+#if DEBUG_PRINTF_EXCEPTIONS
     printf("memanage fault\n");
 #endif
   while(1);
@@ -96,7 +99,7 @@ void MemManage_Handler()
 void BusFault_Handler()
 {
   /* Go to infinite loop when Bus Fault exception occurs */
-#if DEBUG_EXCEPTIONS
+#if DEBUG_PRINTF_EXCEPTIONS
     printf("bus fault\n");
 #endif
   while (1);
@@ -110,7 +113,7 @@ void BusFault_Handler()
 void UsageFault_Handler()
 {
   /* Go to infinite loop when Usage Fault exception occurs */
-#if DEBUG_EXCEPTIONS
+#if DEBUG_PRINTF_EXCEPTIONS
     printf("usage fault\n");
 #endif
   while (1);

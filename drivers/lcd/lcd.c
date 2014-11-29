@@ -33,6 +33,7 @@
  */
 
 #include "lcd.h"
+#include "cutensils.h"
 
 static void lcd_reset();
 static void lcd_display_on(void);
@@ -47,13 +48,15 @@ static void lcd_data_bus_test(void);
 static void lcd_gram_test(void);
 
 
+logger_t tftlog;
 SemaphoreHandle_t xLcdMutex;
 static unsigned short deviceid;
 
 
 void lcd_init(void)
 {
-    printf("LCD init\r\n");
+    log_init(&tftlog, "tft");
+    log_debug(&tftlog, "initializing");
 
     // init IO
     lcd_port_init();
@@ -63,7 +66,7 @@ void lcd_init(void)
 
     // check device ID
     deviceid = lcd_getdeviceid();
-    printf("Device ID : %04X\r\n", deviceid);
+    log_debug(&tftlog, "device ID: %04X", deviceid);
 
     assert_param(deviceid == LCD_DRIVER_ID);
 
@@ -80,7 +83,7 @@ void lcd_init(void)
     lcd_set_entry_mode_normal();
     xLcdMutex = xSemaphoreCreateMutex();
 
-    printf("LCD init done\r\n");
+    log_debug(&tftlog, "done...");
 }
 
 void lcd_backlight(uint8_t enable)
@@ -342,7 +345,7 @@ void lcd_data_bus_test(void)
 {
     unsigned short temp1;
     unsigned short temp2;
-    printf("bus test...\r\n");
+    log_debug(&tftlog, "bus test...");
     write_reg(ILI932x_ENTRY_MODE, ILI932x_EM_BGR | ILI932x_EM_HORIZONTAL_INC | ILI932x_EM_VERTICAL_INC);
 
     // Write Alternating Bit Values
@@ -354,10 +357,10 @@ void lcd_data_bus_test(void)
     // Read it back and check
     temp1 = lcd_read_gram(0, 0);
     temp2 = lcd_read_gram(1, 0);
-    printf("expect %X, read %X\r\n", 0x5555, temp1);
-    printf("expect %X, read %X\r\n", 0xaaaa, temp2);
+    log_debug(&tftlog, "expect %X, read %X", 0x5555, temp1);
+    log_debug(&tftlog, "expect %X, read %X", 0xaaaa, temp2);
     assert_param((temp1 == 0x5555) && (temp2 == 0xAAAA));
-    printf("pass\r\n");
+    log_debug(&tftlog, "pass");
 }
 
 void lcd_gram_test(void)
@@ -366,7 +369,7 @@ void lcd_gram_test(void)
     unsigned int test_x;
     unsigned int test_y;
 
-    printf("GRAM test...\r\n");
+    log_debug(&tftlog, "GRAM test...");
 
     temp=0;
 
@@ -387,6 +390,6 @@ void lcd_gram_test(void)
         for(test_x = 0; test_x < LCD_WIDTH; test_x++)
             assert_param(lcd_read_gram(test_x, test_y) == temp++);
     }
-    printf("pass\r\n");
+    log_debug(&tftlog, "pass");
 }
 

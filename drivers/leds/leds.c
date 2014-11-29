@@ -95,6 +95,7 @@ void init_leds()
     {
         GPIO_InitStructure.GPIO_Pin =  leds[i].pin;
         GPIO_Init(leds[i].port, &GPIO_InitStructure);
+        GPIO_WriteBit(leds[i].port, leds[i].pin, Bit_RESET);
     }
 }
 

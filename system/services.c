@@ -30,25 +30,46 @@
  *
  */
 
-#include "board_config.h"
-#include "system.h"
+#include "services.h"
 
-void init_target(void)
+#if USE_DRIVER_SYSTEM_TIMER
+#include "systime.h"
+#endif
+#if USE_DRIVER_LEDS
+#include "leds.h"
+#endif
+#if USE_DRIVER_USART
+#include "usart.h"
+#endif
+#if USE_POSIX_STYLE_IO
+#include "syscalls.h"
+#endif
+#if USE_LOGGER
+#include <unistd.h>
+#include "cutensils.h"
+#endif
+
+void init_services()
 {
-    // clear reset source flags
-    RCC_ClearFlag();
-    enable_bod();
-    // enable all the GPIO ports and alternate functions
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA|RCC_APB2Periph_GPIOB|RCC_APB2Periph_GPIOC|RCC_APB2Periph_GPIOD|RCC_APB2Periph_GPIOE, ENABLE);
-    // enable only SWD port
-    GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable, ENABLE);
-    // disable the SWD and JTAG port
-    // GPIO_PinRemapConfig(GPIO_Remap_SWJ_Disable, ENABLE);
-
-    configure_nvic();
+#if USE_DRIVER_SYSTEM_TIMER
+    init_systime();
+#endif
+#if USE_LOGGER
+    logger_init();
+#endif
+#if USE_DRIVER_USART && USE_STDIO_USART
+    usart_init(CONSOLE_USART, NULL, true);
+    set_console_usart(CONSOLE_USART);
+#if USE_LOGGER
+    log_add_handler(STDOUT_FILENO);
+#endif
+#endif
+#if USE_DRIVER_LEDS
+    init_leds();
+#endif
+#if USE_POSIX_STYLE_IO
+    init_likeposix();
+#endif
 }
-
-
 
 

@@ -84,9 +84,7 @@ typedef struct {
 #endif
     uint8_t drive;
     bool mounted;
-#if USE_LOGGER
     logger_t log;
-#endif
 }sdfs_t;
 
 #if USE_FREERTOS

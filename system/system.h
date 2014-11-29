@@ -55,6 +55,12 @@ typedef  void (*function_pointer_t)(void);
 #define NULL ((void*)0)
 #endif
 
+#ifndef DEBUG_PRINTF_EXCEPTIONS
+#define DEBUG_PRINTF_EXCEPTIONS     0
+#endif
+#define STACKTRACE_DEPTH            1
+#define STACKFRAME_DEPTH            8
+
  /**
   * enumeration used to determine reset source.
   */

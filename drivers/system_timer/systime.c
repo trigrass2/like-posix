@@ -92,6 +92,16 @@ void get_hw_time(unsigned long* secs, unsigned long* usecs)
     *usecs = useconds;
 }
 
+unsigned long get_hw_time_ms()
+{
+    unsigned long seconds, useconds;
+    __disable_irq();
+    seconds = system_seconds;
+    useconds = SYSTIMER_PERIPH->CNT * (SYSTIMER_TV_TICK_RATE / SYSTIMER_TICK_RATE);
+    __enable_irq();
+    return (seconds*1000) + (useconds/1000);
+}
+
 void set_hw_time(unsigned long secs, unsigned long usecs)
 {
     __disable_irq();

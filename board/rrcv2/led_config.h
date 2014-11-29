@@ -36,9 +36,9 @@
 #define LED_FLASHER_TASK_PRIORITY 1
 #define LED_FLASHER_TASK_STACK	  0
 
-#define LED1 	0
-#define LED2 	1
-#define LED3    2
+#define LED1 	0      /* White */
+#define LED2 	1      /* Green */
+#define LED3    2      /* Red */
 
 #define ERROR_LED LED3
 #define BOOT_LED LED2
