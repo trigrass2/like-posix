@@ -46,6 +46,9 @@
 
 #include "sock_utils.h"
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 /**
  * open a socket.
  *

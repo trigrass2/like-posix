@@ -51,6 +51,8 @@
 #include "cutensils.h"
 #include "threaded_server.h"
 #include "cutensils.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 void handle_connection(sock_conn_t* conn);
 int spawn_connection(sock_server_t* server, sock_conn_t* conn);

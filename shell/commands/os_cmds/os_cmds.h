@@ -30,31 +30,15 @@
  *
  */
 
-#ifndef SHELL_DEFS_H_
-#define SHELL_DEFS_H_
 
-/**
- * SHELL_NEWLINE_PROMPT is the string that is printed a prompt.
- */
-#define SHELL_PROMPT            "# "
+#ifndef OS_CMDS_H_
+#define OS_CMDS_H_
 
-#define SHELL_UPARROW			"\x1B\x5B\x41"
-#define SHELL_DOWNARROW			"\x1B\x5B\x42"
-#define SHELL_LEFTARROW			"\x1B\x5B\x44"
-#define SHELL_RIGHTARROW		"\x1B\x5B\x43"
-#define SHELL_PREVIOUS_LINE		"\x1B[1F"
-#define ANSII_CLEAR_LINE        "\x1B[2K"
-#define ANSII_CLEAR_LINE_FROM   "\x1B[0K"
-#define ANSII_CLEAR_LINE_TO     "\x1B[1K"
+#include "shell.h"
 
-#define SHELL_NO_SUCH_COMMAND       SHELL_NEWLINE "no such command "
-#define SHELL_HELP_STR              "the following commands exist:"
-#define SHELL_NO_HELP_STR           "no help for command "
-#define SHELL_USAGE_STR             " usage"SHELL_NEWLINE
+extern shell_cmd_t sh_top_cmd;
 
-/**
- * SHELL_NEWLINE is the type of newline to use throughout the shell system.
- */
-#define SHELL_NEWLINE           "\r\n"
 
-#endif /* SHELL_DEFS_H_ */
+void install_os_cmds(shellserver_t* sh);
+
+#endif /* OS_CMDS_H_ */
