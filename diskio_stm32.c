@@ -46,9 +46,8 @@
 #include "sdcard.h"
 #include "cutensils.h"
 
-#if USE_LOGGER
 logger_t diskiolog;
-#endif
+
 SD_CardInfo SDCardInfo;             // card information
 DSTATUS Status = STA_NOINIT;        // Disk status
 
