@@ -57,6 +57,7 @@ include $(BUILD_ENV_DIR)/lwip.mk
 include $(BUILD_ENV_DIR)/like_posix.mk
 include $(BUILD_ENV_DIR)/fatfs.mk
 include $(BUILD_ENV_DIR)/programming.mk
+include $(BUILD_ENV_DIR)/graphics.mk
 
 ## definitions
 CFLAGS += -D FAMILY=$(FAMILY)
@@ -131,9 +132,10 @@ clean :
 	-rm -f $(OUTPUT_PREFIX).elf
 	-rm -f $(OUTPUT_PREFIX).bin
 	-rm -f $(OUTPUT_PREFIX).map
-	-rm -f $(PROJECT_NAME)_SymbolTable.txt
-	-rm -f $(PROJECT_NAME)_MemoryListingSummary.txt
-	rm -f $(PROJECT_NAME)_MemoryListingDetails.txt
+	-rm -f $(OUTDIR)/$(PROJECT_NAME)_SymbolTable.txt
+	-rm -f $(OUTDIR)/$(PROJECT_NAME)_MemoryListingSummary.txt
+	-rm -f $(OUTDIR)/$(PROJECT_NAME)_MemoryListingDetails.txt
+	-rm -f $(LINKERSCRIPTPATH)/$(LDSCRIPT)
 
 log : $(OUTPUT_PREFIX).elf
 	$(NM) -n $(OUTPUT_PREFIX).elf > $(OUTPUT_PREFIX)_SymbolTable.txt

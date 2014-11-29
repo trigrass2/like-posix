@@ -18,7 +18,6 @@ CFLAGS += -I $(CUTENSILS_DIR)
 CFLAGS += -I $(CUTENSILS_DIR)/logger
 
 ifeq ($(USE_LOGGER), 1)
-CFLAGS += -DUSE_LOGGER_FREERTOS_MUTEX=1
 SOURCE += $(CUTENSILS_DIR)/logger/logger.c
 endif
 

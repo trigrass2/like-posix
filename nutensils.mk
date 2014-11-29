@@ -61,6 +61,8 @@ SOURCE += $(NUTENSILS_DIR)/shell/commands/network_cmds/net_cmds.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/network_cmds
 SOURCE += $(NUTENSILS_DIR)/shell/commands/texted/texted.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/texted
+SOURCE += $(NUTENSILS_DIR)/shell/commands/os_cmds/os_cmds.c
+CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/os_cmds
 endif
 
 USE_HTTP_SERVER_VALUES = 0 1

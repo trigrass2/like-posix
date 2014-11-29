@@ -70,6 +70,13 @@ USE_HTTP_SERVER ?= 0
 # set to 1 to enable, set to 0 to disable
 USE_SHELL ?= 0
 
+## graphics module from the graphics project
+# set to 1 to enable, set to 0 to disable
+USE_GRAPHICS ?= 0
+USE_GRAPHIC_WIDGET_TOUCH_KEY ?= 0
+USE_GRAPHIC_WIDGET_PANEL_METER ?= 0
+USE_GRAPHIC_WIDGET_STATUSBAR ?= 0
+
 ## DRIVERS
 # set thse to 0 to remove from the build, 1 to include in the build
 # standalone drivers
@@ -78,12 +85,11 @@ USE_DRIVER_SYSTEM_TIMER ?= 0
 USE_DRIVER_DS1820 ?= 0
 USE_DRIVER_LEDS ?= 0
 USE_DRIVER_USART ?= 0
+USE_STDIO_USART ?= 0
+DEBUG_PRINTF_EXCEPTIONS ?= 0
 # LCD and touch panel go together
 USE_DRIVER_LCD ?= 0
 USE_DRIVER_TOUCH_PANEL ?= 0
-USE_LCD_WIDGET_TOUCH_KEY ?= 0
-USE_LCD_WIDGET_PANEL_METER ?= 0
-USE_LCD_WIDGET_STATUSBAR ?= 0
 # Networking. PHY selection is set in board.mk
 USE_DRIVER_UIP_NET ?= 0
 USE_DRIVER_LWIP_NET ?= 0
@@ -115,6 +121,8 @@ FREERTOS_DIR ?= $(STM32DEVSUPPORTDIR)/freertos
 LWIP_DIR ?= $(STM32DEVSUPPORTDIR)/LwIP
 ## specify location of the project: https://github.com/drmetal/minstdlibs
 MINSTDLIBSDIR ?= $(STM32DEVSUPPORTDIR)/minstdlibs
+## specify location of the project: https://github.com/drmetal/graphics
+GRAPHICSDIR ?= $(STM32DEVSUPPORTDIR)/graphics
 
 ## relocate application
 # set appropriately if there is a bootloader in the low flash pages
