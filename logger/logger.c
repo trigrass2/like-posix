@@ -50,8 +50,8 @@
 
 
 static log_level_t _log_level = LOG_SYSLOG;
-static int handlers[MAX_LOG_HANDLERS] = {-1};
-#if USE_LOGGER_FREERTOS_MUTEX
+static int handlers[MAX_LOG_HANDLERS];
+#if USE_MUTEX
 static logger_mutex_t _logger_write_mutex = NULL;
 #endif
 
@@ -77,6 +77,15 @@ char* levelstr[] = {
 };
 
 /**
+ * initializes the global logger.
+ */
+void logger_init()
+{
+    for(int i = 0; i < MAX_LOG_HANDLERS; i++)
+        handlers[i] = -1;
+}
+
+/**
  * initialise a logger
  *
  * @param	logger is the logger to init.
@@ -95,7 +104,7 @@ void log_init(logger_t* logger, const char* name)
  */
 void log_add_handler(int file)
 {
-#if USE_LOGGER_FREERTOS_MUTEX
+#if USE_MUTEX
 	// create mutex once, at the time the first handler is added.
 	if(_logger_write_mutex == NULL)
 		_logger_write_mutex = create_mutex();
@@ -143,7 +152,7 @@ static inline void write_log_record(logger_t* logger, log_level_t level, char* m
 {
 	if(level < _log_level)
 		return;
-#if USE_LOGGER_FREERTOS_MUTEX
+#if USE_MUTEX
 	if(_logger_write_mutex == NULL)
 		return;
 #endif

@@ -60,11 +60,11 @@
 #define MAX_LOG_HANDLERS	5
 #endif
 
-#ifndef USE_LOGGER_FREERTOS_MUTEX
+#ifndef USE_MUTEX
  /**
   * puts a mutex around writing a log line, when set to 1
   */
-#define USE_LOGGER_FREERTOS_MUTEX   0
+#define USE_MUTEX   USE_FREERTOS
 #endif
 
 #ifndef LOG_BUFFER_SIZE
@@ -94,6 +94,7 @@ typedef struct {
 }logger_t;
 
 #if USE_LOGGER
+void logger_init();
 void log_init(logger_t* logger, const char* name);
 void log_add_handler(int file);
 void log_remove_handler(int file);
@@ -105,7 +106,7 @@ void log_info(logger_t* logger, char* message, ...);
 void log_warning(logger_t* logger, char* message, ...);
 void log_error(logger_t* logger, char* message, ...);
 
-#if USE_LOGGER_FREERTOS_MUTEX
+#if USE_MUTEX
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
@@ -122,16 +123,17 @@ typedef  SemaphoreHandle_t logger_mutex_t;
 #endif
 
 #else
-#define log_init(...) {}
-#define log_add_handler(...) {}
-#define log_remove_handler(...) {}
-#define log_level(...) {}
-#define log_syslog(...) {}
-#define log_edebug(...) {}
-#define log_debug(...) {}
-#define log_info(...) {}
-#define log_warning(...) {}
-#define log_error(...) {}
+#define logger_init()
+#define log_init(l, n) {(void)l;(void)n;}
+#define log_add_handler(i, ...) {(void)i;}
+#define log_remove_handler(i, ...) {(void)i;}
+#define log_level(l)        0
+#define log_syslog(l, ...) {(void)l;}
+#define log_edebug(l, ...) {(void)l;}
+#define log_debug(l, ...) {(void)l;}
+#define log_info(l, ...) {(void)l;}
+#define log_warning(l, ...) {(void)l;}
+#define log_error(l, ...) {(void)l;}
 
 #define create_mutex()
 #define take_mutex(mutex)
