@@ -12,11 +12,14 @@ _Min_Heap_Size = !MIN_HEAP_SIZE!; /* required amount of heap  */
 /* STM32F4 only - All of CCRAM is used for stack, set to 0 */
 _Min_Stack_Size = !MIN_STACK_SIZE!; /* required amount of stack */
 
-/* STM32F4 use all of core coupled RAM */
-/* STM32F1 use end of SYSTEM RAM */
+/* stack origin */
+/* STM32F4 end of core coupled RAM */
+/* STM32F1 end of SYSTEM RAM */
 _estack = ORIGIN(!STACK_RAM!) + LENGTH(!STACK_RAM!);
 
-/* STM32F4 only, start of stack - use all of core coupled RAM */
-_sstack = ORIGIN(!STACK_RAM!);
+/* stack end */
+/* STM32F4 use all of core coupled RAM */
+/* STM32F1 use MIN_STACK_SIZE bytes SYSTEM RAM */
+_sstack = _estack - !MIN_STACK_SIZE!;
 
 INCLUDE !BASE_LINKER_SCRIPT!

@@ -63,7 +63,7 @@ RAM_LENGTH ?= 64K
 CCRAM_LENGTH ?= 0K				# no ccram
 FLASH_LENGTH ?= 512K
 MIN_HEAP_SIZE ?= 0x3000
-MIN_STACK_SIZE ?= 0x0400
+MIN_STACK_SIZE ?= 0x0400		# min 1kb stack
 endif
 
 ifeq ($(DEVICE), stm32f107rc)
@@ -75,7 +75,7 @@ RAM_LENGTH ?= 64K
 CCRAM_LENGTH ?= 0K				# no ccram
 FLASH_LENGTH ?= 256K
 MIN_HEAP_SIZE ?= 0x3000
-MIN_STACK_SIZE ?= 0x0400
+MIN_STACK_SIZE ?= 0x0400		# min 1kb stack
 endif
 
 ifeq ($(DEVICE), stm32f407ve)
@@ -87,7 +87,7 @@ RAM_LENGTH ?= 128K
 CCRAM_LENGTH ?= 64K
 FLASH_LENGTH ?= 512K
 MIN_HEAP_SIZE ?= 0x3000
-MIN_STACK_SIZE ?= 0x0000			# stack in ccram
+MIN_STACK_SIZE ?= 0x10000		# 64kb stack in ccram
 endif
 
 ifeq ($(DEVICE), stm32f407vg)
@@ -99,7 +99,7 @@ RAM_LENGTH ?= 128K
 CCRAM_LENGTH ?= 64K
 FLASH_LENGTH ?= 1024K
 MIN_HEAP_SIZE ?= 0x3000
-MIN_STACK_SIZE ?= 0x0000			# stack in ccram
+MIN_STACK_SIZE ?= 0x10000		# 64kb stack in ccram
 endif
 
 ## TODO - this linker script is good for c++ - can it be make simpler for c only projects?
