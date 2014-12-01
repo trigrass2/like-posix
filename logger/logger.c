@@ -43,6 +43,8 @@
  * @file logger.c
  * @{
  */
+#include <time.h>
+#include <sys/time.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -50,6 +52,8 @@
 
 
 static log_level_t _log_level = LOG_SYSLOG;
+static bool _log_coloured = true;
+static bool _log_timestamp = true;
 static int handlers[MAX_LOG_HANDLERS];
 #if USE_MUTEX
 static logger_mutex_t _logger_write_mutex = NULL;
@@ -59,22 +63,37 @@ static logger_mutex_t _logger_write_mutex = NULL;
  * the log buffer is static, not stacked, in order to eliminate blowing task stack sizes out.
  */
 static char log_buf[LOG_BUFFER_SIZE];
+static char ts_buf[LOG_TIMESTAMP_BUFFER_SIZE];
+struct tm* ts_lt;
+struct timeval ts_tv;
 
 /**
  * logger that may be used by any module
  */
-static logger_t _syslog = {
-    .name = "root logger"
+static logger_t _syslog;
+
+static const char* levelstr[] = {
+	"syslog\t",
+	"edebug\t",
+	"debug\t",
+	"info\t",
+	"warning\t",
+	"error\t",
 };
 
-char* levelstr[] = {
-	"\t: syslog :\t",
-	"\t: edebug :\t",
-	"\t: debug  :\t",
-	"\t: info   :\t",
-	"\t: warning:\t",
-	"\t: error  :\t",
+static const char* colourstart[] = {
+    "\x1b[0m",
+    "\x1b[0;36m",
+    "\x1b[1;34m",
+    "\x1b[32m",
+    "\x1b[33m",
+    "\x1b[31m"
 };
+
+static const char colourstop[] = "\x1b[0m";
+
+static const char* tabs = "\t\t\t\t\t";
+#define PAD_TO          (char)((sizeof(tabs)-2)*TAB_WIDTH)
 
 /**
  * initializes the global logger.
@@ -83,6 +102,7 @@ void logger_init()
 {
     for(int i = 0; i < MAX_LOG_HANDLERS; i++)
         handlers[i] = -1;
+    log_init(&_syslog, "root logger");
 }
 
 /**
@@ -95,6 +115,14 @@ void logger_init()
 void log_init(logger_t* logger, const char* name)
 {
 	logger->name = name;
+	logger->pad = 1;
+
+	int pad = strlen(logger->name);
+	if(pad < PAD_TO)
+	{
+	    pad = PAD_TO - pad;
+	    logger->pad += (pad / TAB_WIDTH) + (pad % TAB_WIDTH ? 1 : 0);
+	}
 }
 
 /**
@@ -146,37 +174,81 @@ log_level_t log_level(log_level_t level)
 }
 
 /**
+ * @param enables the global log timestamp.
+ * @retval returns the current log level.
+ */
+void log_timestamp(bool ts)
+{
+    _log_timestamp = ts;
+}
+
+/**
+ * @param enables global log colouring.
+ * @retval returns the current log level.
+ */
+void log_coloured(bool c)
+{
+    _log_coloured = c;
+}
+
+/**
  * log record writer...
  */
 static inline void write_log_record(logger_t* logger, log_level_t level, char* message, va_list va_args)
 {
+    int length;
+    int tslength = 0;
+    char* end;
+
 	if(level < _log_level)
 		return;
 #if USE_MUTEX
 	if(_logger_write_mutex == NULL)
 		return;
 #endif
-	vsprintf(log_buf, message, va_args);
 
 	logger = logger != NULL ? logger : &_syslog;
+
+	take_mutex(_logger_write_mutex);
+
+    length = vsprintf(log_buf, message, va_args);
+
+    if(_log_timestamp)
+    {
+        if(gettimeofday(&ts_tv, NULL) == 0)
+        {
+            ts_lt = localtime(&ts_tv.tv_sec);
+            tslength = strftime(ts_buf, sizeof(ts_buf), "%Y-%m-%d %H:%M:%S", ts_lt);
+            end = ts_buf + tslength;
+            tslength += sprintf(end, ".%03d\t", ts_tv.tv_usec/1000);
+        }
+    }
 
 	for(int i = 0; i < MAX_LOG_HANDLERS; i++)
 	{
 		if(handlers[i] != -1)
 		{
-			take_mutex(_logger_write_mutex);
-			write(handlers[i], logger->name, strlen(logger->name));
-			write(handlers[i], levelstr[level], strlen(levelstr[level]));
-			write(handlers[i], log_buf, strlen(log_buf));
-			write(handlers[i], "\n", 1);
+		    if(_log_timestamp)
+		        write(handlers[i], ts_buf, tslength);
+
+            write(handlers[i], logger->name, strlen(logger->name));
+            if(logger->pad > 0)
+                write(handlers[i], tabs, logger->pad);
+            write(handlers[i], levelstr[level], strlen(levelstr[level]));
+            if(_log_coloured)
+                write(handlers[i], colourstart[level], strlen(colourstart[level]));
+            write(handlers[i], log_buf, length);
+            if(_log_coloured)
+                write(handlers[i], colourstop, sizeof(colourstop)-1);
+            write(handlers[i], "\n", 1);
 
 			if(isatty(handlers[i]) == 0)
-			{
 				fsync(handlers[i]);
-			}
-			give_mutex(_logger_write_mutex);
+
 		}
 	}
+
+	give_mutex(_logger_write_mutex);
 }
 
 /**

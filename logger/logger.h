@@ -74,6 +74,17 @@
 #define LOG_BUFFER_SIZE   512
 #endif
 
+#ifndef LOG_TIMESTAMP_BUFFER_SIZE
+ /**
+  * this is the size in bytes of the buffer used to format the log message.
+  */
+#define LOG_TIMESTAMP_BUFFER_SIZE   32
+#endif
+
+ /**
+  * used to calculate tabs needed to pad name field.
+  */
+#define TAB_WIDTH       8
 
 typedef enum {
 	LOG_LEVEL_CHECK = -1,
@@ -91,6 +102,7 @@ typedef enum {
   */
 typedef struct {
 	const char* name;
+    char pad;
 }logger_t;
 
 #if USE_LOGGER
@@ -98,7 +110,11 @@ void logger_init();
 void log_init(logger_t* logger, const char* name);
 void log_add_handler(int file);
 void log_remove_handler(int file);
+
 log_level_t log_level(log_level_t level);
+void log_timestamp(bool ts);
+void log_coloured(bool c);
+
 void log_syslog(logger_t* logger, char* message, ...);
 void log_edebug(logger_t* logger, char* message, ...);
 void log_debug(logger_t* logger, char* message, ...);
@@ -128,6 +144,8 @@ typedef  SemaphoreHandle_t logger_mutex_t;
 #define log_add_handler(i, ...) {(void)i;}
 #define log_remove_handler(i, ...) {(void)i;}
 #define log_level(l)        0
+#define log_timestamp(ts)    {(void)ts;}
+#define log_coloured(c)    {(void)c;}
 #define log_syslog(l, ...) {(void)l;}
 #define log_edebug(l, ...) {(void)l;}
 #define log_debug(l, ...) {(void)l;}
