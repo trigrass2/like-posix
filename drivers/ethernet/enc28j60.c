@@ -44,9 +44,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "cutensils.h"
 
 volatile uint8_t enc28j60_current_bank = 0;
 volatile uint16_t enc28j60_rxrdpt = 0;
+static logger_t enclog;
 
 #define enc28j60_select() GPIO_ResetBits(ENC28J60_SPI_NSS_PORT, ENC28J60_SPI_NSS_PIN)
 #define enc28j60_release() GPIO_SetBits(ENC28J60_SPI_NSS_PORT, ENC28J60_SPI_NSS_PIN)
@@ -63,6 +65,8 @@ static void enc28j60_reset();
 
 void enc28j60_init(uint8_t *macadr)
 {
+    log_init(&enclog, "enc28j60");
+
 	enc28j60_gpio_init();
 	enc28j60_spi_init();
 
@@ -112,8 +116,7 @@ void enc28j60_init(uint8_t *macadr)
 		PHLCON_LBCFG2|PHLCON_LBCFG1|PHLCON_LBCFG0|
 		PHLCON_LFRQ0|PHLCON_STRCH);
 
-//	printf("enc28j60 rev.%X\n",
-//			enc28j60_revision());
+	log_debug(&enclog, "device rev.%X", enc28j60_revision());
 }
 
 void enc28j60_spi_init()
@@ -246,6 +249,7 @@ void enc28j60_write_op(uint8_t cmd, uint8_t adr, uint8_t data)
 // Initiate software reset
 void enc28j60_soft_reset()
 {
+    log_debug(&enclog, "soft reset");
 	enc28j60_select();
 	enc28j60_tx(ENC28J60_SPI_SC);
 	enc28j60_release();
@@ -257,6 +261,7 @@ void enc28j60_soft_reset()
 // Initiate hardware reset
 void enc28j60_reset()
 {
+    log_debug(&enclog, "hard reset");
 	GPIO_ResetBits(ENC28J60_SPI_NRST_PORT, ENC28J60_SPI_NRST_PIN);
     for(volatile int i = 500000; i > 0; i--);
 	GPIO_SetBits(ENC28J60_SPI_NRST_PORT, ENC28J60_SPI_NRST_PIN);

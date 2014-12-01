@@ -50,7 +50,7 @@
 #ifndef SDFS_H_
 #define SDFS_H_
 
-void sdfs_init(void);
+bool sdfs_init(void);
 
 bool sdfs_ready();
 

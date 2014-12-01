@@ -96,7 +96,7 @@ static sdfs_t sdfs;
 /**
  * initializes the sdfs task...
  */
-void sdfs_init(void)
+bool sdfs_init(void)
 {
     sdfs.drive = 0;
     sdfs.mounted = false;
@@ -104,12 +104,31 @@ void sdfs_init(void)
     log_syslog(&sdfs.log, "sdfs init");
 
 #if USE_FREERTOS
-    xTaskCreate(sdcard_task,
+    return xTaskCreate(sdcard_task,
                "sdfs",
                configMINIMAL_STACK_SIZE + SDCARD_TASK_STACK,
                NULL,
                tskIDLE_PRIORITY + SDCARD_TASK_PRIORITY,
-               &sdfs.sdcard_task_handle);
+               &sdfs.sdcard_task_handle) == pdPASS;
+
+#else
+    if(f_mount(sdfs.drive, &sdfs.fs) == FR_OK)
+    {
+        // HACK - alll the f_ functions do perform the chk_mounted routine,
+        // which calls disk_initialize for us.
+        // loop here to give disk_initialize a few tries to actually work.
+        char x = 10;
+        while(x-- && f_getcwd(&x, 1) != FR_OK)
+            usleep(500000);
+
+        if(x)
+        {
+            set_diskstatus(SD_PRESENT);
+            sdfs.mounted = true;
+        }
+    }
+
+    return sdfs.mounted;
 #endif
 }
 
