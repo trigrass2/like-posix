@@ -54,20 +54,17 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-void handle_connection(sock_conn_t* conn);
+void run_spawned(sock_conn_t* conn);
 int spawn_connection(sock_server_t* server, sock_conn_t* conn);
 
 int start_threaded_server(sock_server_t* servinfo, const char* config, sock_service_fptr_t threadfunc, void* data, int stacksize, int prio)
 {
-    logger_t startuplog;
 	uint8_t buffer[32];
 	int fd = -1;
 	const uint8_t* confstr;
 	int port = 0;
 	int conns = 0;
 	const char* name = NULL;
-
-	log_init(&startuplog, "start_threaded_server");
 
 	if(stat(config, (struct stat*)&buffer) == 0)
 	{
@@ -84,21 +81,28 @@ int start_threaded_server(sock_server_t* servinfo, const char* config, sock_serv
             strcpy((char*)name, (const char*)confstr);
         }
 
-        log_info(&startuplog, "name: %sport: %d,  conns: %d", name, port, conns);
-
         if(port && conns)
         {
             // create the socket server structures
             fd = sock_server(port, SOCK_STREAM, conns, servinfo, spawn_connection, threadfunc, data, name, stacksize, prio);
             // start a new thread that runs the listener
             if(fd != -1)
-                xTaskCreate(sock_server_thread, name, configMINIMAL_STACK_SIZE + THREADED_SERVER_STACK_SIZE, servinfo, tskIDLE_PRIORITY + THREADED_SERVER_PRIORITY, NULL);
+            {
+                if(xTaskCreate(sock_server_thread, name,
+                                configMINIMAL_STACK_SIZE + THREADED_SERVER_STACK_SIZE,
+                                servinfo, tskIDLE_PRIORITY + THREADED_SERVER_PRIORITY,
+                                NULL) != pdPASS) {
+                    log_error(&servinfo->log, "error staring server task");
+                    stop_threaded_server(servinfo);
+                    fd = -1;
+                }
+            }
         }
         else
-            log_error(&startuplog, "port and/or conns settings invalid", port, conns);
+            log_error(&servinfo->log, "port and/or conns settings invalid, %d and %d", port, conns);
 	}
 	else
-	    log_error(&startuplog, "couldnt stat config file %s", config);
+	    log_error(&servinfo->log, "couldnt stat config file %s", config);
 
 	return fd;
 }
@@ -113,21 +117,24 @@ void stop_threaded_server(sock_server_t* servinfo)
 
 int spawn_connection(sock_server_t* server, sock_conn_t* conn)
 {
-	return xTaskCreate((void(*)(void*))handle_connection,
+	return xTaskCreate((void(*)(void*))run_spawned,
 						server->name,
 						configMINIMAL_STACK_SIZE + server->stacksize,
 						conn,
 						tskIDLE_PRIORITY + server->prio, NULL) == pdPASS ? 0 : -1;
 }
 
-void handle_connection(sock_conn_t* conn)
+void run_spawned(sock_conn_t* conn)
 {
 	if(conn)
 	{
 		conn->service(conn);
+	    log_info(NULL, "stopping");
 		closesocket(conn->connfd);
 		free(conn);
 	}
+	else
+	    log_error(NULL, "spawned with no connection data");
 
 	vTaskDelete(NULL);
 }

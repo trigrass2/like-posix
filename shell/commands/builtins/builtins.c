@@ -58,13 +58,16 @@ int sh_date(int fdes, const char** args, unsigned char nargs)
     (void)nargs;
     int length;
     char* buffer = malloc(128);
+    char* end;
     if(buffer)
     {
 		struct timeval tv;
 		if(gettimeofday(&tv, NULL) == 0)
 		{
 		    struct tm* lt = localtime(&tv.tv_sec);
-		    length = strftime(buffer, 128, "%Y-%m-%d %H:%M:%S%z", lt) - 1;
+		    length = strftime(buffer, 128, "%Y-%m-%d %H:%M:%S", lt);
+		    end = buffer + length;
+		    length += sprintf(end, ".%03d", tv.tv_usec/1000);
 		    if(length > 0)
 		        send(fdes, buffer, length, 0);
 		}
