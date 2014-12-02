@@ -33,6 +33,13 @@ DRIVERSDIR = $(DEVICE_SUPPORT_DIR)/drivers
 
 CFLAGS += -I$(DRIVERSDIR)
 
+## System Clock timer
+CFLAGS += -DUSE_DRIVER_SYSTEM_TIMER=$(USE_DRIVER_SYSTEM_TIMER)
+ifeq ($(USE_DRIVER_SYSTEM_TIMER), 1)
+SOURCE += $(DRIVERSDIR)/system_timer/systime.c
+CFLAGS += -I$(DRIVERSDIR)/system_timer
+endif
+
 ## LEDS
 CFLAGS += -DUSE_DRIVER_LEDS=$(USE_DRIVER_LEDS)
 ifeq ($(USE_DRIVER_LEDS), 1)
@@ -69,6 +76,11 @@ endif
 CFLAGS += -DUSE_DRIVER_SDCARD_SDIO=$(USE_DRIVER_SDCARD_SDIO)
 CFLAGS += -DUSE_THREAD_AWARE_SDIO=$(USE_THREAD_AWARE_SDIO)
 ifeq ($(USE_DRIVER_SDCARD_SDIO), 1)
+
+ifneq ($(USE_DRIVER_SYSTEM_TIMER), 1) 
+$(error to use the SDIO driver, USE_DRIVER_SYSTEM_TIMER must be set to 1)
+endif
+
 SOURCE += $(DRIVERSDIR)/sdcard/sdcard.c
 SOURCE += $(DRIVERSDIR)/sdcard/sdcard_sdio.c
 SOURCE += $(DRIVERSDIR)/sdcard/sdfs.c
@@ -78,17 +90,15 @@ endif
 ## SD Card, SPI
 CFLAGS += -DUSE_DRIVER_SDCARD_SPI=$(USE_DRIVER_SDCARD_SPI)
 ifeq ($(USE_DRIVER_SDCARD_SPI), 1)
+
+ifneq ($(USE_DRIVER_SYSTEM_TIMER), 1) 
+$(error to use the SDIO driver, USE_DRIVER_SYSTEM_TIMER must be set to 1)
+endif
+
 SOURCE += $(DRIVERSDIR)/sdcard/sdcard.c
 SOURCE += $(DRIVERSDIR)/sdcard/sdcard_spi.c
 SOURCE += $(DRIVERSDIR)/sdcard/sdfs.c
 CFLAGS += -I$(DRIVERSDIR)/sdcard
-endif
-
-## System Clock timer
-CFLAGS += -DUSE_DRIVER_SYSTEM_TIMER=$(USE_DRIVER_SYSTEM_TIMER)
-ifeq ($(USE_DRIVER_SYSTEM_TIMER), 1)
-SOURCE += $(DRIVERSDIR)/system_timer/systime.c
-CFLAGS += -I$(DRIVERSDIR)/system_timer
 endif
 
 ## Networking

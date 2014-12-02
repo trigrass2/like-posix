@@ -23,6 +23,11 @@ endif
 CFLAGS += -DUSE_HTTP_UTILS=$(USE_HTTP_UTILS)
 
 ifeq ($(USE_HTTP_UTILS), 1)
+
+ifeq ($(USE_THREADED_SERVER), 0)
+$(error USE_HTTP_UTILS is set. http utils requires USE_SOCK_UTILS set to 1)
+endif
+
 SOURCE += $(NUTENSILS_DIR)/http/http_client.c
 CFLAGS += -I $(NUTENSILS_DIR)/http
 endif
@@ -50,6 +55,11 @@ endif
 CFLAGS += -DUSE_SHELL=$(USE_SHELL)
 
 ifeq ($(USE_SHELL), 1)
+
+ifeq ($(USE_THREADED_SERVER), 0)
+$(error USE_SHELL is set. shell requires USE_THREADED_SERVER set to 1)
+endif
+
 SOURCE += $(NUTENSILS_DIR)/shell/shell.c
 SOURCE += $(NUTENSILS_DIR)/shell/shell_command.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell
@@ -74,6 +84,11 @@ endif
 CFLAGS += -DUSE_HTTP_SERVER=$(USE_HTTP_SERVER)
 
 ifeq ($(USE_HTTP_SERVER), 1)
+
+ifeq ($(USE_THREADED_SERVER), 0)
+$(error USE_HTTP_SERVER is set. http requires USE_THREADED_SERVER set to 1)
+endif
+
 SOURCE += $(NUTENSILS_DIR)/http/http_server.c
 SOURCE += $(NUTENSILS_DIR)/http/http_api.c
 endif
