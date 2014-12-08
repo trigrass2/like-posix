@@ -100,7 +100,7 @@ int sh_top(int fdes, const char** args, unsigned char nargs)
                 length = snprintf(buffer, TOP_LINE_BUFFER_SIZE-1, "top - %02d:%02d:%02d up %d days n %d"BLANK_EOL, tm->tm_hour, tm->tm_min, tm->tm_sec, uptime, n);
                 send(fdes, buffer, length, 0);
 
-                length = snprintf(buffer, TOP_LINE_BUFFER_SIZE-1, "Tasks: %d"BLANK_EOL, ntasks);
+                length = snprintf(buffer, TOP_LINE_BUFFER_SIZE-1, "Tasks: %d\tMem: %d/%db"BLANK_EOL, ntasks, configTOTAL_HEAP_SIZE-xPortGetFreeHeapSize(), configTOTAL_HEAP_SIZE);
                 send(fdes, buffer, length, 0);
 
                 send(fdes, TOP_HEADER, sizeof(TOP_HEADER)-1, 0);

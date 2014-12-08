@@ -129,7 +129,7 @@ void run_spawned(sock_conn_t* conn)
 	if(conn)
 	{
 		conn->service(conn);
-	    log_info(NULL, "stopping");
+	    log_syslog(NULL, "stopping");
 		closesocket(conn->connfd);
 		free(conn);
 	}
