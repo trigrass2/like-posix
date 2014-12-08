@@ -24,7 +24,7 @@ CFLAGS += -DUSE_HTTP_UTILS=$(USE_HTTP_UTILS)
 
 ifeq ($(USE_HTTP_UTILS), 1)
 
-ifeq ($(USE_THREADED_SERVER), 0)
+ifeq ($(USE_SOCK_UTILS), 0)
 $(error USE_HTTP_UTILS is set. http utils requires USE_SOCK_UTILS set to 1)
 endif
 
