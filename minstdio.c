@@ -132,7 +132,7 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 	char padchar;
 	const char* s;
 	char c;
-	char intbuf[128];
+	char intbuf[28];
 	unsigned int flags;
 
 	if(fmt)
@@ -189,6 +189,7 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 					}
 
 					// determine overall padded length
+					// use intbuf as working area
 					padding = 0;
 					if(padchar)
 					{
