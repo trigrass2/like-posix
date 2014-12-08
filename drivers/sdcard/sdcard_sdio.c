@@ -1394,27 +1394,6 @@ void SDIO_IRQHandler(void)
                 SDIO_IT_RXOVERR | SDIO_IT_STBITERR, DISABLE);
 }
 
-///**
-//  * @brief  Checks for error conditions for CMD0.
-//  *
-//  * @retval SD_Error: SD Card Error code.
-//  */
-//static SD_Error CmdError(void)
-//{
-//    uint32_t timeout = gettime_ms() + SDIO_CMD0TIMEOUT;
-//
-//    while((gettime_ms() < timeout) &&
-//          (SDIO_GetFlagStatus(SDIO_FLAG_CMDSENT) == RESET)){
-//    }
-//
-//    if(gettime_ms() >= timeout)
-//        return SD_CMD_RSP_TIMEOUT;
-//
-//    SDIO_ClearFlag(SDIO_STATIC_FLAGS);
-//
-//    return SD_OK;
-//}
-
 /**
   * @brief  Checks for error conditions for R7 response.
   *
