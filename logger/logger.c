@@ -63,7 +63,9 @@ static logger_mutex_t _logger_write_mutex = NULL;
  * the log buffer is static, not stacked, in order to eliminate blowing task stack sizes out.
  */
 static char log_buf[LOG_BUFFER_SIZE];
+#if USE_LOGGER_TIMESTAMP
 static char ts_buf[LOG_TIMESTAMP_BUFFER_SIZE];
+#endif
 struct tm* ts_lt;
 struct timeval ts_tv;
 
@@ -197,9 +199,10 @@ void log_coloured(bool c)
 static inline void write_log_record(logger_t* logger, log_level_t level, char* message, va_list va_args)
 {
     int length;
+#if USE_LOGGER_TIMESTAMP
     int tslength = 0;
     char* end;
-
+#endif
 	if(level < _log_level)
 		return;
 #if USE_MUTEX
@@ -213,6 +216,7 @@ static inline void write_log_record(logger_t* logger, log_level_t level, char* m
 
     length = vsprintf(log_buf, message, va_args);
 
+#if USE_LOGGER_TIMESTAMP
     if(_log_timestamp)
     {
         if(gettimeofday(&ts_tv, NULL) == 0)
@@ -223,13 +227,16 @@ static inline void write_log_record(logger_t* logger, log_level_t level, char* m
             tslength += sprintf(end, ".%03d\t", ts_tv.tv_usec/1000);
         }
     }
+#endif
 
 	for(int i = 0; i < MAX_LOG_HANDLERS; i++)
 	{
 		if(handlers[i] != -1)
 		{
+#if USE_LOGGER_TIMESTAMP
 		    if(_log_timestamp)
 		        write(handlers[i], ts_buf, tslength);
+#endif
 
             write(handlers[i], logger->name, strlen(logger->name));
             if(logger->pad > 0)
