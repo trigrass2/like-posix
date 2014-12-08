@@ -31,13 +31,13 @@ void prvGetRegistersFromStack(unsigned int *pulFaultStackAddress )
 
     int frame;
     int reg;
-    printf("hardfault:\n");
 
     for(frame = 0; frame < STACKTRACE_DEPTH; frame++)
     {
+        printf("frame %d\n", frame);
         for(reg = 0; reg < STACKFRAME_DEPTH; reg++)
         {
-            printf("%d\t%s=%#08x\n", frame, stack_regs[reg], pulFaultStackAddress[(frame * STACKFRAME_DEPTH) + reg]);
+            printf("\t%s=%#08x\n", stack_regs[reg], pulFaultStackAddress[(frame * STACKFRAME_DEPTH) + reg]);
         }
     }
 #else

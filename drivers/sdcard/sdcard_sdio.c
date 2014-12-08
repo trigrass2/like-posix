@@ -132,7 +132,6 @@ static void SD_LowLevel_DMA_TxConfig(uint32_t *BufferSRC, uint32_t BufferSize);
 static void SD_LowLevel_DMA_RxConfig(uint32_t *BufferDST, uint32_t BufferSize);
 static void SD_NVIC_Configuration(void);
 
-static SD_Error CmdError(void);
 static SD_Error CmdResp1Error(uint8_t cmd);
 static SD_Error CmdResp7Error(void);
 static SD_Error CmdResp3Error(void);
@@ -573,6 +572,7 @@ SD_Error SD_QueryStatus(SDCardState* cardstatus)
 SD_Error SD_PowerON(void)
 {
     SD_Error errorstatus = SD_OK;
+    uint8_t i;
     uint32_t resp;
     uint32_t acmdarg;
     uint32_t timer = 0;
@@ -592,11 +592,13 @@ SD_Error SD_PowerON(void)
 
     /*!< CMD0: GO_IDLE_STATE ---------------------------------------------------*/
     /*!< No CMD response required */
-    sdio_send_cmd(0x0, SD_CMD_GO_IDLE_STATE, SDIO_Response_No);
-    errorstatus = CmdError();
-
-    if(errorstatus != SD_OK)
-        return errorstatus;
+    for(i = 0; i < 3; i++)
+    {
+        sdio_send_cmd(0x0, SD_CMD_GO_IDLE_STATE, SDIO_Response_No);
+        // wait for cmd sent
+        while(SDIO_GetFlagStatus(SDIO_FLAG_CMDSENT) == RESET);
+        SDIO_ClearFlag(SDIO_STATIC_FLAGS);
+    }
 
     /*!< CMD8: SEND_IF_COND ----------------------------------------------------*/
     /*!< Send CMD8 to verify SD card interface operating condition */
@@ -1392,27 +1394,26 @@ void SDIO_IRQHandler(void)
                 SDIO_IT_RXOVERR | SDIO_IT_STBITERR, DISABLE);
 }
 
-/**
-  * @brief  Checks for error conditions for CMD0.
-  *
-  * @retval SD_Error: SD Card Error code.
-  */
-static SD_Error CmdError(void)
-{
-    uint32_t timeout = gettime_ms() + SDIO_CMD0TIMEOUT;
-
-    while((gettime_ms() < timeout) &&
-          (SDIO_GetFlagStatus(SDIO_FLAG_CMDSENT) == RESET)){
-        // usleep(1000);
-    }
-
-    if(gettime_ms() >= timeout)
-        return SD_CMD_RSP_TIMEOUT;
-
-    SDIO_ClearFlag(SDIO_STATIC_FLAGS);
-
-    return SD_OK;
-}
+///**
+//  * @brief  Checks for error conditions for CMD0.
+//  *
+//  * @retval SD_Error: SD Card Error code.
+//  */
+//static SD_Error CmdError(void)
+//{
+//    uint32_t timeout = gettime_ms() + SDIO_CMD0TIMEOUT;
+//
+//    while((gettime_ms() < timeout) &&
+//          (SDIO_GetFlagStatus(SDIO_FLAG_CMDSENT) == RESET)){
+//    }
+//
+//    if(gettime_ms() >= timeout)
+//        return SD_CMD_RSP_TIMEOUT;
+//
+//    SDIO_ClearFlag(SDIO_STATIC_FLAGS);
+//
+//    return SD_OK;
+//}
 
 /**
   * @brief  Checks for error conditions for R7 response.
