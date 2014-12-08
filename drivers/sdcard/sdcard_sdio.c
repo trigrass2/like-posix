@@ -592,7 +592,7 @@ SD_Error SD_PowerON(void)
 
     /*!< CMD0: GO_IDLE_STATE ---------------------------------------------------*/
     /*!< No CMD response required */
-    for(i = 0; i < 3; i++)
+    for(i = 0; i < 10; i++)
     {
         sdio_send_cmd(0x0, SD_CMD_GO_IDLE_STATE, SDIO_Response_No);
         // wait for cmd sent
