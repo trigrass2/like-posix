@@ -41,7 +41,7 @@
 
 #include <string.h>
 #include "net.h"
-#include "mem.h"
+#include "lwip/mem.h"
 #include "lwip/debug.h"
 #include "etharp.h"
 #include "eth_mac.h"

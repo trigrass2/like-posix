@@ -3,7 +3,7 @@
 
 
 #include "lwip/err.h"
-#include "netif.h"
+#include "lwip/netif.h"
 
 err_t ethernetif_incoming();
 err_t ethernetif_init(struct netif *netif);

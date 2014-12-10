@@ -87,4 +87,6 @@ typedef int sys_prot_t;
 
 #define LWIP_PLATFORM_ASSERT(x) assert_true(x)//do { if(!(x)) while(1); } while(0)
 
+#define LWIP_PROVIDE_ERRNO              0
+
 #endif /* __CC_H__ */

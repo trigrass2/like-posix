@@ -31,7 +31,7 @@
  */
 
 #include "lwipopts.h"
-#include "netif.h"
+#include "lwip/netif.h"
 #include "logger.h"
 #include "net_config.h"
 #include "FreeRTOS.h"
