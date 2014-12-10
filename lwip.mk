@@ -8,10 +8,10 @@ endif
 CFLAGS += -DUSE_DRIVER_LWIP_NET=$(USE_DRIVER_LWIP_NET)
 CFLAGS += -I$(LWIP_DIR)/src/include
 CFLAGS += -I$(LWIP_DIR)/src/include/ipv4
-CFLAGS += -I$(LWIP_DIR)/src/include/lwip
 CFLAGS += -I$(LWIP_DIR)/src/include/netif
-CFLAGS += -I$(LWIP_DIR)/src/include/posix
-CFLAGS += -I$(LWIP_DIR)/src/include/posix/sys
+# use like-posix version
+#CFLAGS += -I$(LWIP_DIR)/src/include/posix
+#CFLAGS += -I$(LWIP_DIR)/src/include/posix/sys
 
 ifeq ($(USE_DRIVER_LWIP_NET), 1)
 SOURCE += $(LWIP_DIR)/src/netif/etharp.c
