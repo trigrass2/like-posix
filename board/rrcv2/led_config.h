@@ -40,8 +40,9 @@
 #define LED2 	1      /* Green */
 #define LED3    2      /* Red */
 
-#define ERROR_LED LED3
-#define BOOT_LED LED2
+#define ERROR_LED       LED3
+#define BOOT_LED        LED2
+#define ACTIVITY_LED    LED1
 
 #define LED_PORT_MAP	{ \
 	{GPIOE, GPIO_Pin_15}, \
