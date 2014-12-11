@@ -37,6 +37,8 @@
 #include "task.h"
 #include "graphics.h"
 #include "text.h"
+#include "image.h"
+#include "images.h"
 
 #include "statusbar-conf.h"
 

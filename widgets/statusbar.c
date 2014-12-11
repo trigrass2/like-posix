@@ -170,7 +170,7 @@ void statusbar_task(void* pvParameters)
             draw_image(&up_gray_aa, (point_t){icon_offset, statusbar.location.y + LINK_DATA_Y_GAP});
         }
 
-        icon_offset += image_width(up_gray_aa);
+        icon_offset += up_gray_aa.width;
 
         if(net_ip_packets_received() > received)
         {
@@ -178,16 +178,16 @@ void statusbar_task(void* pvParameters)
             if(!down)
             {
                 down = true;
-                draw_image(&down_bright_aa, (point_t){icon_offset, (statusbar.location.y + STATUSBAR_SIZE_Y) - image_height(down_bright_aa) - LINK_DATA_Y_GAP});
+                draw_image(&down_bright_aa, (point_t){icon_offset, (statusbar.location.y + STATUSBAR_SIZE_Y) - down_bright_aa.height - LINK_DATA_Y_GAP});
             }
         }
         else if(down)
         {
             down = false;
-            draw_image(&down_gray_aa, (point_t){icon_offset, (statusbar.location.y + STATUSBAR_SIZE_Y) - image_height(down_gray_aa) - LINK_DATA_Y_GAP});
+            draw_image(&down_gray_aa, (point_t){icon_offset, (statusbar.location.y + STATUSBAR_SIZE_Y) - down_gray_aa.height - LINK_DATA_Y_GAP});
         }
 
-        icon_offset += image_width(down_gray_aa);
+        icon_offset += down_gray_aa.width;
         icon_offset += STATUSBAR_GAP;
 
 #endif

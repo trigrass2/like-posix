@@ -8,3 +8,4 @@ thread safe lcd graphics library that works on top of the lcd driver in stm32-de
  - shapes - lines, squares, circles. etc
  - images - just bitmaps stored in rom
  - widgets - touch keys, statusbar
+ 
