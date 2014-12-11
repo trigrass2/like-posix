@@ -16,15 +16,10 @@
 #******************************************************************************
 
 
-## project name
-ifeq ($(PROJECT_NAME), )
-PROJECT_NAME = main
-endif
+## NOTE: project name is set in setup.mk
 
 ## Output Directory.
-ifeq ($(OUTDIR), )
-OUTDIR = bin
-endif
+OUTDIR ?= bin
 
 OUTPUT_PREFIX = $(OUTDIR)/$(PROJECT_NAME)
 
@@ -60,8 +55,11 @@ include $(BUILD_ENV_DIR)/programming.mk
 include $(BUILD_ENV_DIR)/graphics.mk
 
 ## definitions
+CFLAGS += -D PROJECT_VERSION='"$(PROJECT_VERSION)"'
+CFLAGS += -D PROJECT_NAME='"$(PROJECT_NAME)"'
+CFLAGS += -D BOARD='"$(BOARD)"'
+CFLAGS += -D DEVICE='"$(DEVICE)"'
 CFLAGS += -D FAMILY=$(FAMILY)
-CFLAGS += -D DEVICE=$(DEVICE)
 CFLAGS += -D HSE_VALUE=$(HSE_VALUE)
 CFLAGS += -D USE_STDPERIPH_DRIVER
 CFLAGS += -D inline=

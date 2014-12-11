@@ -17,10 +17,13 @@ debug: all
 # uemb4
 # rrcv1
 # rrcv2
-BOARD ?= stm32f4_discovery
+BOARD ?= none
 
 ## Project name
 PROJECT_NAME ?= main
+
+## version string (override with an environment variable set in your build system)
+PROJECT_VERSION ?= 0.0
 
 #use assertions
 USE_FULL_ASSERT ?= 1

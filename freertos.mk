@@ -11,6 +11,8 @@ ifeq ($(USE_FREERTOS), 1)
 
 FREERTOSDIR = $(FREERTOS_DIR)/Source
 
+# for freertos_version.h
+CFLAGS += -I$(FREERTOSDIR)/..
 CFLAGS += -I$(FREERTOSDIR)/include
 
 SOURCE += $(FREERTOSDIR)/list.c
