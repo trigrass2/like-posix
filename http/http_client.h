@@ -42,7 +42,7 @@
 
 #include "http_defs.h"
 
-#define HTTP_MAX_HEADER_LENGTH	128
+#define HTTP_MAX_HEADER_LENGTH	256
 
 typedef struct {
 	char* remote;               ///< set the remote IP address or hostname

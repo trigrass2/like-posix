@@ -117,11 +117,16 @@ void stop_threaded_server(sock_server_t* servinfo)
 
 int spawn_connection(sock_server_t* server, sock_conn_t* conn)
 {
-	return xTaskCreate((void(*)(void*))run_spawned,
+	int ret = xTaskCreate((void(*)(void*))run_spawned,
 						server->name,
 						configMINIMAL_STACK_SIZE + server->stacksize,
 						conn,
-						tskIDLE_PRIORITY + server->prio, NULL) == pdPASS ? 0 : -1;
+						tskIDLE_PRIORITY + server->prio, NULL);
+	if(ret == pdPASS)
+	    return 0;
+
+	log_error(&server->log, "error spawning connection task (%d)", ret);
+	return -1;
 }
 
 void run_spawned(sock_conn_t* conn)

@@ -228,7 +228,7 @@ void sock_server_thread(void* parameters)
             }
         }
     }
-    log_syslog(&servinfo->log, "closing listener");
+    log_debug(&servinfo->log, "closing listener");
 
     vTaskDelete(NULL);
 }

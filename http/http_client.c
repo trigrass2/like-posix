@@ -126,81 +126,93 @@ if(http_request(&request, &response))
  */
 http_response_t* http_request(http_request_t* request, http_response_t* response)
 {
+    http_response_t* resp = NULL;
 	logger_t log;
 	int fd;
 	int chunklen;
-	char header[HTTP_MAX_HEADER_LENGTH];
+    int sent;
+	char* header;
 	int resplen = 0;
 	char* status;
 	char* end;
 
 	log_init(&log, "http_request");
 
-	fd = sock_connect(request->remote, request->port, SOCK_STREAM);
+	header = malloc(HTTP_MAX_HEADER_LENGTH);
 
-	if (fd < 0)
+	if(header)
 	{
-		log_error(&log, "failed to connect");
-		return NULL;
+        fd = sock_connect(request->remote, request->port, SOCK_STREAM);
+
+        usleep(10000);
+
+    	if(fd >= 0)
+    	{
+        	// make HTTP request
+        	chunklen = snprintf(header, HTTP_MAX_HEADER_LENGTH - 1, HTTP_HEADER, request->type, request->page, request->local, request->content_length, request->content_type);
+        	// send HTTP header
+        	if(chunklen < (HTTP_MAX_HEADER_LENGTH - 1))
+        	{
+        	    sent = send(fd, header, chunklen, 0);
+
+        	    if(sent == chunklen)
+        	    {
+                    // send body
+                    if(request->content_length > 0)
+                        send(fd, request->buffer, request->content_length, 0);
+
+                	// receive the header and body
+                	// TODO - receive header only, decode nice info like content length, then receive body...
+                	while(resplen < response->size-1)
+                	{
+                		chunklen = recv(fd, response->buffer + resplen, response->size - resplen, 0);
+                		if(chunklen <= 0)
+                			break;
+                		resplen += chunklen;
+                	}
+
+                    // null terminate response
+                    response->buffer[resplen] = '\0';
+
+                    response->status = 0;
+                    response->body = NULL;
+                    response->message = NULL;
+
+                    // determine status code, message and body
+                    status = strchr(response->buffer, ' ');
+                    if(status)
+                    {
+                        status++;
+                        end = strchr(status,  ' ');
+                        end = '\0';
+                        response->status = atoi(status);
+
+                        response->message = end + 1;
+                        end = strchr(response->message, '\r');
+                        end = '\0';
+
+                        response->body = http_split_content(response->buffer);
+                    }
+
+                    resp = response;
+        	    }
+        	    else
+        	        log_error(&log, "send header failed, %d/%dbytes", sent, chunklen);
+        	}
+        	else
+        	    log_error(&log, "header too large, %d/%dbytes", chunklen, HTTP_MAX_HEADER_LENGTH);
+
+    	    closesocket(fd);
+        }
+        else
+            log_error(&log, "failed to connect, %d", fd);
+
+        free(header);
 	}
+	else
+	    log_error(&log, "mem alloc failed");
 
-	// make HTTP request
-	chunklen = snprintf(header, sizeof(header)-1, HTTP_HEADER, request->type, request->page, request->local, request->content_length, request->content_type);
-	if(chunklen >= (int)sizeof(header)-1)
-	{
-		log_error(&log, "header too large");
-		closesocket(fd);
-		return NULL;
-	}
-
-	// send HTTP header
-	if(send(fd, header, chunklen, 0) < 0)
-	{
-		log_error(&log, "failed to connect");
-		closesocket(fd);
-		return NULL;
-	}
-
-	// send body
-	if(request->content_length > 0)
-		send(fd, request->buffer, request->content_length, 0);
-
-	// receive the header and body
-	// TODO - receive header only, decode nice info like content length, then receive body...
-	while(resplen < response->size-1)
-	{
-		chunklen = recv(fd, response->buffer + resplen, response->size - resplen, 0);
-		if(chunklen <= 0)
-			break;
-		resplen += chunklen;
-	}
-
-	// null terminate response
-	response->buffer[resplen] = '\0';
-
-	response->status = 0;
-	response->body = NULL;
-	response->message = NULL;
-
-	// determine status code, message and body
-	status = strchr(response->buffer, ' ');
-	if(status)
-	{
-		status++;
-		end = strchr(status,  ' ');
-		end = '\0';
-		response->status = atoi(status);
-
-		response->message = end + 1;
-		end = strchr(response->message, '\r');
-		end = '\0';
-
-		response->body = http_split_content(response->buffer);
-	}
-
-	closesocket(fd);
-
-    return response;
+    return resp;
 }
 
 /**

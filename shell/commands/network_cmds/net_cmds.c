@@ -38,12 +38,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #include <dirent.h>
 #include "shell.h"
 
 #include "lwip/inet.h"
-#include "sockets.h"
 #include "net.h"
 
 #define NETSTAT_HEADER  "Proto\tLocal Address\t\tForeign Address\t\tState"SHELL_NEWLINE

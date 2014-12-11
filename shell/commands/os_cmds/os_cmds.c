@@ -61,6 +61,7 @@ int sh_top(int fdes, const char** args, unsigned char nargs)
     unsigned long uptime;
     int i;
     int ntasks = 0;
+    int memusage;
     TaskStatus_t* state_table;
     time_t t;
     struct tm* tm;
@@ -92,6 +93,8 @@ int sh_top(int fdes, const char** args, unsigned char nargs)
             state_table = malloc(ntasks * sizeof(TaskStatus_t));
             if(state_table)
             {
+                memusage = configTOTAL_HEAP_SIZE-xPortGetFreeHeapSize();
+
                 t = time(NULL);
                 tm = localtime(&t);
 
@@ -100,7 +103,7 @@ int sh_top(int fdes, const char** args, unsigned char nargs)
                 length = snprintf(buffer, TOP_LINE_BUFFER_SIZE-1, "top - %02d:%02d:%02d up %d days n %d"BLANK_EOL, tm->tm_hour, tm->tm_min, tm->tm_sec, uptime, n);
                 send(fdes, buffer, length, 0);
 
-                length = snprintf(buffer, TOP_LINE_BUFFER_SIZE-1, "Tasks: %d\tMem: %d/%db"BLANK_EOL, ntasks, configTOTAL_HEAP_SIZE-xPortGetFreeHeapSize(), configTOTAL_HEAP_SIZE);
+                length = snprintf(buffer, TOP_LINE_BUFFER_SIZE-1, "Tasks: %d\tMem: %db/%d%%"BLANK_EOL, ntasks, memusage, 100*memusage/configTOTAL_HEAP_SIZE);
                 send(fdes, buffer, length, 0);
 
                 send(fdes, TOP_HEADER, sizeof(TOP_HEADER)-1, 0);

@@ -34,6 +34,9 @@
 #include <time.h>
 #include <sys/time.h>
 #include "builtins.h"
+#include "system.h"
+#include "cutensils.h"
+#include "netconf.h"
 
 int sh_help(int fdes, const char** args, unsigned char nargs)
 {
@@ -53,11 +56,10 @@ int sh_exit(int fdes, const char** args, unsigned char nargs)
 
 int sh_date(int fdes, const char** args, unsigned char nargs)
 {
-    (void)fdes;
     (void)args;
     (void)nargs;
     int length;
-    char* buffer = malloc(128);
+    char* buffer = malloc(STRING_BUFFER_SIZE);
     char* end;
     if(buffer)
     {
@@ -65,13 +67,61 @@ int sh_date(int fdes, const char** args, unsigned char nargs)
 		if(gettimeofday(&tv, NULL) == 0)
 		{
 		    struct tm* lt = localtime(&tv.tv_sec);
-		    length = strftime(buffer, 128, "%Y-%m-%d %H:%M:%S", lt);
+		    length = strftime(buffer, STRING_BUFFER_SIZE, "%Y-%m-%d %H:%M:%S", lt);
 		    end = buffer + length;
 		    length += sprintf(end, ".%03d", tv.tv_usec/1000);
 		    if(length > 0)
 		        send(fdes, buffer, length, 0);
 		}
 		free(buffer);
+    }
+
+    return SHELL_CMD_EXIT;
+}
+
+int sh_uname(int fdes, const char** args, unsigned char nargs)
+{
+    uint8_t* buffer = malloc(STRING_BUFFER_SIZE);
+    char* confstr;
+
+    if(buffer)
+    {
+        bool all = has_switch("-a", args, nargs);
+
+        if(all || has_switch("-n", args, nargs))
+        {
+            confstr = (char*)get_config_value_by_key(buffer, STRING_BUFFER_SIZE, (const uint8_t*)DEFAULT_RESOLV_CONF_PATH, (const uint8_t*)"hostname");
+            if(confstr)
+            {
+                send(fdes, confstr, strlen(confstr), 0);
+                send(fdes, " ", sizeof(" ")-1, 0);
+            }
+            else
+                send(fdes, "unknown ", sizeof("unknown ")-1, 0);
+        }
+        if(all || has_switch("-o", args, nargs))
+        {
+            send(fdes, OPERATING_SYSTEM, sizeof(OPERATING_SYSTEM)-1, 0);
+            send(fdes, " ", sizeof(" ")-1, 0);
+        }
+        if(all || has_switch("-k", args, nargs))
+        {
+            send(fdes, KERNEL_VERSION, sizeof(KERNEL_VERSION)-1, 0);
+            send(fdes, " ", sizeof(" ")-1, 0);
+        }
+        if(all || has_switch("-i", args, nargs))
+        {
+            send(fdes, BOARD, sizeof(BOARD)-1, 0);
+            send(fdes, " ", sizeof(" ")-1, 0);
+        }
+        if(all || has_switch("-p", args, nargs))
+        {
+            send(fdes, DEVICE, sizeof(DEVICE)-1, 0);
+            send(fdes, " ", sizeof(" ")-1, 0);
+        }
+        send(fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1, 0);
+
+        free(buffer);
     }
 
     return SHELL_CMD_EXIT;
@@ -93,5 +143,17 @@ shell_cmd_t sh_date_cmd = {
     .name = "date",
     .usage = "prints current date/time",
     .cmdfunc = sh_date
+};
+
+shell_cmd_t sh_uname_cmd = {
+    .name = "uname",
+    .usage = "Print certain system information" SHELL_NEWLINE
+"\t-a\tprint all information"SHELL_NEWLINE
+"\t-n\tprint the network node hostname" SHELL_NEWLINE
+"\t-o\tprint the operating system" SHELL_NEWLINE
+"\t-k\tprint the kernel version" SHELL_NEWLINE
+"\t-i\tprint the hardware platform or unknown" SHELL_NEWLINE
+"\t-p\tprint the processor type or unknown" SHELL_NEWLINE,
+    .cmdfunc = sh_uname
 };
 
