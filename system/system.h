@@ -61,6 +61,44 @@ typedef  void (*function_pointer_t)(void);
 #define STACKTRACE_DEPTH            1
 #define STACKFRAME_DEPTH            8
 
+/**
+ * PROJECT_VERSION, PROJECT_NAME, BOARD, DEVICE
+ * are set in the makefile, or may be set as environment variables
+ */
+
+#ifndef PROJECT_VERSION
+#define PROJECT_VERSION     "unknown"
+#endif
+
+#ifndef PROJECT_NAME
+#define PROJECT_NAME        "unknown"
+#endif
+
+#ifndef BOARD
+#define BOARD               "unknown"
+#endif
+
+#ifndef DEVICE
+#define DEVICE              "unknown"
+#endif
+
+#if USE_FREERTOS
+#include "freertos_version.h"
+#ifndef OPERATING_SYSTEM
+#define OPERATING_SYSTEM    FREERTOS_NAME
+#endif
+#ifndef KERNEL_VERSION
+#define KERNEL_VERSION      FREERTOS_VERSION
+#endif
+#else
+#ifndef OPERATING_SYSTEM
+#define OPERATING_SYSTEM    "unknown"
+#endif
+#ifndef KERNEL_VERSION
+#define KERNEL_VERSION      "unknown"
+#endif
+#endif
+
  /**
   * enumeration used to determine reset source.
   */
