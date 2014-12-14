@@ -127,5 +127,42 @@ int ahtoi(char* s)
 }
 
 /**
+ * @brief   checks if a key exists in a list of strings (array of string pointers).
+ *          the list should be null terminated, eg:
+@code
+    const char* list[] = {"abc", "def", NULL};
+@endcode
+ *
+ * @param key is the key string to check.
+ * @param key_length is the maximum length of the key string.
+ * @param list is an array of string pointers to check against.
+ * @retval returns the index into list if the key was found in the list, -1 otherwise.
+ */
+int string_in_list(const char* str, unsigned short str_len, const char** list)
+{
+    int i = 0;
+    while(list[i] != NULL)
+    {
+        if(!strncmp(list[i], str, str_len))
+            return i;
+        i++;
+    }
+    return -1;
+}
+
+/**
+ * compare a string to a well trusted refrence string.
+ *
+ * @param ref a well trusted string -
+ *          must not be able to cause carnage by being an unterminated bunch of binary :)
+ * @param to_compare - some memory to compare to ref. should be a null terminated string.
+ * @retval returns true if both ref and to_compare are not NULL and they match to the length of ref.
+ */
+bool string_match(const char* ref, const char* to_compare)
+{
+    return to_compare && ref && strcmp(ref, to_compare) == 0;
+}
+
+/**
  * @}
  */

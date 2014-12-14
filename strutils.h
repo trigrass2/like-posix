@@ -39,6 +39,7 @@
 #ifndef STRUTILS_H_
 #define STRUTILS_H_
 
+#include <stdbool.h>
 #include <string.h>
 
 /**
@@ -50,6 +51,8 @@ char* strtoupper(char* s);
 char* strtolower(char* s);
 int ahtoi(char* s);
 char adtoi(char d);
+int string_in_list(const char* str, unsigned short str_len, const char** list);
+bool string_match(const char* ref, const char* to_compare);
 
 #endif // STRUTILS_H_
 
