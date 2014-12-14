@@ -105,8 +105,8 @@ void net_config(netconf_t* netconf, const char* resolv, const char* interface)
 	logger_t log;
 	config_parser_t cfg;
 	uint8_t buffer[64];
-	const uint8_t* prot;
-	const uint8_t* hostname;
+	const char* prot;
+	const char* hostname;
 	bool mac_configured = false;
 	bool ip_configured = false;
 	bool nm_configured = false;
@@ -115,7 +115,7 @@ void net_config(netconf_t* netconf, const char* resolv, const char* interface)
 	log_init(&log, __FUNCTION__);
 
 	// check for configuration protocol
-	prot = get_config_value_by_key(buffer, sizeof(buffer), (const uint8_t*)resolv, (const uint8_t*)"resolv");
+	prot = (const char*)get_config_value_by_key(buffer, sizeof(buffer), (const uint8_t*)resolv, (const uint8_t*)"resolv");
 	if(string_match("dhcp", prot))
 		netconf->resolv = NET_RESOLV_DHCP;
 	else
@@ -124,7 +124,7 @@ void net_config(netconf_t* netconf, const char* resolv, const char* interface)
 
 #if LWIP_NETIF_HOSTNAME
 	// check for hostname
-	hostname = get_config_value_by_key(buffer, sizeof(buffer), (const uint8_t*)resolv, (const uint8_t*)"hostname");
+	hostname = (const char*)get_config_value_by_key(buffer, sizeof(buffer), (const uint8_t*)resolv, (const uint8_t*)"hostname");
 	strncpy((char*)netconf->hostname, (const char*)hostname, sizeof(netconf->hostname)-1);
 	netconf->netif.hostname = (char*)netconf->hostname;
 	log_info(&log, "%s: %s=%s", resolv, "hostname", hostname);

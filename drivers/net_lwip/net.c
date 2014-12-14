@@ -324,3 +324,20 @@ ip_addr_t net_netmask()
     return netif_list->netmask;
 }
 
+const char* net_hostname()
+{
+    return netif_list->hostname;
+}
+
+static char lip[16];
+
+const char* net_lip()
+{
+    // get the local IP address
+    sprintf(lip, "%d.%d.%d.%d",
+             ((char*)&netif_list->ip_addr)[0],
+             ((char*)&netif_list->ip_addr)[1],
+             ((char*)&netif_list->ip_addr)[2],
+             ((char*)&netif_list->ip_addr)[3]);
+    return (const char*)lip;
+}

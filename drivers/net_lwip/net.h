@@ -38,7 +38,8 @@
 void net_init(netconf_t* netconf);
 bool wait_for_address(netconf_t* netconf);
 
-const netconf_t* get_netconf();
+const char* net_hostname();
+const char* net_lip();
 
 unsigned long net_ip_packets_sent();
 unsigned long net_ip_packets_received();
