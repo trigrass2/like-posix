@@ -110,9 +110,6 @@ const uint8_t* get_config_value_by_key(uint8_t* buffer, uint16_t buffer_length, 
 bool edit_config_entry(uint8_t* buffer, uint16_t buffer_length, const uint8_t* filepath, const uint8_t* key, const uint8_t* value);
 bool add_config_entry(uint8_t* buffer, uint16_t buffer_length, const uint8_t* filepath, const uint8_t* key, const uint8_t* value);
 
-bool config_key_in_list(const uint8_t* key, uint16_t key_length, const uint8_t** list);
-bool string_match(const char* ref, const uint8_t* to_compare);
-
 #ifdef __cplusplus
  }
 #endif

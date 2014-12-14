@@ -299,42 +299,6 @@ const uint8_t* get_config_value_by_key(uint8_t* buffer, uint16_t buffer_length, 
 }
 
 /**
- * @brief	checks if a key exists in a list of strings (array of string pointers).
- * 			the list should be null terminated, eg:
-@code
-	const uint8_t* list[] = {"abc", "def", NULL};
-@endcode
- *
- * @param key is the key string to check.
- * @param key_length is the maximum length of the key string.
- * @param list is an array of string pointers to check against.
- * @retval returns true if the key was found in the list, false otherwise.
- */
-bool config_key_in_list(const uint8_t* key, uint16_t key_length, const uint8_t** list)
-{
-	while(*list != NULL)
-	{
-		if(!strncmp((const char*)(*list), (const char*)key, key_length))
-			return true;
-		list++;
-	}
-	return false;
-}
-
-/**
- * compare a string to a well trusted refrence string.
- *
- * @param ref a well trusted string -
- * 			must not be able to cause carnage by being an unterminated bunch of binary :)
- * @param to_compare - some memory to compare to ref. should be a null terminated string.
- * @retval returns true if both ref and to_compare are not NULL and they match to the length of ref.
- */
-bool string_match(const char* ref, const uint8_t* to_compare)
-{
-	return to_compare && ref && strcmp(ref, (const char*)to_compare) == 0;
-}
-
-/**
  * @brief writes a key/value entry to a config file.
  *
  * exactly the same as edit_config_entry except that the file is created
