@@ -28,6 +28,12 @@ PROJECT_VERSION ?= 0.0
 #use assertions
 USE_FULL_ASSERT ?= 1
 
+# debug exceptions
+DEBUG_PRINTF_EXCEPTIONS ?= 0
+
+# route stdout to CONSOLE USART
+USE_STDIO_USART ?= 0
+
 ## Optimization level,
 # can be 0, 1, 2, 3, s
 OPT ?= 2
@@ -89,8 +95,6 @@ USE_DRIVER_SYSTEM_TIMER ?= 0
 USE_DRIVER_DS1820 ?= 0
 USE_DRIVER_LEDS ?= 0
 USE_DRIVER_USART ?= 0
-USE_STDIO_USART ?= 0
-DEBUG_PRINTF_EXCEPTIONS ?= 0
 # LCD and touch panel go together
 USE_DRIVER_LCD ?= 0
 USE_DRIVER_TOUCH_PANEL ?= 0
@@ -99,10 +103,10 @@ USE_DRIVER_UIP_NET ?= 0
 USE_DRIVER_LWIP_NET ?= 0
 # FAT Filesystem and SD Card driver selection go together
 USE_DRIVER_SDCARD_SPI ?= 0
-USE_DRIVER_SDCARD_SDIO ?= 0
+USE_DRIVER_SDCARD ?= 0
 USE_DRIVER_FAT_FILESYSTEM ?= 0
 # SDIO mode, polled or thread aware
-USE_THREAD_AWARE_SDIO ?= 0
+USE_THREAD_AWARE_SDCARD_DRIVER ?= 0
 
 # the location of this stuff WRT the project
 STM32DEVSUPPORTDIR ?= ..

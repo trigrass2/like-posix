@@ -73,30 +73,15 @@ SOURCE += $(DRIVERSDIR)/usart/usart_it.c
 endif
 
 ## SD Card, SDIO
-CFLAGS += -DUSE_DRIVER_SDCARD_SDIO=$(USE_DRIVER_SDCARD_SDIO)
-CFLAGS += -DUSE_THREAD_AWARE_SDIO=$(USE_THREAD_AWARE_SDIO)
-ifeq ($(USE_DRIVER_SDCARD_SDIO), 1)
+CFLAGS += -DUSE_DRIVER_SDCARD=$(USE_DRIVER_SDCARD)
+CFLAGS += -DUSE_THREAD_AWARE_SDCARD_DRIVER=$(USE_THREAD_AWARE_SDCARD_DRIVER)
+ifeq ($(USE_DRIVER_SDCARD), 1)
 
 ifneq ($(USE_DRIVER_SYSTEM_TIMER), 1) 
 $(error to use the SDIO driver, USE_DRIVER_SYSTEM_TIMER must be set to 1)
 endif
 
 SOURCE += $(DRIVERSDIR)/sdcard/sdcard.c
-SOURCE += $(DRIVERSDIR)/sdcard/sdcard_sdio.c
-SOURCE += $(DRIVERSDIR)/sdcard/sdfs.c
-CFLAGS += -I$(DRIVERSDIR)/sdcard
-endif
-
-## SD Card, SPI
-CFLAGS += -DUSE_DRIVER_SDCARD_SPI=$(USE_DRIVER_SDCARD_SPI)
-ifeq ($(USE_DRIVER_SDCARD_SPI), 1)
-
-ifneq ($(USE_DRIVER_SYSTEM_TIMER), 1) 
-$(error to use the SDIO driver, USE_DRIVER_SYSTEM_TIMER must be set to 1)
-endif
-
-SOURCE += $(DRIVERSDIR)/sdcard/sdcard.c
-SOURCE += $(DRIVERSDIR)/sdcard/sdcard_spi.c
 SOURCE += $(DRIVERSDIR)/sdcard/sdfs.c
 CFLAGS += -I$(DRIVERSDIR)/sdcard
 endif
