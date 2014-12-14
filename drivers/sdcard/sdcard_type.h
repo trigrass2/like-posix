@@ -222,6 +222,10 @@ typedef enum {
     WAIT_WHILE_TX_ACTIVE = SDIO_FLAG_TXACT
 }sdio_wait_on_io_t;
 
+#define SDCARD_DRIVER_MODE_SPI          1
+#define SDCARD_DRIVER_MODE_SDIO_1BIT    2
+#define SDCARD_DRIVER_MODE_SDIO_4BIT    3
+
 /**
  * Common SD card stuff
  */

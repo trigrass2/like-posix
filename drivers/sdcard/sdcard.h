@@ -47,16 +47,18 @@
 #include "sdcard_config.h"
 #include "sdcard_type.h"
 
-#ifndef USE_THREAD_AWARE_SDIO
-#define USE_THREAD_AWARE_SDIO   0
+#ifndef USE_THREAD_AWARE_SDCARD_DRIVER
+#define USE_THREAD_AWARE_SDCARD_DRIVER   0
 #endif
 
-#if USE_THREAD_AWARE_SDIO
+#if USE_THREAD_AWARE_SDCARD_DRIVER
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 #include "semphr.h"
 #endif
+
+extern const char* sderrstr[];
 
 SD_Error SD_PowerON(void);
 SD_Error SD_PowerOFF(void);
@@ -71,7 +73,7 @@ SD_Error SD_WriteBlock(const uint8_t *writebuff, uint32_t sector);
 SD_Error SD_WriteMultiBlocks(const uint8_t *writebuff, uint32_t sector, uint32_t NumberOfBlocks);
 SD_Error SD_Erase(uint32_t startaddr, uint32_t endaddr);
 SDTransferState SD_GetTransferState(void);
-void SD_WP_Card_Detect_init(void);
+
 uint8_t SD_Detect(void);
 uint8_t SD_WPDetect(void);
 

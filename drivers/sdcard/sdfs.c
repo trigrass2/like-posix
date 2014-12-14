@@ -142,6 +142,7 @@ void sdcard_task(void* pvParameters)
     {
         // after power on or any card not present event, wait a while with the IO in an idle state
         f_mount(sdfs.drive, NULL);
+        sdfs.mounted = false;
         set_diskstatus(SD_NOT_PRESENT);
         SD_DeInit();
         vTaskDelay(250/portTICK_RATE_MS);
