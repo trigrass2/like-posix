@@ -40,10 +40,26 @@
 #ifndef HTTP_HTTP_DEFS_H_
 #define HTTP_HTTP_DEFS_H_
 
+enum {
+    HTTP_HEADER_FIELD_HOST = 0,
+    HTTP_HEADER_FIELD_CONTENT_LENGTH = 1,
+    HTTP_HEADER_FIELD_CONTENT_TYPE = 2,
+};
 
 #define HTTP_HOST				"Host: "
 #define HTTP_CONTENT_LENGTH		"Content-Length: "
 #define HTTP_CONTENT_TYPE		"Content-Type: "
+
+#define HTTP_HEADER_CODES       {HTTP_HOST, HTTP_CONTENT_LENGTH, HTTP_CONTENT_TYPE, NULL}
+
+enum {
+    HTTP_CONTENT_FIELD_JSON = 0,
+    HTTP_CONTENT_FIELD_JAVASCRIPT = 1,
+    HTTP_CONTENT_FIELD_BINARY = 2,
+    HTTP_CONTENT_FIELD_TEXT = 3,
+    HTTP_CONTENT_FIELD_HTML = 4,
+    HTTP_CONTENT_FIELD_PLAIN = 5,
+};
 
 #define HTTP_CONTENT_JSON			"application/json"
 #define HTTP_CONTENT_JAVASCRIPT		"application/javascript"
@@ -51,6 +67,8 @@
 #define HTTP_CONTENT_TEXT			"text/plain"
 #define HTTP_CONTENT_HTML			"text/html"
 #define HTTP_CONTENT_NONE			"text/plain"
+
+#define HTTP_CONTENT_CODES       {HTTP_CONTENT_JSON, HTTP_CONTENT_JAVASCRIPT, HTTP_CONTENT_BINARY, HTTP_CONTENT_TEXT, HTTP_CONTENT_HTML, HTTP_CONTENT_NONE, NULL}
 
 #define HTTP_GET				"GET"
 #define HTTP_POST				"POST"
@@ -69,6 +87,7 @@
 #define HTTP_SPACE_CHAR 	' '
 #define HTTP_DOT_CHAR 	'.'
 #define HTTP_CR_CHAR    '\r'
+#define HTTP_COLON_CHAR    ':'
 
 #define HTTP_INDEX_STR "/index.html"
 #define HTTP_FILE_NOT_FOUND_STR "/404.html"

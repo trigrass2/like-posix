@@ -48,9 +48,9 @@ typedef struct {
 	char* remote;               ///< set the remote IP address or hostname
 	int port;                   ///< set the remote port
 	char *page;                 ///< set the page to request
-	char* local;                ///< set the local IP address or hostname
+	const char* local;          ///< set the local IP address or hostname
 	char* type;                 ///< set the request type - GET, POST etc
-	char* content_type;         ///< set content type, eg text/plain
+	int   content_type;         ///< set content type, eg text/plain
 	char* buffer;               ///< set the buffer that holds the request body data
 	int content_length;         ///< set the length of the request body data
 	int size;                   ///< set to the the size of the buffer in bytes.
@@ -61,11 +61,12 @@ typedef struct {
 	int status;					///< not set by the user - holds the HTTP status code, of the response
 	char* message;				///< not set by the user - points to the HTTP status message, in buffer
 	char* body;					///< not set by the user - points to the HTTP response body, in buffer
-//	char* host;                 ///< not set by the user - holds the "Host" header field, of the response
-//	char* content_type;         ///< not set by the user - holds the "Content-Type" header field, of the response
-//	int content_length;         ///< not set by the user - holds the "Content-Length" header field, of the response
+	char* host;                 ///< not set by the user - holds the "Host" header field, of the response
+	int content_type;           ///< not set by the user - holds the "Content-Type" header field, of the response
+	int content_length;         ///< not set by the user - holds the "Content-Length" header field, of the response
 	char* buffer;               ///< set the buffer that will hold the response body data
 	int size;                   ///< set to the the size of the buffer in bytes.
+	int fdes;                   ///< file decriptor to save file in. if set, the buffer is used as temporary memory, not for the message body.
 }http_response_t;
 
 http_response_t* http_request(http_request_t* request, http_response_t* response);
