@@ -60,7 +60,7 @@ DSTATUS disk_initialize(BYTE drv)      /* Physical drive number (0) */
 
     log_init(&diskiolog, "diskio");
 
-    log_syslog(&diskiolog, "disk init");
+    log_edebug(&diskiolog, "disk init");
 
     // update status, based on hardware state
     // SD card must be present and drive number set to 0
@@ -81,15 +81,15 @@ DSTATUS disk_initialize(BYTE drv)      /* Physical drive number (0) */
         err = SD_Init(&SDCardInfo);
         if(err == SD_OK)
         {
-            log_syslog(&diskiolog, "capacity: %uMB", (unsigned int)((SDCardInfo.CardBlockSize/512)*(SDCardInfo.CardCapacity/(2*1000))));
-            log_syslog(&diskiolog, "sector size: %uB", (unsigned int)SDCardInfo.CardBlockSize);
-            log_syslog(&diskiolog, "card type: %u", (unsigned int)SDCardInfo.CardType);
+            log_info(&diskiolog, "capacity: %uMB", (unsigned int)((SDCardInfo.CardBlockSize/512)*(SDCardInfo.CardCapacity/(2*1000))));
+            log_info(&diskiolog, "sector size: %uB", (unsigned int)SDCardInfo.CardBlockSize);
+            log_info(&diskiolog, "card type: %u", (unsigned int)SDCardInfo.CardType);
             Status &= ~STA_NOINIT;           // indicate success
         }
     }
 
     if(Status & STA_NOINIT)
-        log_error(&diskiolog, "disk init error: sderror=%d, status=%d", (int)err, (int)Status);
+        log_error(&diskiolog, "disk init error: dstatus=%d", (int)Status);
 
     return Status;
 }
