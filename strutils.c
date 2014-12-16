@@ -151,18 +151,5 @@ int string_in_list(const char* str, unsigned short str_len, const char** list)
 }
 
 /**
- * compare a string to a well trusted refrence string.
- *
- * @param ref a well trusted string -
- *          must not be able to cause carnage by being an unterminated bunch of binary :)
- * @param to_compare - some memory to compare to ref. should be a null terminated string.
- * @retval returns true if both ref and to_compare are not NULL and they match to the length of ref.
- */
-bool string_match(const char* ref, const char* to_compare)
-{
-    return to_compare && ref && strcmp(ref, to_compare) == 0;
-}
-
-/**
  * @}
  */
