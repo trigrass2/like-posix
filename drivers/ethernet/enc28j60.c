@@ -127,7 +127,7 @@ void enc28j60_spi_init()
 		RCC_APB1PeriphClockCmd(ENC28J60_SPI_CLOCK, ENABLE);
 
 	SPI_InitTypeDef SPI_InitStruct;
-	SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
+	SPI_InitStruct.SPI_BaudRatePrescaler = ENC28J60_SPI_PRESCALER;
 	SPI_InitStruct.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
 	SPI_InitStruct.SPI_Mode = SPI_Mode_Master;
 	SPI_InitStruct.SPI_DataSize = SPI_DataSize_8b;
