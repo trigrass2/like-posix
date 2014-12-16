@@ -139,6 +139,7 @@ log : $(OUTPUT_PREFIX).elf
 	$(NM) -n $(OUTPUT_PREFIX).elf > $(OUTPUT_PREFIX)_SymbolTable.txt
 	$(SIZE) --format=SysV $(OUTPUT_PREFIX).elf > $(OUTPUT_PREFIX)_MemoryListingSummary.txt
 	$(SIZE) $(OBJS) > $(OUTPUT_PREFIX)_MemoryListingDetails.txt
+	$(OBJDUMP) -S $(OUTPUT_PREFIX).elf > $(OUTPUT_PREFIX)_Disassembly.txt
 
 
 begin:
