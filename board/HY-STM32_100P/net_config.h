@@ -52,7 +52,7 @@
 // these need to be set up properly for and SPI on the board IO header
 #define ENC28J60_SPI_PERIPH         SPI2
 #define ENC28J60_SPI_CLOCK          RCC_APB1Periph_SPI2
-#define ENC28J60_SPI_PRESCALER      SPI_BaudRatePrescaler_4
+#define ENC28J60_SPI_PRESCALER      SPI_BaudRatePrescaler_2
 #define ENC28J60_SPI_NSS_PORT       GPIOB
 #define ENC28J60_SPI_NSS_PIN        GPIO_Pin_12
 #define ENC28J60_SPI_MOSI_PORT      GPIOB
