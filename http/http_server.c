@@ -217,7 +217,6 @@ void http_server_connection(sock_conn_t* conn)
 	// POST or GET response
 	else if((httpconn->req_type == (char*)HTTP_POST) || (httpconn->req_type == (char*)HTTP_GET))
 	{
-
 	    log_debug(&httpserver->log, "processing");
 		// change default response
 		httpconn->header = http_404_header_title;
@@ -226,7 +225,7 @@ void http_server_connection(sock_conn_t* conn)
 		// no file io needed for RPC
 		if(httpconn->api_call)
 		{
-			httpconn->header = http_200_header_title;
+			httpconn->header = http_202_header_title;
 			httpconn->content_type = http_header_content_type_json;
 		}
 		else
@@ -246,7 +245,11 @@ void http_server_connection(sock_conn_t* conn)
 
 			if(httpconn->file)
 			{
-				httpconn->header = http_200_header_title;
+			    if(httpconn->req_type == (char*)HTTP_POST)
+			        httpconn->header = http_201_header_title;
+			    else
+			        httpconn->header = http_200_header_title;
+
 				// find the file extension
 				httpconn->content_type = strrchr(httpconn->scratch, HTTP_DOT_CHAR);
 				if(!httpconn->content_type)
@@ -269,6 +272,10 @@ void http_server_connection(sock_conn_t* conn)
 				else
 					httpconn->content_type = http_header_content_type_plain;
 			}
+			else if(httpconn->req_type == (char*)HTTP_POST)
+			{
+		        httpconn->header = http_500_header_title;
+			}
 		}
 	}
 
@@ -290,7 +297,9 @@ void http_server_connection(sock_conn_t* conn)
 	//*********************************
 
 	// serve error message
-	if(httpconn->header != (char*)http_200_header_title)
+	if(httpconn->header != (char*)http_200_header_title &&
+	   httpconn->header != (char*)http_201_header_title &&
+       httpconn->header != (char*)http_202_header_title)
 	{
 		log_error(&httpserver->log, (char*)httpconn->header);
 		snprintf(httpconn->scratch, sizeof(httpconn->scratch)-1, "oops...<br>%s: %s", httpconn->header, httpconn->url);

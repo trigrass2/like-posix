@@ -42,33 +42,56 @@
 
 enum {
     HTTP_HEADER_FIELD_HOST = 0,
-    HTTP_HEADER_FIELD_CONTENT_LENGTH = 1,
-    HTTP_HEADER_FIELD_CONTENT_TYPE = 2,
+    HTTP_HEADER_FIELD_SERVER = 1,
+    HTTP_HEADER_FIELD_CONTENT_LENGTH = 2,
+    HTTP_HEADER_FIELD_CONTENT_TYPE = 3,
 };
 
 #define HTTP_HOST				"Host: "
+#define HTTP_SERVER             "Server: "
 #define HTTP_CONTENT_LENGTH		"Content-Length: "
 #define HTTP_CONTENT_TYPE		"Content-Type: "
 
-#define HTTP_HEADER_CODES       {HTTP_HOST, HTTP_CONTENT_LENGTH, HTTP_CONTENT_TYPE, NULL}
+#define HTTP_HEADER_DECODE \
+{ \
+    "Host", \
+    "Server",  \
+    "Content-Length",  \
+    "Content-Type",  \
+    NULL \
+}
 
 enum {
-    HTTP_CONTENT_FIELD_JSON = 0,
-    HTTP_CONTENT_FIELD_JAVASCRIPT = 1,
-    HTTP_CONTENT_FIELD_BINARY = 2,
-    HTTP_CONTENT_FIELD_TEXT = 3,
-    HTTP_CONTENT_FIELD_HTML = 4,
-    HTTP_CONTENT_FIELD_PLAIN = 5,
+    HTTP_CONTENT_FIELD_UNKNOWN = 0,
+    HTTP_CONTENT_FIELD_JSON = 1,
+    HTTP_CONTENT_FIELD_JAVASCRIPT = 2,
+    HTTP_CONTENT_FIELD_BINARY = 3,
+    HTTP_CONTENT_FIELD_TEXT = 4,
+    HTTP_CONTENT_FIELD_HTML = 5,
+    HTTP_CONTENT_FIELD_PLAIN = 6,
 };
 
-#define HTTP_CONTENT_JSON			"application/json"
+#define HTTP_CONTENT_UNKNOWN		"unknown"
+#define HTTP_CONTENT_JSON           "application/json"
 #define HTTP_CONTENT_JAVASCRIPT		"application/javascript"
 #define HTTP_CONTENT_BINARY			"application/octet-stream"
 #define HTTP_CONTENT_TEXT			"text/plain"
 #define HTTP_CONTENT_HTML			"text/html"
 #define HTTP_CONTENT_NONE			"text/plain"
 
-#define HTTP_CONTENT_CODES       {HTTP_CONTENT_JSON, HTTP_CONTENT_JAVASCRIPT, HTTP_CONTENT_BINARY, HTTP_CONTENT_TEXT, HTTP_CONTENT_HTML, HTTP_CONTENT_NONE, NULL}
+#define HTTP_CONTENT_DECODE \
+{ \
+    HTTP_CONTENT_UNKNOWN, \
+    HTTP_CONTENT_JSON,  \
+    HTTP_CONTENT_JAVASCRIPT, \
+    HTTP_CONTENT_BINARY,  \
+    HTTP_CONTENT_TEXT,  \
+    HTTP_CONTENT_HTML,  \
+    HTTP_CONTENT_NONE,  \
+    NULL \
+}
+
+#define HTTP_DEFAULT_PORT       80
 
 #define HTTP_GET				"GET"
 #define HTTP_POST				"POST"
@@ -77,6 +100,7 @@ enum {
 #define HTTP_EOH				HTTP_EOL HTTP_EOL
 #define HTTP_HEADER				"%s %s " HTTP_VERS HTTP_EOL HTTP_HOST "%s" HTTP_EOL HTTP_CONTENT_LENGTH "%d" HTTP_EOL HTTP_CONTENT_TYPE "%s" HTTP_EOH
 #define HTTP_SCHEMA				"http://"
+#define HTTP_BASE_PAGE          "/"
 
 #define HTTP_REQ_TYPE_NONE  0
 #define HTTP_REQ_TYPE_GET   'G'
@@ -112,8 +136,11 @@ enum {
 #define http_header2  HTTP_EOL "Server: nutensils/FreeRTOS" HTTP_EOL "Connection: close" HTTP_EOL HTTP_CONTENT_TYPE
 
 #define http_200_header_title  "200 OK"
+#define http_201_header_title  "201 Created"
+#define http_202_header_title  "202 Accepted"
 #define http_404_header_title  "404 Not found"
 #define http_408_header_title  "408 Request Timeout"
+#define http_423_header_title  "423 Locked"
 #define http_500_header_title  "500 Internal Server Error"
 #define http_501_header_title  "501 Not Implemented"
 

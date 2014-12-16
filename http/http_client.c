@@ -37,6 +37,7 @@
 * @file http_client.c
 */
 
+#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
@@ -45,14 +46,16 @@
 #include "http_client.h"
 #include "sock_utils.h"
 #include "cutensils.h"
+#include "strutils.h"
 #include "net.h"
 
 static char* http_split_content(char* response);
-static void http_get_resp_codes(char* header, int length, http_response_t* resp);
-int pack_header(http_request_t* request);
+static int http_receive_response(int fd, http_response_t* resp);
+static int pack_header(http_request_t* request);
+static void unpack_url(char* url, http_request_t* request);
 
-const char* http_header_strings[] = HTTP_HEADER_CODES;
-const char* http_content_strings[] = HTTP_CONTENT_CODES;
+const char* http_header_strings[] = HTTP_HEADER_DECODE;
+const char* http_content_strings[] = HTTP_CONTENT_DECODE;
 
 /**
  * sends a HTTP request.
@@ -141,7 +144,7 @@ http_response_t* http_request(http_request_t* request, http_response_t* response
 	char* status;
 	char* end;
 
-	log_init(&log, "http_request");
+	log_init(&log, "http-request");
 
 	header = malloc(HTTP_MAX_HEADER_LENGTH);
 
@@ -238,155 +241,289 @@ char* http_split_content(char* response) {
 	return NULL;
 }
 
-//char* http_get_resp_codes(char* header, char* endofheader, http_response_t* resp)
-//{
-//    char* end;
-//    int field;
-//    char* start = strchr(header, HTTP_SPACE_CHAR);
-//
-//    if(!start)
-//        return NULL;
-//
-//    start++;
-//    end = strchr(start,  HTTP_SPACE_CHAR);
-//    if(!end || end > endofheader)
-//        return NULL;
-//    end = '\0';
-//    resp->status = atoi(start);
-//    resp->message = end + 1;
-//    end = strchr(resp->message, HTTP_CR_CHAR);
-//    if(!end || end > endofheader)
-//        return NULL;
-//    end = '\0';
-//
-//    while(1)
-//    {
-//        start = end + 2;
-//        end = strchr(start, HTTP_COLON_CHAR);
-//
-//        if(!end || end > endofheader)
-//            return NULL;
-//
-//        *end = '\0';
-//        field = string_in_list(start, strlen(start), http_header_strings);
-//
-//        start = end + 2;
-//        end = strchr(start,  HTTP_CR_CHAR);
-//
-//        if(!end || end > endofheader)
-//            return NULL;
-//
-//        if((end - start) < 1)
-//            break;
-//
-//        *end = '\0';
-//        switch(field)
-//        {
-//            case HTTP_HEADER_FIELD_HOST:
-//                resp->host = start;
-//            break;
-//            case HTTP_HEADER_FIELD_CONTENT_LENGTH:
-//                resp->content_length = atoi(start);
-//            break;
-//            case HTTP_HEADER_FIELD_CONTENT_TYPE:
-//                resp->content_type = string_in_list(start, strlen(start), http_content_strings);
-//            break;
-//        }
-//    }
-//
-//    resp->body = end + 2;
-//    return resp->body;
-//}
-//
-//int pack_header(http_request_t* request)
-//{
-//    return snprintf(request->buffer, HTTP_MAX_HEADER_LENGTH - 1, HTTP_HEADER,
-//            request->type, request->page, request->local,
-//            request->content_length, http_content_strings[request->content_type]);
-//}
-//
-///**
-// * perform HTTP get, saving the response to a file.
-// *
-// * response must be initialized:
-// * response.buffer = malloc(N);
-// * response.size = N;
-// * response.fdes = open("outputfile", O_WRONLY | O_TRUNC | O_CREAT);
-// */
-//http_response_t* http_get_file(const char* host, unsigned short port, const char* page, http_response_t* response)
-//{
-//    http_response_t* resp = NULL;
-//    logger_t log;
-//    int fd;
-//    int length;
-//    int sent;
-//    char* header;
-//    int resplen = 0;
-//    char* status;
-//    char* end;
-//
-//    http_request_t request = {
-//        .remote = host,
-//        .port = port,
-//        .page = page,
-//        .local = net_lip(),
-//        .type = HTTP_GET,
-//        .content_type = HTTP_CONTENT_NONE,
-//        .buffer = response->buffer,
-//        .size = response->size,
-//        .content_length = 0
-//    };
-//
-//    log_init(&log, "http_get_file");
-//
-//    if(!request.buffer)
-//    {
-//        log_error(&log, "mem alloc failed");
-//        return NULL;
-//    }
-//
-//    fd = sock_connect(request->remote, request->port, SOCK_STREAM);
-//
-//    if(fd == -1)
-//    {
-//        log_error(&log, "failed to connect, %d", fd);
-//        return NULL;
-//    }
-//
-//    // make HTTP request
-//    length = pack_header(&request);
-//
-//    // send HTTP header
-//    if(length >= request.size)
-//    {
-//        closesocket(fd);
-//        log_error(&log, "header too large, %d/%dbytes", chunklen, HTTP_MAX_HEADER_LENGTH);
-//        return NULL;
-//    }
-//
-//    sent = send(fd, request.buffer, length, 0);
-//
-//    if(sent != length)
-//    {
-//        closesocket(fd);
-//        log_error(&log, "send header failed, %d/%dbytes", sent, chunklen);
-//        return NULL;
-//    }
-//
-//    // receive header and possibly part of body
-//    length = recv(fd, request.buffer, HTTP_MAX_HEADER_LENGTH, 0);
-//
-//    http_get_resp_codes(request.buffer, request.buffer + length, response);
-//
-//    length = (request.buffer + length) - response->body;
-//
-//    if(length > 0 && response->content_length > 0)
-//        write(response->fdes, response->body, length);
-//
-//    closesocket(fd);
-//
-//    return resp;
-//}
+int http_receive_response(int fd, http_response_t* response)
+{
+    // receive header and possibly part of body
+    int resplen = 0;
+    int length = 0;
+    int field;
+    char* value;
+    char* end;
+    // use the end of the buffer to save values...
+    char* save = response->buffer + (response->size - 1);
+
+    while(resplen < response->size-1)
+    {
+        length = recv(fd, response->buffer + resplen, 1, 0);
+
+        if(length != 1)
+            return -1;
+
+        if(response->buffer[resplen] != '\n')
+            resplen++;
+        else
+        {
+            // EOH
+            if(resplen == 1)
+                return 0;
+
+            // terminate line at '\r'
+            response->buffer[resplen-1] = '\0';
+            resplen = 0;
+
+            value = strchr(response->buffer, HTTP_COLON_CHAR);
+
+            if(value)
+            {
+                *value = '\0';
+                value += 2;
+
+                // check for known header field
+                field = string_in_list(response->buffer, strlen(response->buffer), http_header_strings);
+
+                switch(field)
+                {
+                    case HTTP_HEADER_FIELD_HOST:
+                        save -= strlen(value);
+                        strcpy(save, value);
+                        response->host = save;
+                        save--;
+                    break;
+                    case HTTP_HEADER_FIELD_SERVER:
+                        save -= strlen(value);
+                        strcpy(save, value);
+                        response->server = save;
+                        save--;
+                    break;
+                    case HTTP_HEADER_FIELD_CONTENT_LENGTH:
+                        response->content_length = atoi(value);
+                    break;
+                    case HTTP_HEADER_FIELD_CONTENT_TYPE:
+                        response->content_type = string_in_list(value, strlen(value), http_content_strings);
+                    break;
+                }
+            }
+            else
+            {
+                value = strchr(response->buffer, HTTP_SPACE_CHAR);
+                value++;
+                end = strchr(value, HTTP_SPACE_CHAR);
+                if(end)
+                {
+                    *end = '\0';
+                    end++;
+                    response->status = atoi(value);
+
+                    save -= strlen(end);
+                    strcpy(save, (const char*)end);
+                    response->message = save;
+                    save--;
+                }
+            }
+        }
+    }
+
+    return -1;
+}
+
+int pack_header(http_request_t* request)
+{
+    return snprintf(request->buffer, request->size - 1, HTTP_HEADER,
+            request->type, request->page, request->local,
+            request->content_length, http_content_strings[request->content_type]);
+}
+
+/**
+ * get the remote, page and port fields out of a URL string and populate the request structure.
+ *
+ * http://abc.com:80/index.html
+ * =>
+ *  request.remote == "abc.com"
+ *  request.page == "/index.html"
+ *  request.port == 80
+ *
+ * abc.com:80/index.html
+ * =>
+ *  request.remote == "abc.com"
+ *  request.page == "/index.html"
+ *  request.port == 80
+ *
+ * abc.com/index.html
+ * =>
+ *  request.remote == "abc.com"
+ *  request.page == "/index.html"
+ *  request.port == not set
+ *
+ */
+void unpack_url(char* url, http_request_t* request)
+{
+    char* portstr;
+    char* pathstr;
+
+    // url may not be null and must have some length
+    if(url && *url)
+    {
+        // check for http://
+        if(string_n_match(HTTP_SCHEMA, url))
+            url += sizeof(HTTP_SCHEMA)-1;
+
+        // save remote host
+        request->remote = url;
+
+        // start points to the colon: the beginning of the port number if any
+        portstr = strchr(url, HTTP_COLON_CHAR);
+        // end points to the slash: the beginning of the path if any
+        pathstr = strchr(url, HTTP_SLASH_CHAR);
+
+        // have path
+        if(pathstr)
+        {
+            *pathstr = '\0';
+            pathstr++;
+            if(*pathstr)
+                request->page = pathstr;
+        }
+
+        // have a port number
+        if(portstr)
+        {
+            *portstr = '\0';
+            portstr++;
+            // save port
+            request->port = atoi(portstr);
+        }
+    }
+}
+
+/**
+ * perform HTTP get, saving the response to a file.
+ *
+\code
+
+http_response_t response;
+char buffer[128];
+char url[] = "http://abc.com:80/index.html";
+char* output = "/tmp/index.html"
+mkdir("/tmp");
+
+if(http_get_file(url, &response, output, buffer, sizeof(buffer)))
+{
+
+}
+
+\endcode
+ */
+http_response_t* http_get_file(char* url, http_response_t* response, const char* output, char* buffer, int size)
+{
+    http_response_t* resp = NULL;
+    logger_t log;
+    int fd;
+    int outfd;
+    int length;
+    int transfer;
+
+    log_init(&log, "http-get");
+
+    http_request_t request = {
+        .remote = NULL,
+        .port = HTTP_DEFAULT_PORT,
+        .page = HTTP_BASE_PAGE,
+        .local = net_lip(),
+        .type = HTTP_GET,
+        .content_type = HTTP_CONTENT_FIELD_PLAIN,
+        .buffer = buffer,
+        .size = size,
+        .content_length = 0
+    };
+
+    response->buffer = buffer;
+    response->size = size;
+
+    outfd = open(output, O_WRONLY | O_TRUNC | O_CREAT);
+
+    if(outfd == -1)
+    {
+        log_error(&log, "error opening output file %s", output);
+        return NULL;
+    }
+
+    unpack_url(url, &request);
+
+    log_info(&log, "performing get: %s:%d %s", request.remote, request.port, request.page);
+
+    if(!request.remote)
+    {
+        log_error(&log, "remote host invalid");
+        close(outfd);
+        return NULL;
+    }
+
+    log_init(&log, "http_get_file");
+
+    if(!request.buffer)
+    {
+        log_error(&log, "mem alloc failed");
+        close(outfd);
+        return NULL;
+    }
+
+    fd = sock_connect(request.remote, request.port, SOCK_STREAM);
+
+    if(fd == -1)
+    {
+        log_error(&log, "failed to connect, %d", fd);
+        close(outfd);
+        return NULL;
+    }
+
+    // make HTTP request
+    length = pack_header(&request);
+
+    // send HTTP header
+    if(length >= request.size)
+    {
+        closesocket(fd);
+        close(outfd);
+        log_error(&log, "header too large, %d/%dbytes", length, request.size);
+        return NULL;
+    }
+    transfer = send(fd, request.buffer, length, 0);
+    if(transfer != length)
+    {
+        closesocket(fd);
+        close(outfd);
+        log_error(&log, "send header failed, %d/%dbytes", transfer, length);
+        return NULL;
+    }
+
+    // receive response
+    if(http_receive_response(fd, response) == 0)
+    {
+        log_debug(&log, HTTP_SERVER"%s", response->server);
+        log_debug(&log, HTTP_HOST"%s", response->host);
+        log_debug(&log, "status: %d", response->status);
+        log_debug(&log, "message: %s", response->message);
+        log_debug(&log, HTTP_CONTENT_LENGTH"%d", response->content_length);
+        log_debug(&log, HTTP_CONTENT_TYPE"%s", http_content_strings[response->content_type]);
+
+        // receive the body
+        for(length = 0; length < response->content_length;)
+        {
+            transfer = recv(fd, buffer, size, 0);
+            if(transfer <= 0)
+                break;
+            length += transfer;
+            write(outfd, buffer, transfer);
+        }
+
+        resp = response;
+    }
+
+    closesocket(fd);
+    close(outfd);
+
+    return resp;
+}
 
 
 /**

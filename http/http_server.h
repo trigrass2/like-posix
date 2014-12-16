@@ -50,7 +50,7 @@
 
 #define HTTP_FS_ROOT_LENGTH         32
 #define HTTP_URL_LEN                64
-#define HTTP_SCRATCH_LEN            128
+#define HTTP_SCRATCH_LEN            256
 
 typedef struct {
 	char fsroot[HTTP_FS_ROOT_LENGTH];
