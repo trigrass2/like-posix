@@ -50,6 +50,7 @@
 
 #define ENC28J60_SPI_PERIPH     		SPI3
 #define ENC28J60_SPI_CLOCK     			RCC_APB1Periph_SPI3
+#define ENC28J60_SPI_PRESCALER          SPI_BaudRatePrescaler_4
 #define ENC28J60_SPI_NSS_PORT   		GPIOA
 #define ENC28J60_SPI_NSS_PIN    		GPIO_Pin_15
 #define ENC28J60_SPI_MOSI_PORT   		GPIOB
