@@ -31,6 +31,7 @@
  */
 
 #include "touch_panel.h"
+#include "cutensils.h"
 
 const char* key_press_type[] = {
     "SWIPE_LEFT",
@@ -159,6 +160,9 @@ void touch_task(void *pvParameters)
         tt_params->pt.x = panel_x();
         tt_params->pt.y = panel_y();
 
+//        if(tt_params->pt.x != -1)
+//            log_edebug(NULL, "%d,%d", tt_params->pt.x, tt_params->pt.y);
+
         for(uint8_t i = 0; i < TOUCH_MAX_HANDLERS; i++)
         {
 			handler = touch_task_data.handlers[i];
@@ -248,7 +252,6 @@ void touch_task(void *pvParameters)
 			}
         }
 
-        taskYIELD();
         vTaskDelayUntil(&xLastExecutionTime, TOUCH_TASK_POLL_RATE/portTICK_RATE_MS);
     }
 }
