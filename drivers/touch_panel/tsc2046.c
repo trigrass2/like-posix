@@ -205,7 +205,7 @@ int16_t tsc2046_x()
 
 int16_t tsc2046_y()
 {
-    int16_t y;    
+    int16_t y;
     if(tsc2046_irq() == SET)
         return -1;
 

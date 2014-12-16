@@ -145,7 +145,7 @@ void enc28j60_gpio_init()
 {
 	GPIO_InitTypeDef GPIO_InitStruct;
 #if FAMILY == STM32F1
-	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
 	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF_PP;
 
 	// MOSI & CLK
@@ -170,7 +170,7 @@ void enc28j60_gpio_init()
 	GPIO_InitStruct.GPIO_Pin = ENC28J60_SPI_NRST_PIN;
 	GPIO_Init(ENC28J60_SPI_NRST_PORT, &GPIO_InitStruct);
 #elif FAMILY == STM32F4
-	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
 	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
