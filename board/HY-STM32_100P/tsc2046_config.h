@@ -33,9 +33,13 @@
 #ifndef TSC2046_CONFIG_H_
 #define TSC2046_CONFIG_H_
 
+#include "lcd_config.h"
+
+#define TOUCH_PANEL_ROTATION    LCD_ROTATION
+
 #define TSC2046_SPI_PERIPH  SPI1
 #define TSC2046_SPI_CLOCK   RCC_APB2Periph_SPI1
-#define TSC2046_SPI_PRESC   SPI_BaudRatePrescaler_256
+#define TSC2046_SPI_PRESC   SPI_BaudRatePrescaler_16    // SPI1@72MHz / 16 = 4.5MHz < 5MHz max
 
 #define TSC2046_NCS_PORT    GPIOB
 #define TSC2046_NCS_PIN     GPIO_Pin_7
@@ -49,7 +53,5 @@
 #define TSC2046_SCK_PORT    GPIOA
 #define TSC2046_SCK_PIN     GPIO_Pin_5
 
-#define TSC2046_FLIP_Y 		1
-#define TSC2046_FLIP_X 		0
 
 #endif // TSC2046_CONFIG_H_

@@ -33,45 +33,68 @@
  */
 
 #include "tsc2046.h"
+#include "lcd.h"
 
 
 #define TSC2046_START  0x80
-#define TSC2046_CH_X  0x50
-#define TSC2046_CH_Y  0x10
-#define TSC2046_READ_X  (TSC2046_START | TSC2046_CH_X)
-#define TSC2046_READ_Y  (TSC2046_START | TSC2046_CH_Y)
+#define TSC2046_CH_X   0x50
+#define TSC2046_CH_Y   0x10
 #define TSC2046_MAX_X  4096
 #define TSC2046_MAX_Y  4096
 
-#if TSC2046_FLIP_Y
-#define TSC2046_Y_OFFSET 239
-#define TSC2046_PIX_Y  -240
-#else
-#define TSC2046_Y_OFFSET 0
-#define TSC2046_PIX_Y  240
+#if TOUCH_PANEL_ROTATION == ROTATE_0_DEGREES
+
+#pragma message "building TSC2046 touch panel rotated by 0 degrees"
+
+#define TSC2046_PIX_X           LCD_WIDTH
+#define TSC2046_X_OFFSET        0
+#define TSC2046_PIX_Y           LCD_HEIGHT
+#define TSC2046_Y_OFFSET        0
+
+#define TSC2046_READ_X          (TSC2046_START | TSC2046_CH_X)
+#define TSC2046_READ_Y          (TSC2046_START | TSC2046_CH_Y)
+
+#elif TOUCH_PANEL_ROTATION == ROTATE_90_DEGREES
+
+#pragma message "building TSC2046 touch panel rotated by 90 degrees"
+
+#define TSC2046_PIX_X           LCD_WIDTH
+#define TSC2046_X_OFFSET        0
+#define TSC2046_PIX_Y           -LCD_HEIGHT
+#define TSC2046_Y_OFFSET        LCD_HEIGHT-1
+
+#define TSC2046_READ_X          (TSC2046_START | TSC2046_CH_Y)
+#define TSC2046_READ_Y          (TSC2046_START | TSC2046_CH_X)
+
+#elif TOUCH_PANEL_ROTATION == ROTATE_180_DEGREES
+
+#pragma message "building TSC2046 touch panel rotated by 180 degrees"
+
+#define TSC2046_PIX_X           -LCD_WIDTH
+#define TSC2046_X_OFFSET        LCD_WIDTH-1
+#define TSC2046_PIX_Y           -LCD_HEIGHT
+#define TSC2046_Y_OFFSET        LCD_HEIGHT-1
+
+#define TSC2046_READ_X          (TSC2046_START | TSC2046_CH_X)
+#define TSC2046_READ_Y          (TSC2046_START | TSC2046_CH_Y)
+
+#elif TOUCH_PANEL_ROTATION == ROTATE_270_DEGREES
+
+#pragma message "building TSC2046 touch panel rotated by 270 degrees"
+
+#define TSC2046_PIX_X           -LCD_WIDTH
+#define TSC2046_X_OFFSET        LCD_WIDTH-1
+#define TSC2046_PIX_Y           LCD_HEIGHT
+#define TSC2046_Y_OFFSET        0
+
+#define TSC2046_READ_X          (TSC2046_START | TSC2046_CH_Y)
+#define TSC2046_READ_Y          (TSC2046_START | TSC2046_CH_X)
+
 #endif
-#if TSC2046_FLIP_X
-#define TSC2046_X_OFFSET 319
-#define TSC2046_PIX_X  -320
-#else
-#define TSC2046_X_OFFSET 0
-#define TSC2046_PIX_X  320
-#endif
+
 
 #define tsc2046_select()      GPIO_ResetBits(TSC2046_NCS_PORT, TSC2046_NCS_PIN)
 #define tsc2046_deselect()    GPIO_SetBits(TSC2046_NCS_PORT, TSC2046_NCS_PIN)
-#define tsc2046_irq()         GPIO_ReadInputDataBit(TSC2046_IRQ_PORT, TSC2046_IRQ_PIN)
-/**
- * http://e2e.ti.com/support/other_analog/touch/f/750/t/177249.aspx
- * ignore busy signal, is redundant and not documented in:
- * http://www.ti.com/lit/ds/symlink/tsc2046.pdf
- */
-#define tsc2046_busy()        GPIO_ReadInputDataBit(TSC2046_BUSY_PORT, TSC2046_BUSY_PIN)
-
-
-static void tsc2046_write(uint8_t Data);
-static uint8_t tsc2046_read(void);
-
 
 void tsc2046_init()
 {
@@ -103,7 +126,7 @@ void tsc2046_init()
     SPI_Cmd(TSC2046_SPI_PERIPH, ENABLE);
 
     // configure IO's
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
     // input, pullup
 #if FAMILY==STM32F1
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
@@ -172,50 +195,36 @@ void tsc2046_init()
 #endif
 }
 
-void tsc2046_write(uint8_t Data)
+uint8_t tsc2046_txrx(uint8_t data)
 {
   while(SPI_I2S_GetFlagStatus(TSC2046_SPI_PERIPH, SPI_I2S_FLAG_TXE) == RESET);
-  SPI_I2S_SendData(TSC2046_SPI_PERIPH, Data);
-}
-
-uint8_t tsc2046_read(void)
-{
-  while(SPI_I2S_GetFlagStatus(TSC2046_SPI_PERIPH, SPI_I2S_FLAG_TXE) == RESET);
-  SPI_I2S_SendData(TSC2046_SPI_PERIPH, 0);
+  SPI_I2S_SendData(TSC2046_SPI_PERIPH, data);
   while (SPI_I2S_GetFlagStatus(TSC2046_SPI_PERIPH, SPI_I2S_FLAG_RXNE) == RESET);
   return SPI_I2S_ReceiveData(TSC2046_SPI_PERIPH);
 }
 
-int16_t tsc2046_x()
+uint16_t tsc2046_x()
 {
-    int16_t x;
-    if(tsc2046_irq() == SET)
-        return -1;
-
+    uint16_t x;
     tsc2046_select();
-    tsc2046_write(TSC2046_READ_X);
-    x = ((tsc2046_read() & 0x7F) << 8);
-    x |= tsc2046_read();
+    tsc2046_txrx(TSC2046_READ_X);
+    x = ((tsc2046_txrx(0) & 0x7F) << 8);
+    x |= tsc2046_txrx(0);
     x >>= 3;
     x = ((x * TSC2046_PIX_X) / TSC2046_MAX_X) + TSC2046_X_OFFSET;
     tsc2046_deselect();
-
     return x;
 }
 
-int16_t tsc2046_y()
+uint16_t tsc2046_y()
 {
-    int16_t y;
-    if(tsc2046_irq() == SET)
-        return -1;
-
+    uint16_t y;
     tsc2046_select();
-    tsc2046_write(TSC2046_READ_Y);
-    y = ((tsc2046_read() & 0x7F) << 8);
-    y |= tsc2046_read();
+    tsc2046_txrx(TSC2046_READ_Y);
+    y = ((tsc2046_txrx(0) & 0x7F) << 8);
+    y |= tsc2046_txrx(0);
     y >>= 3;
     y = ((y * TSC2046_PIX_Y) / TSC2046_MAX_Y) + TSC2046_Y_OFFSET;
     tsc2046_deselect();
-
     return y;
 }

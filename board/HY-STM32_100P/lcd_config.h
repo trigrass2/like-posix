@@ -36,12 +36,11 @@
 #define TOUCH_TASK_PRIORITY         1
 #define TOUCH_TASK_STACK            100
 
-// #define LCD_DRIVER_ID LGDP4532_DEVICE_ID
-// #define LCD_DRIVER_ID   S6D1121_DEVICE_ID
-// #define LCD_DRIVER_ID   ILI9325_DEVICE_ID
-#define LCD_DRIVER_ID LGDP4532_DEVICE_ID
-// TODO this has no effect on touch screen rotation
-#define LCD_ROTATION    ROTATE_90_DEGREES
+// #define LCD_DRIVER_ID    LGDP4532_DEVICE_ID
+// #define LCD_DRIVER_ID    S6D1121_DEVICE_ID
+// #define LCD_DRIVER_ID    ILI9325_DEVICE_ID
+#define LCD_DRIVER_ID       LGDP4532_DEVICE_ID
+#define LCD_ROTATION        ROTATE_0_DEGREES
 
 // address to access LCD RAM (RS = 1)
 #define LCD_RAM_IO_ADDRESS 0x60020000

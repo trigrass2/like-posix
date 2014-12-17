@@ -39,7 +39,15 @@
 #define TSC2046_H_
 
 void tsc2046_init();
-int16_t tsc2046_x();
-int16_t tsc2046_y();
+uint16_t tsc2046_x();
+uint16_t tsc2046_y();
+
+#define tsc2046_nirq()        GPIO_ReadInputDataBit(TSC2046_IRQ_PORT, TSC2046_IRQ_PIN)
+/**
+ * http://e2e.ti.com/support/other_analog/touch/f/750/t/177249.aspx
+ * ignore busy signal, is redundant and not documented in:
+ * http://www.ti.com/lit/ds/symlink/tsc2046.pdf
+ */
+#define tsc2046_busy()        GPIO_ReadInputDataBit(TSC2046_BUSY_PORT, TSC2046_BUSY_PIN)
 
 #endif // TSC2046_H_

@@ -36,7 +36,7 @@
 
 #define TSC2046_SPI_PERIPH  SPI2
 #define TSC2046_SPI_CLOCK   RCC_APB1Periph_SPI2
-#define TSC2046_SPI_PRESC   SPI_BaudRatePrescaler_256
+#define TSC2046_SPI_PRESC   SPI_BaudRatePrescaler_16    // SPI2@84MHz / 16 = 5.25MHz ~ 5MHz max
 #define TSC2046_AF_CONFIG   GPIO_AF_SPI2
 
 #define TSC2046_NCS_PORT    GPIOB

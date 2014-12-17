@@ -57,6 +57,7 @@
  */
 #define panel_x() 					tsc2046_x()
 #define panel_y() 					tsc2046_y()
+#define panel_ready()               (tsc2046_nirq() == RESET)
 #define panel_init() 				tsc2046_init()
 #define panel_deinit() 				tsc2046_deinit()
 
@@ -97,8 +98,7 @@ struct _touch_handler_t {
 	keypress_type_t press_type;				///< read only by application. the direction of a swipe on the key.
 };
 
-void touch_init();
-void touch_deinit();
+bool touch_init();
 point_t touch_xy();
 
 bool touch_add_handler(touch_handler_t* handler);
