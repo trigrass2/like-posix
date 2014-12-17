@@ -34,6 +34,8 @@
 #ifndef TSC2046_CONFIG_H_
 #define TSC2046_CONFIG_H_
 
+#include "lcd_config.h"
+
 #define TOUCH_PANEL_ROTATION    LCD_ROTATION
 
 #define TSC2046_SPI_PERIPH  SPI2
