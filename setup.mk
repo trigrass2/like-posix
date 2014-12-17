@@ -23,7 +23,7 @@ BOARD ?= none
 PROJECT_NAME ?= main
 
 ## version string (override with an environment variable set in your build system)
-PROJECT_VERSION ?= 0.0
+PROJECT_VERSION ?= $(shell date +"%F_%T")
 
 #use assertions
 USE_FULL_ASSERT ?= 1
