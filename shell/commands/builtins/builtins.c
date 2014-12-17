@@ -119,6 +119,11 @@ int sh_uname(int fdes, const char** args, unsigned char nargs)
             send(fdes, DEVICE, sizeof(DEVICE)-1, 0);
             send(fdes, " ", sizeof(" ")-1, 0);
         }
+        if(all || has_switch("-v", args, nargs))
+        {
+            send(fdes, PROJECT_VERSION, sizeof(PROJECT_VERSION)-1, 0);
+            send(fdes, " ", sizeof(" ")-1, 0);
+        }
         send(fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1, 0);
 
         free(buffer);
@@ -153,7 +158,8 @@ shell_cmd_t sh_uname_cmd = {
 "\t-o\tprint the operating system" SHELL_NEWLINE
 "\t-k\tprint the kernel version" SHELL_NEWLINE
 "\t-i\tprint the hardware platform or unknown" SHELL_NEWLINE
-"\t-p\tprint the processor type or unknown" SHELL_NEWLINE,
+"\t-p\tprint the processor type or unknown" SHELL_NEWLINE
+"\t-v\tprint the version" SHELL_NEWLINE,
     .cmdfunc = sh_uname
 };
 
