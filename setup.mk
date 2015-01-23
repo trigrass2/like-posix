@@ -10,6 +10,8 @@ debug: CFLAGS += -g
 debug: OPT = 0
 debug: all
 
+DATE := $(shell date +"%F_%T")
+
 ## Supported boards:
 # HY-STM32_100P
 # stm32f4_discovery
@@ -23,7 +25,7 @@ BOARD ?= none
 PROJECT_NAME ?= main
 
 ## version string (override with an environment variable set in your build system)
-PROJECT_VERSION ?= $(shell date +"%F_%T")
+PROJECT_VERSION ?= $(DATE)
 
 #use assertions
 USE_FULL_ASSERT ?= 1
