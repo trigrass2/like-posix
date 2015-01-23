@@ -102,7 +102,7 @@ ALLSRCBASE = $(notdir $(basename $(SOURCE)))
 # List of all objects files.
 OBJS = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(ALLSRCBASE)))
 
-all: begin gccversion buildlinkerscript $(OUTPUT_PREFIX).bin log size end
+all: begin gccversion buildlinkerscript $(OUTPUT_PREFIX).bin log size proj_version end
 
 # binary file
 $(OUTPUT_PREFIX).bin : $(OUTPUT_PREFIX).elf Makefile
@@ -157,4 +157,9 @@ $(shell mkdir $(OUTDIR) 2>/dev/null)
 ELFSIZE = $(SIZE) -B $(OUTPUT_PREFIX).elf
 size:
 	@if [ -f  $(OUTPUT_PREFIX).elf ]; then echo; echo "Size:"; $(ELFSIZE); echo; fi
-
+	
+proj_version:
+	@echo Project Name: $(PROJECT_NAME)
+	@echo Project Version: $(PROJECT_VERSION)
+	@echo Date: $(DATE)
+	@echo Board: $(BOARD)

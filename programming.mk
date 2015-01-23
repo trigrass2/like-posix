@@ -2,7 +2,7 @@
 dfu:
 	python $(BUILD_ENV_DIR)/tools/dfu.py -b $(FLASH_BASE_ADDRESS):$(OUTPUT_PREFIX).bin $(OUTPUT_PREFIX).dfu
 
-dfuutil: dfu
+dfuutil:
 	dfu-util -d 0483:df11 -c 1 -i 0 -a 0 -R -D $(OUTPUT_PREFIX).dfu
 	
 stm32loader:

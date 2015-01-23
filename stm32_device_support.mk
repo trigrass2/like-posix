@@ -124,9 +124,9 @@ endif
 ## ADC streaming driver
 CFLAGS += -DUSE_DRIVER_ADC_STREAM=$(USE_DRIVER_ADC_STREAM)
 ifeq ($(USE_DRIVER_ADC_STREAM), 1)
-SOURCE += $(DRIVERSDIR)/adc/adc_stream.c
-CFLAGS += -I$(DRIVERSDIR)/adc
-CFLAGS += -I$(DRIVERSDIR)/audio
+SOURCE += $(DRIVERSDIR)/stream/adc/adc_stream.c
+CFLAGS += -I$(DRIVERSDIR)/stream/adc
+CFLAGS += -I$(DRIVERSDIR)/stream
 endif
 
 ###############################################################

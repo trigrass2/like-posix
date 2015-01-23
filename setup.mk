@@ -10,7 +10,10 @@ debug: CFLAGS += -g
 debug: OPT = 0
 debug: all
 
+SHELL = /bin/bash
+
 DATE := $(shell date +"%F_%T")
+BUILDNO := $(shell date +"%m:%d:%T")
 
 ## Supported boards:
 # HY-STM32_100P
@@ -25,7 +28,7 @@ BOARD ?= none
 PROJECT_NAME ?= main
 
 ## version string (override with an environment variable set in your build system)
-PROJECT_VERSION ?= $(DATE)
+PROJECT_VERSION ?= $(BUILDNO)
 
 #use assertions
 USE_FULL_ASSERT ?= 1
