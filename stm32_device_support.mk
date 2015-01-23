@@ -121,6 +121,14 @@ CFLAGS += -I$(DRIVERSDIR)/ethernet
 CFLAGS += -DCHECKSUM_BY_HARDWARE=1
 endif
 
+## ADC streaming driver
+CFLAGS += -DUSE_DRIVER_ADC_STREAM=$(USE_DRIVER_ADC_STREAM)
+ifeq ($(USE_DRIVER_ADC_STREAM), 1)
+SOURCE += $(DRIVERSDIR)/stream/adc/adc_stream.c
+CFLAGS += -I$(DRIVERSDIR)/stream/adc
+CFLAGS += -I$(DRIVERSDIR)/stream
+endif
+
 ###############################################################
 # Include drivers for specific targets
 ###############################################################
