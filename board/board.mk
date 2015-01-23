@@ -17,6 +17,9 @@ ifeq ($(BOARD),  stm32f4_discovery)
 HSE_VALUE = 8000000
 FAMILY = STM32F4
 DEVICE = stm32f407vg
+ifeq ($(USE_DRIVER_LWIP_NET), 1)
+USE_DRIVER_ENC28J60_PHY = 1
+endif
 endif
 
 ifeq ($(BOARD),  uemb1)
