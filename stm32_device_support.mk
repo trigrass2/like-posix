@@ -129,6 +129,14 @@ CFLAGS += -I$(DRIVERSDIR)/stream/adc
 CFLAGS += -I$(DRIVERSDIR)/stream
 endif
 
+## DAC streaming driver
+CFLAGS += -DUSE_DRIVER_DAC_STREAM=$(USE_DRIVER_DAC_STREAM)
+ifeq ($(USE_DRIVER_DAC_STREAM), 1)
+SOURCE += $(DRIVERSDIR)/stream/dac/dac_stream.c
+CFLAGS += -I$(DRIVERSDIR)/stream/dac
+CFLAGS += -I$(DRIVERSDIR)/stream
+endif
+
 ###############################################################
 # Include drivers for specific targets
 ###############################################################
