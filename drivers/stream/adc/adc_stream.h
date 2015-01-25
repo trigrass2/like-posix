@@ -41,36 +41,11 @@
 #define ADC_STREAM_H
 
 #include <stdint.h>
+
+#include "adc_stream_config.h.in"
 #include "board_config.h"
 #include "cutensils.h"
 
-#define ADC_STREAM_CHANNEL_COUNT             2
-#define ADC_STREAM_BUFFER_LENGTH             512
-#define ADC_STREAM_MAX_CONNECTIONS           4
-#define ADC_STREAM_BUFFER_CLEAR_VALUE        0
-#define ADC_STREAM_DEFAULT_SAMPLERATE        48000
-
-
-/**
- * ADC_STREAM_BUFFER_SIZE sets input buffer size in samples - 256 samples minimum.
- * this is the total length, each buffer phase is half this long.
- */
-#define ADC_STREAM_BUFFER_SIZE 512
-
-
-#define ADC_STREAM_MASTER_ADC_CHANNELS     {ADC_Channel_0}
-#define ADC_STREAM_SLAVE_ADC_CHANNELS      {ADC_Channel_1}
-#define ADC_STREAM_CHANNEL_PORTS           {GPIOA, GPIOA}
-#define ADC_STREAM_CHANNEL_PINS            {GPIO_Pin_0,  GPIO_Pin_1}
-
-
-#define ADC_STREAM_DMA_IRQ_PRIORITY     4
-
- /**
-  * setup input sample rate timer - can be 2, 3 or 4 for
-  * TIM2 (on OC2 event), TIM3(on update event), TIM4 (on OC4 event).
-  */
-#define ADC_STREAM_SR_TIMER_UNIT 2
 
 #if ADC_STREAM_SR_TIMER_UNIT == 2
 #define ADC_STREAM_SR_TIMER                TIM2
@@ -104,7 +79,6 @@
 #define ADC_SR_TIMER_PRESCALER             84
 #endif
 #endif
-#define ADC_STREAM_SR_PRESCALER            0
 
 #define ADC_SR_TIMER_CLOCK_RATE            ((SystemCoreClock/2)/ADC_SR_TIMER_PRESCALER)
 
@@ -126,10 +100,6 @@
 #define ADC_STREAM_DMA_TE                  DMA_IT_TEIF0
 #define ADC_STREAM_INTERRUPT_HANDLER       DMA2_Stream0_IRQHandler
 #endif
-
-/**
- * @}
- */
 
 /**
  * ADC clock is 12MHz @ 72MHzAPB2 clock / 6
@@ -164,7 +134,6 @@
 #define ADC_STREAM_SLAVE_ADC               ADC2
 #define ADC_STREAM_UNIQUE_ADCS             2
 #define ADC_STREAM_UNIQUE_ADC_CLOCKS       {RCC_APB2Periph_ADC1, RCC_APB2Periph_ADC2}
-#define ADC_STREAM_ALIGNMENT               ADC_DataAlign_Left
 
 #include "stream_defs.h"
 

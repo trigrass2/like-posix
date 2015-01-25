@@ -31,11 +31,72 @@
  */
 
 /**
- * @addtogroup adc
+ * @defgroup adc
+ *
+ * multi channel on-chip ADC streaming driver.
+ *
+ * this driver supports a minimum of channels, and may use any number of ADC channels
+ * in multiples of 2.
+ * simultaneous sampling occurs on ADC1 and ADC2, on the selected channels in succession.
+ *
+ * example setup for 2 channel usage:
+ *
+\code
+
+#define ADC_STREAM_MASTER_ADC_CHANNELS     {ADC_Channel_0}
+#define ADC_STREAM_SLAVE_ADC_CHANNELS      {ADC_Channel_1}
+#define ADC_STREAM_CHANNEL_PORTS           {GPIOA, GPIOA}
+#define ADC_STREAM_CHANNEL_PINS            {GPIO_Pin_0,  GPIO_Pin_1}
+
+\endcode
+ *
+ *
+ * example setup for 8 channel usage:
+ *
+\code
+
+#define ADC_STREAM_MASTER_ADC_CHANNELS     {ADC_Channel_0, ADC_Channel_1, ADC_Channel_2, ADC_Channel_3}
+#define ADC_STREAM_SLAVE_ADC_CHANNELS      {ADC_Channel_10, ADC_Channel_11, ADC_Channel_11, ADC_Channel_11}
+#define ADC_STREAM_CHANNEL_PORTS           {GPIOA, GPIOA, GPIOA, GPIOA, GPIOC, GPIOC, GPIOC, GPIOC}
+#define ADC_STREAM_CHANNEL_PINS            {GPIO_Pin_0,  GPIO_Pin_1, GPIO_Pin_2,  GPIO_Pin_3, \
+                                            GPIO_Pin_0, GPIO_Pin_1, GPIO_Pin_2,  GPIO_Pin_3}
+
+\endcode
+ *
+ *
+ * example usage:
+ *
+\code
+
+#include "adc_stream.h"
+
+void adc_stream_callback(uint16_t* buffer, uint16_t length, uint8_t channels, uint8_t channel)
+{
+    // prints every time the adc buffer is ready to be "emptied"
+    // normally would put signal processing code here
+    printf("%x %d %d %d\n", buffer, length, channels, channel);
+}
+
+stream_connection_t adc_stream_conn = {
+        .process = adc_stream_callback,
+        .name = "adc stream tester",
+        .enabled = true
+};
+
+void start()
+{
+    adc_stream_init();
+    adc_stream_set_samplerate(22050);
+    adc_stream_connect_service(&adc_stream_conn);
+    adc_stream_start();
+}
+
+\endcode
  *
  * @file adc_stream.c
  * @{
  */
+
 #include <string.h>
 #include "asserts.h"
 #include "adc_stream.h"
@@ -70,7 +131,7 @@ void adc_stream_init()
     // set default samplerate
     adc_stream.samplerate = ADC_STREAM_DEFAULT_SAMPLERATE;
     // clear out service register
-    memset(adc_stream.connections, 0, ADC_STREAM_MAX_CONNECTIONS * sizeof(void*));
+    memset(adc_stream.connections, ADC_STREAM_BUFFER_CLEAR_VALUE, ADC_STREAM_MAX_CONNECTIONS * sizeof(void*));
     adc_stream._buffer = adc_stream_buffer;
     adc_stream.connections = adc_stream_connections;
 
@@ -180,18 +241,15 @@ void init_samplerate_timer()
             TIM_OCIdleState_Set,        // complementary idle state
     };
 
-    if(ADC_STREAM_SR_TIMER == TIM4)
-    {
+#if ADC_STREAM_SR_TIMER_UNIT == 4
         TIM_OC4Init(ADC_STREAM_SR_TIMER, &input_timer);
         TIM_OC4PreloadConfig(ADC_STREAM_SR_TIMER, TIM_OCPreload_Enable);
         TIM_SetCompare4(ADC_STREAM_SR_TIMER, 1);
-    }
-    else if(ADC_STREAM_SR_TIMER == ADC_STREAM_SR_TIMER)
-    {
+#elif ADC_STREAM_SR_TIMER_UNIT == 2
         TIM_OC2Init(ADC_STREAM_SR_TIMER, &input_timer);
         TIM_OC2PreloadConfig(ADC_STREAM_SR_TIMER, TIM_OCPreload_Enable);
         TIM_SetCompare2(ADC_STREAM_SR_TIMER, 1);
-    }
+#endif
 
     TIM_ARRPreloadConfig(ADC_STREAM_SR_TIMER, ENABLE);
 
