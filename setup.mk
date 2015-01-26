@@ -112,6 +112,10 @@ USE_DRIVER_SDCARD ?= 0
 USE_DRIVER_FAT_FILESYSTEM ?= 0
 # SDIO mode, polled or thread aware
 USE_THREAD_AWARE_SDCARD_DRIVER ?= 0
+# Enable steam drivers
+USE_DRIVER_ADC_STREAM ?= 0
+USE_DRIVER_DAC_STREAM ?= 0
+USE_DRIVER_I2S_STREAM ?= 0
 
 # the location of this stuff WRT the project
 STM32DEVSUPPORTDIR ?= ..
