@@ -43,16 +43,19 @@
 #include <stdint.h>
 #include "board_config.h"
 #include "cutensils.h"
-#include "dac_stream_config.h.in"
+#include "dac_stream_config.h"
 
 #define DAC_STREAM_CHANNEL_COUNT             2
 
 #define DAC_STREAM_SR_TIMER_TRIGGER_OUT    TIM_TRGOSource_Update
+
 #if FAMILY == STM32F1
 #define DAC_SR_TIMER_PRESCALER             36
 #elif FAMILY == STM32F4
 #define DAC_SR_TIMER_PRESCALER             84
 #endif
+
+#define DAC_SR_TIMER_CLOCK_RATE            ((SystemCoreClock/2)/DAC_SR_TIMER_PRESCALER)
 
 /**
  * the GPIO ports where all the selected DAC channels appear on the chip.
@@ -151,17 +154,15 @@
 #endif
 #endif
 
-#define DAC_SR_TIMER_CLOCK_RATE            ((SystemCoreClock/2)/DAC_SR_TIMER_PRESCALER)
-
 #if FAMILY == STM32F4
-#define DAC_STREAM_DMA_CLOCK               RCC_AHB1Periph_DMA2
-#define DAC_STREAM_DMA_STREAM              DMA2_Stream0
-#define DAC_STREAM_DMA_CHANNEL             DMA_Channel_0
-#define DAC_STREAM_DMA_IRQ_CHANNEL         DMA2_Stream0_IRQn
-#define DAC_STREAM_DMA_TC                  DMA_IT_TCIF0
-#define DAC_STREAM_DMA_HT                  DMA_IT_HTIF0
-#define DAC_STREAM_DMA_TE                  DMA_IT_TEIF0
-#define DAC_STREAM_INTERRUPT_HANDLER       DMA2_Stream0_IRQHandler
+#define DAC_STREAM_DMA_CLOCK               RCC_AHB1Periph_DMA1
+#define DAC_STREAM_DMA_STREAM              DMA1_Stream5
+#define DAC_STREAM_DMA_CHANNEL             DMA_Channel_7
+#define DAC_STREAM_DMA_IRQ_CHANNEL         DMA1_Stream5_IRQn
+#define DAC_STREAM_DMA_TC                  DMA_IT_TCIF5
+#define DAC_STREAM_DMA_HT                  DMA_IT_HTIF5
+#define DAC_STREAM_DMA_TE                  DMA_IT_TEIF5
+#define DAC_STREAM_INTERRUPT_HANDLER       DMA1_Stream5_IRQHandler
 #endif
 
 /**

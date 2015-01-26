@@ -113,7 +113,7 @@ void start()
 #endif
 
 void adc_stream_processing_task(void* p);
-void init_samplerate_timer();
+void init_adc_samplerate_timer();
 void init_local_adc();
 void init_local_adc_dma();
 void init_local_adc_io();
@@ -131,7 +131,7 @@ void adc_stream_init()
     // set default samplerate
     adc_stream.samplerate = ADC_STREAM_DEFAULT_SAMPLERATE;
     // clear out service register
-    memset(adc_stream.connections, ADC_STREAM_BUFFER_CLEAR_VALUE, ADC_STREAM_MAX_CONNECTIONS * sizeof(void*));
+    memset(adc_stream.connections, ADC_STREAM_BUFFER_CLEAR_VALUE, ADC_STREAM_MAX_CONNECTIONS * sizeof(stream_connection_t*));
     adc_stream._buffer = adc_stream_buffer;
     adc_stream.connections = adc_stream_connections;
 
@@ -150,7 +150,7 @@ void adc_stream_init()
 
     init_local_adc_io();
     init_local_adc();
-    init_samplerate_timer();
+    init_adc_samplerate_timer();
 
     // enable dma interrupt
     NVIC_InitTypeDef dma_nvic =
@@ -214,7 +214,7 @@ void ADC_STREAM_INTERRUPT_HANDLER()
 }
 #endif
 
-void init_samplerate_timer()
+void init_adc_samplerate_timer()
 {
     // Audio sample rate, select trigger
     RCC_APB1PeriphClockCmd(ADC_STREAM_SR_TIMER_CLOCK, ENABLE);
@@ -267,7 +267,7 @@ void init_samplerate_timer()
 #endif
 
 
-    TIM_SelectOutputTrigger(ADC_STREAM_SR_TIMER, ADC_STREAM_SR_TIMER_TRIGGER_OUT); // ADC_ExternalTrigConv_T2_TRGO
+    TIM_SelectOutputTrigger(ADC_STREAM_SR_TIMER, ADC_STREAM_SR_TIMER_TRIGGER_OUT);
 
     adc_stream_set_samplerate(ADC_STREAM_DEFAULT_SAMPLERATE);
 }
@@ -388,7 +388,7 @@ void init_local_adc()
     {
             .ADC_Mode = ADC_DualMode_RegSimult,
             .ADC_Prescaler = ADC_Prescaler_Div2,
-            .ADC_DMAAccessMode = ADC_DMAAccessMode_1,
+            .ADC_DMAAccessMode = ADC_DMAAccessMode_2,
             .ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles
     };
 
@@ -446,7 +446,7 @@ void init_local_adc_dma()
     dma_init.DMA_PeripheralBaseAddr = (uint32_t)&(ADC_STREAM_MASTER_ADC->DR);
     dma_init.DMA_MemoryBaseAddr = (uint32_t)adc_stream._buffer;
     dma_init.DMA_DIR = DMA_DIR_PeripheralSRC;
-    dma_init.DMA_BufferSize = sizeof(adc_stream._buffer)/sizeof(uint32_t);
+    dma_init.DMA_BufferSize = sizeof(adc_stream_buffer)/sizeof(uint32_t);
     dma_init.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
     dma_init.DMA_MemoryInc = DMA_MemoryInc_Enable;
     dma_init.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
@@ -475,17 +475,17 @@ void init_local_adc_dma()
     DMA_DeInit(ADC_STREAM_DMA_STREAM);
 
     dma_init.DMA_Channel = ADC_STREAM_DMA_CHANNEL;
-    dma_init.DMA_PeripheralBaseAddr = (uint32_t)&ADC_STREAM_MASTER_ADC->DR; //Source address // (uint32_t)0x40012308; // CDR_ADDRESS; Packed ADC_STREAM_MASTER_ADC, ADC_STREAM_SLAVE_ADC
+    dma_init.DMA_PeripheralBaseAddr = ADC_STREAM_CDR_ADDRESS;
     dma_init.DMA_Memory0BaseAddr = (uint32_t)adc_stream._buffer; //Destination address
     dma_init.DMA_DIR = DMA_DIR_PeripheralToMemory;
-    dma_init.DMA_BufferSize = sizeof(adc_stream._buffer)/sizeof(uint16_t); //Buffer size
+    dma_init.DMA_BufferSize = sizeof(adc_stream_buffer)/sizeof(uint32_t); //Buffer size
     dma_init.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
     dma_init.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    dma_init.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-    dma_init.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+    dma_init.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
+    dma_init.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
     dma_init.DMA_Mode = DMA_Mode_Circular;
     dma_init.DMA_Priority = DMA_Priority_High;
-    dma_init.DMA_FIFOMode = DMA_FIFOMode_Enable;
+    dma_init.DMA_FIFOMode = DMA_FIFOMode_Disable;
     dma_init.DMA_FIFOThreshold = DMA_FIFOThreshold_HalfFull;
     dma_init.DMA_MemoryBurst = DMA_MemoryBurst_Single;
     dma_init.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
@@ -510,7 +510,7 @@ void adc_stream_start()
 {
     adc_stream.buffer = NULL;
     //clear the buffer
-    memset(adc_stream._buffer, ADC_STREAM_BUFFER_CLEAR_VALUE, sizeof(adc_stream._buffer));
+    memset(adc_stream._buffer, ADC_STREAM_BUFFER_CLEAR_VALUE, sizeof(adc_stream_buffer));
 
     // setup adc_stream
     // enable ADC DMA channel
