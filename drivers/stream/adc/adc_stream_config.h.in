@@ -89,7 +89,7 @@
   * sets the input sample rate timer - can be 2, 3 or 4 to select
   * TIM2, TIM3, TIM4 respectively.
   */
-#define ADC_STREAM_SR_TIMER_UNIT            2
+#define ADC_STREAM_SR_TIMER_UNIT            3
 /**
  * sets ADC data alignment, may be ADC_DataAlign_Left or ADC_DataAlign_Right
  */

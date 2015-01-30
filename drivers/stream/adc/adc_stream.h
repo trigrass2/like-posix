@@ -42,8 +42,9 @@
 
 #include <stdint.h>
 
-#include "adc_stream_config.h"
 #include "board_config.h"
+#include "adc_config.h"
+#include "adc_stream_config.h"
 #include "cutensils.h"
 
 
@@ -133,6 +134,7 @@
 /* ADC CDR register base address */
 #define ADC_STREAM_CDR_ADDRESS               ((uint32_t)0x40012308)
 
+
 #include "stream_defs.h"
 
 void adc_stream_init();
@@ -140,7 +142,7 @@ void adc_stream_start();
 void adc_stream_stop();
 void adc_stream_set_samplerate(uint32_t samplerate);
 uint32_t adc_stream_get_samplerate();
-void adc_stream_connect_service(stream_connection_t* interface);
+void adc_stream_connect_service(stream_connection_t* interface, void* ctx, uint8_t stream_channel);
 
 
 #endif // ADC_STREAM_H

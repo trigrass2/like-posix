@@ -100,6 +100,7 @@ void start()
 #include <string.h>
 #include "asserts.h"
 #include "adc_stream.h"
+#include "stream_common.h"
 
 #if USE_FREERTOS
 #include "FreeRTOS.h"
@@ -112,7 +113,6 @@ void start()
 #error "buffer ADC_STREAM_BUFFER_LENGTH must be a multiple of 2"
 #endif
 
-void adc_stream_processing_task(void* p);
 void init_adc_samplerate_timer();
 void init_local_adc();
 void init_local_adc_dma();
@@ -126,27 +126,9 @@ static stream_t adc_stream;
 
 void adc_stream_init()
 {
-    log_init(&adc_stream.log, "adc_stream");
-
-    // set default samplerate
-    adc_stream.samplerate = ADC_STREAM_DEFAULT_SAMPLERATE;
-    // clear out service register
-    memset(adc_stream.connections, ADC_STREAM_BUFFER_CLEAR_VALUE, ADC_STREAM_MAX_CONNECTIONS * sizeof(stream_connection_t*));
-    adc_stream._buffer = adc_stream_buffer;
-    adc_stream.connections = adc_stream_connections;
-
-#if USE_FREERTOS
-
-    adc_stream.ready = xSemaphoreCreateBinary();
-    assert_true(adc_stream.ready);
-
-    assert_true(xTaskCreate(adc_stream_processing_task,
-            "adc_stream",
-            configMINIMAL_STACK_SIZE + 128,
-            NULL,
-            tskIDLE_PRIORITY + 3,
-            NULL) == pdPASS);
-#endif
+    init_stream(&adc_stream, "adc_stream", ADC_STREAM_DEFAULT_SAMPLERATE,
+            ADC_STREAM_MAX_CONNECTIONS, adc_stream_buffer, adc_stream_connections,
+            ADC_STREAM_BUFFER_LENGTH, ADC_STREAM_CHANNEL_COUNT, 3, 128, ADC_FULL_SCALE_AMPLITUDE_MV);
 
     init_local_adc_io();
     init_local_adc();
@@ -173,7 +155,7 @@ void ADC_STREAM_INTERRUPT_HANDLER()
     if(DMA_GetITStatus(ADC_STREAM_DMA_TC) == SET)
     {
         // transfer complete
-        adc_stream.buffer = adc_stream._buffer + ((ADC_STREAM_BUFFER_LENGTH / 2) * ADC_STREAM_CHANNEL_COUNT);
+        adc_stream.buffer = adc_stream._buffer + ((adc_stream.length / 2) * adc_stream.channels);
         xSemaphoreGiveFromISR(adc_stream.ready, &xHigherPriorityTaskWoken);
         DMA_ClearITPendingBit(ADC_STREAM_DMA_TC);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -198,7 +180,7 @@ void ADC_STREAM_INTERRUPT_HANDLER()
     if(DMA_GetITStatus(ADC_STREAM_DMA_STREAM, ADC_STREAM_DMA_TC) == SET)
     {
         // transfer complete
-        adc_stream.buffer = adc_stream._buffer + ((ADC_STREAM_BUFFER_LENGTH / 2) * ADC_STREAM_CHANNEL_COUNT);
+        adc_stream.buffer = adc_stream._buffer + ((adc_stream.length / 2) * adc_stream.channels);
         xSemaphoreGiveFromISR(adc_stream.ready, &xHigherPriorityTaskWoken);
         DMA_ClearITPendingBit(ADC_STREAM_DMA_STREAM, ADC_STREAM_DMA_TC);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -309,8 +291,8 @@ void init_local_adc()
     uint8_t i;
 
     uint32_t stream_adc_clocks[ADC_STREAM_UNIQUE_ADCS] = ADC_STREAM_UNIQUE_ADC_CLOCKS;
-    uint8_t adc_master_channels[ADC_STREAM_CHANNEL_COUNT/2] = ADC_STREAM_MASTER_ADC_CHANNELS;
-    uint8_t adc_slave_channels[ADC_STREAM_CHANNEL_COUNT/2] = ADC_STREAM_SLAVE_ADC_CHANNELS;
+    uint8_t adc_master_channels[ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS] = ADC_STREAM_MASTER_ADC_CHANNELS;
+    uint8_t adc_slave_channels[ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS] = ADC_STREAM_SLAVE_ADC_CHANNELS;
 
     // Audio ADC init
     // clock init
@@ -341,7 +323,7 @@ void init_local_adc()
     ADC_Init(ADC_STREAM_SLAVE_ADC, &adc_init);
     ADC_ExternalTrigConvCmd(ADC_STREAM_SLAVE_ADC, ENABLE);
 
-    // init ADC ADC_STREAM_CHANNEL_COUNT
+    // init ADC adc_stream.channels
     for(i=0; i < (ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS); i++)
     {
         ADC_RegularChannelConfig(ADC_STREAM_MASTER_ADC, adc_master_channels[i], i+1, ADC_STREAM_ADC_CONVERSION_CYCLES);
@@ -369,18 +351,18 @@ void init_local_adc()
 
 void init_local_adc()
 {
+    // we dont support single ADC operation at this time
+    assert_true(ADC_STREAM_UNIQUE_ADCS == 2);
+
     uint8_t i;
     uint32_t stream_adc_clocks[ADC_STREAM_UNIQUE_ADCS] = ADC_STREAM_UNIQUE_ADC_CLOCKS;
-    uint8_t adc_master_channels[ADC_STREAM_CHANNEL_COUNT/2] = ADC_STREAM_MASTER_ADC_CHANNELS;
-    uint8_t adc_slave_channels[ADC_STREAM_CHANNEL_COUNT/2] = ADC_STREAM_SLAVE_ADC_CHANNELS;
+    uint8_t adc_master_channels[ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS] = ADC_STREAM_MASTER_ADC_CHANNELS;
+    uint8_t adc_slave_channels[ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS] = ADC_STREAM_SLAVE_ADC_CHANNELS;
 
     // Audio ADC init
     // clock init
     for(i = 0; i < ADC_STREAM_UNIQUE_ADCS; i++)
         RCC_APB2PeriphClockCmd(stream_adc_clocks[i], ENABLE);
-
-    // we dont support single ADC operation at this time
-    assert_true(ADC_STREAM_UNIQUE_ADCS == 2);
 
     ADC_DeInit();
 
@@ -402,13 +384,13 @@ void init_local_adc()
             .ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Rising,
             .ADC_ExternalTrigConv = ADC_STREAM_TRIGGER_SOURCE,
             .ADC_DataAlign = ADC_STREAM_ALIGNMENT,
-            .ADC_NbrOfConversion = ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS,
+            .ADC_NbrOfConversion = adc_stream.channels/ADC_STREAM_UNIQUE_ADCS,
     };
     ADC_Init(ADC_STREAM_MASTER_ADC, &adc_init);
     ADC_Init(ADC_STREAM_SLAVE_ADC, &adc_init);
 
 
-    // init ADC ADC_STREAM_CHANNEL_COUNT
+    // init ADC adc_stream.channels
     for(i=0; i < (ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS); i++)
     {
         ADC_RegularChannelConfig(ADC_STREAM_MASTER_ADC, adc_master_channels[i], i+1, ADC_STREAM_ADC_CONVERSION_CYCLES);
@@ -555,110 +537,27 @@ void adc_stream_stop()
 }
 
 /**
- * @brief   sets the stream sample rate.
- * @param   samplerate is the sample rate in Hz, in the range of STREAM_SR_PERIOD_RELOAD_MIN and STREAM_SR_PERIOD_RELOAD_MAX.
- *          if a sample rate out of range is specified, the default of @ref ADC_STREAM_DEFAULT_SAMPLERATE is set.
- * @retval  returns true if the operation was successful, false otherwise.
+ * @brief   wraps stream_set_samplerate, see stream_common.c for info.
  */
 void adc_stream_set_samplerate(uint32_t samplerate)
 {
-    adc_stream.samplerate = samplerate;
-
-    if((adc_stream.samplerate < STREAM_SR_MIN) || (adc_stream.samplerate > STREAM_SR_MAX))
-    {
-        adc_stream.samplerate = ADC_STREAM_DEFAULT_SAMPLERATE;
-        log_debug(&adc_stream.log, "invalid sample rate: %d", adc_stream.samplerate);
-    }
-
-    log_debug(&adc_stream.log, "sample rate set to %dHz", adc_stream.samplerate);
-
-    ADC_STREAM_SR_TIMER->ARR = (ADC_SR_TIMER_CLOCK_RATE/adc_stream.samplerate)-1;
+    stream_set_samplerate(&adc_stream, ADC_STREAM_SR_TIMER, ADC_SR_TIMER_CLOCK_RATE, samplerate);
 }
 
 /**
- * @brief   gets the stream sample rate.
- * @retval  returns the sample rate in Hz.
+ * @brief   wraps stream_get_samplerate, see stream_common.c for info.
  */
 uint32_t adc_stream_get_samplerate()
 {
-    return adc_stream.samplerate;
+    return stream_get_samplerate(&adc_stream);
 }
 
 /**
- * @brief   enters an stream service interface into the service register,
- *          if it is not there already and there is a space for it.
- *          up to ADC_STREAM_MAX_CONNECTIONS services may be registered.
- *          The size of the interface buffer (interface->bufferSize) is set to ADC_STREAM_BUFFER_LENGTH/2.
- *          The number of bytes in the buffer available to the service is calculated by:
- *          size-in-bytes = interface->bufferSize * sizeof(uint16_t) * number-of-ADC_STREAM_CHANNEL_COUNT
- * @param   interface is a pointer to the interface to register.
+ * @brief   wraps stream_connect_service, see stream_common.c for info.
  */
-void adc_stream_connect_service(stream_connection_t* interface)
+void adc_stream_connect_service(stream_connection_t* interface, void* ctx, uint8_t stream_channel)
 {
-    uint8_t i;
-    bool registered = false;
-
-    // check that it is not already registered
-    for(i = 0; i < ADC_STREAM_MAX_CONNECTIONS; i++)
-    {
-        // check already registerd
-        if(interface == adc_stream.connections[i])
-        {
-            log_debug(&adc_stream.log, "service %s already registered", interface->name);
-            registered = true;
-            break;
-        }
-    }
-
-    if(!registered)
-    {
-        for(i = 0; i < ADC_STREAM_MAX_CONNECTIONS; i++)
-        {
-            // check for an empty space
-            if(!adc_stream.connections[i])
-            {
-                adc_stream.connections[i] = interface;
-                log_debug(&adc_stream.log, "service %s registered in slot %d", interface->name, i);
-                registered = true;
-                break;
-            }
-        }
-    }
-
-    if(!registered)
-        log_debug(&adc_stream.log, "no space in service register for %s", interface->name);
-}
-
-
-/**
- * handler for stream processing in main loop.
- */
-void adc_stream_processing_task(void* p)
-{
-    (void)p;
-    uint8_t connection;
-    uint8_t channel;
-    stream_connection_t* interface;
-
-    while(1)
-    {
-        adc_stream.buffer = NULL;
-        xSemaphoreTake(adc_stream.ready, 1000/portTICK_RATE_MS);
-
-        if(!adc_stream.buffer)
-            continue;
-
-        // call all registered + enabled service channel buffer read functions
-        for(channel = 0; channel < ADC_STREAM_CHANNEL_COUNT; channel++)
-        {
-            for(connection = 0; connection < ADC_STREAM_MAX_CONNECTIONS; connection++)
-            {
-                interface = adc_stream.connections[connection];
-                if(interface && interface->enabled)
-                    interface->process(adc_stream.buffer, ADC_STREAM_BUFFER_LENGTH/2, ADC_STREAM_CHANNEL_COUNT, channel);
-            }
-        }
-    }
+    stream_connect_service(interface, ctx, &adc_stream, stream_channel);
 }
 
 

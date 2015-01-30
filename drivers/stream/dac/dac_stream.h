@@ -43,6 +43,7 @@
 #include <stdint.h>
 #include "board_config.h"
 #include "cutensils.h"
+#include "dac_config.h"
 #include "dac_stream_config.h"
 
 #define DAC_STREAM_CHANNEL_COUNT             2
@@ -198,7 +199,7 @@ void dac_stream_start();
 void dac_stream_stop();
 void dac_stream_set_samplerate(uint32_t samplerate);
 uint32_t dac_stream_get_samplerate();
-void dac_stream_connect_service(stream_connection_t* interface);
+void dac_stream_connect_service(stream_connection_t* interface, void* ctx, uint8_t stream_channel);
 
 
 #endif // DAC_STREAM_H
