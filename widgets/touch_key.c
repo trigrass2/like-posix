@@ -121,10 +121,10 @@ void touch_on_key_stroke(touch_handler_t* handler)
 				handler->keydata->text->shape->fill_colour = handler->keydata->alt_colour;
 				handler->keydata->alt_colour = colour;
 			}
-			if(handler->key_callback)
-				handler->key_callback(handler);
 			if(redraw)
 				touch_redraw_key(handler);
+			if(handler->key_callback)
+				handler->key_callback(handler);
 		}
 		break;
 
@@ -138,10 +138,10 @@ void touch_on_key_stroke(touch_handler_t* handler)
 				handler->keydata->text->shape->fill_colour = handler->keydata->alt_colour;
 				handler->keydata->alt_colour = colour;
 			}
-			if(handler->key_callback)
-				handler->key_callback(handler);
 			if(redraw)
 				touch_redraw_key(handler);
+			if(handler->key_callback)
+				handler->key_callback(handler);
 		}
 		break;
 
