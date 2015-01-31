@@ -43,6 +43,8 @@ SOURCE += $(GRAPHICSDIR)/widgets/panel_meter.c
 endif
 ifeq ($(USE_GRAPHIC_WIDGET_STATUSBAR), 1)
 SOURCE += $(GRAPHICSDIR)/widgets/statusbar.c
-
+endif
+ifeq ($(USE_GRAPHIC_WIDGET_SLIDER), 1)
+SOURCE += $(GRAPHICSDIR)/widgets/slider.c
 endif
 endif
