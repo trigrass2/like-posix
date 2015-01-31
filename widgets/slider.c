@@ -32,11 +32,7 @@
 
 #include "slider.h"
 
-#define SLIDER_SLIDE_RATIO      10
-#define SLIDER_SLIDE_MARGINS    2
-
 static void slider_touch_callback(touch_handler_t* slider);
-
 
 void slider_init(slider_t* slider, point_t location, point_t size, int16_t min, int16_t max)
 {
@@ -84,35 +80,50 @@ void slider_init(slider_t* slider, point_t location, point_t size, int16_t min, 
 void slider_touch_callback(touch_handler_t* th)
 {
     slider_t* slider = (slider_t*)touch_get_appdata(th);
+    colour_t fill;
+    colour_t brdr;
+    int16_t value = slider->value;
+    point_t pt;
 
     if(th->press_type == KEY_HOLD)
     {
-        colour_t fill = slider->slide.fill_colour;
-        colour_t brdr = slider->slide.border_colour;
-        slider->slide.border_colour = slider->background.fill_colour;
-        slider->slide.fill_colour = slider->background.fill_colour;
-        draw_shape(&slider->slide, slider->slide_position);
-        slider->slide.fill_colour = fill;
-        slider->slide.border_colour = brdr;
-        point_t pt = touch_xy();
+        pt = touch_xy();
 
+        // move the handle to the new position
         if(pt.y < slider->location.y + SLIDER_SLIDE_MARGINS)
-            slider->slide_position.y = slider->location.y + SLIDER_SLIDE_MARGINS;
+            pt.y = slider->location.y + SLIDER_SLIDE_MARGINS;
         else if(pt.y > slider->location.y + slider->background.size.y - (slider->slide.size.y + SLIDER_SLIDE_MARGINS))
-            slider->slide_position.y = slider->location.y + slider->background.size.y - (slider->slide.size.y + SLIDER_SLIDE_MARGINS);
-        else
-            slider->slide_position.y = pt.y;
+            pt.y = slider->location.y + slider->background.size.y - (slider->slide.size.y + SLIDER_SLIDE_MARGINS);
 
+        // calculate application freindly slider value
         // min + ((((max - min ) * curr pixel) / (pixel range))
-        slider->value = slider->min + (((slider->max - slider->min) *
-                           (slider->slide_position.y - (slider->location.y + SLIDER_SLIDE_MARGINS))) /
-                           ((slider->location.y + slider->textbox.shape->size.y - (SLIDER_SLIDE_MARGINS + slider->slide.size.y))  -
-                           (slider->location.y + SLIDER_SLIDE_MARGINS)));
+        value = slider->min + (((slider->max - slider->min) *
+           (pt.y - (slider->location.y + SLIDER_SLIDE_MARGINS))) /
+           ((slider->location.y + slider->textbox.shape->size.y - (SLIDER_SLIDE_MARGINS + slider->slide.size.y))  -
+           (slider->location.y + SLIDER_SLIDE_MARGINS)));
 
-        printf("value %d\n", slider->value);
+        if(slider->value != value)
+        {
+            // save colours
+            fill = slider->slide.fill_colour;
+            brdr = slider->slide.border_colour;
+            // undraw the slide handle
+            slider->slide.border_colour = slider->background.fill_colour;
+            slider->slide.fill_colour = slider->background.fill_colour;
+            draw_shape(&slider->slide, slider->slide_position);
+            // restore colours, update position
+            slider->slide.fill_colour = fill;
+            slider->slide.border_colour = brdr;
+            slider->slide_position.y = pt.y;
+        }
     }
-
-    draw_shape(&slider->slide, slider->slide_position);
+    // redraw slide handle
+    if((slider->value != value) || (th->press_type == KEY_UP))
+    {
+        // save new value
+        slider->value = value;
+        draw_shape(&slider->slide, slider->slide_position);
+    }
 }
 
 void slider_set_colours(slider_t* slider, colour_t border, colour_t background, colour_t alt_background,

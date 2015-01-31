@@ -40,6 +40,9 @@
 #ifndef SLIDER_H_
 #define SLIDER_H_
 
+#define SLIDER_SLIDE_RATIO      10
+#define SLIDER_SLIDE_MARGINS    2
+
 typedef struct {
     point_t location;
     shape_t background;
