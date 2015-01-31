@@ -35,6 +35,22 @@
 #include "lcd.h"
 #include "cutensils.h"
 
+#if LCD_ROTATION == ROTATE_0_DEGREES
+#pragma message "building LCD rotated by 0 degrees"
+#elif LCD_ROTATION == ROTATE_90_DEGREES
+#pragma message "building LCD rotated by 90 degrees"
+#elif LCD_ROTATION == ROTATE_180_DEGREES
+#pragma message "building LCD rotated by 180 degrees"
+#elif LCD_ROTATION == ROTATE_270_DEGREES
+#pragma message "building LCD rotated by 270 degrees"
+#endif
+
+#if LCD_DRIVER_ID == LGDP4532_DEVICE_ID
+#pragma message "building for LCD controller LGDP4532"
+#elif LCD_DRIVER_ID == ILI9325_DEVICE_ID
+#pragma message "building for LCD controller ILI9325"
+#endif
+
 static void lcd_reset();
 static void lcd_display_on(void);
 static void lcd_display_off(void);

@@ -219,8 +219,8 @@ void touch_interpreter_task(void *pvParameters)
                         {
                             // hold timing
                             held_at = tt_params->_touch_point;
-//                            handler->press_type = KEY_HOLD;
-//                            handler->backend_key_callback(handler);
+                            handler->press_type = KEY_HOLD;
+                            handler->backend_key_callback(handler);
 
                             // tap timing
                             tt_params->_tap_count += TOUCH_TASK_POLL_RATE;
