@@ -31,7 +31,12 @@
  */
 
 #include "syscalls.h"
+
+#if USE_DRIVER_LWIP_NET
 #include "lwip/sockets.h"
+#else
+#include <errno.h>
+#endif
 
 #if ENABLE_LIKEPOSIX_SOCKETS
 
