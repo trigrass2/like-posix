@@ -121,12 +121,27 @@ CFLAGS += -I$(DRIVERSDIR)/ethernet
 CFLAGS += -DCHECKSUM_BY_HARDWARE=1
 endif
 
+## stream driver common
+ifeq ($(USE_DRIVER_I2S_STREAM),1)
+SOURCE += $(DRIVERSDIR)/stream/stream_common.c
+CFLAGS += -I$(DRIVERSDIR)/stream
+else
+ifeq ($(USE_DRIVER_DAC_STREAM),1)
+SOURCE += $(DRIVERSDIR)/stream/stream_common.c
+CFLAGS += -I$(DRIVERSDIR)/stream
+else
+ifeq ($(USE_DRIVER_ADC_STREAM),1)
+SOURCE += $(DRIVERSDIR)/stream/stream_common.c
+CFLAGS += -I$(DRIVERSDIR)/stream
+endif
+endif
+endif
+
 ## ADC streaming driver
 CFLAGS += -DUSE_DRIVER_ADC_STREAM=$(USE_DRIVER_ADC_STREAM)
 ifeq ($(USE_DRIVER_ADC_STREAM), 1)
 SOURCE += $(DRIVERSDIR)/stream/adc/adc_stream.c
 CFLAGS += -I$(DRIVERSDIR)/stream/adc
-CFLAGS += -I$(DRIVERSDIR)/stream
 endif
 
 ## DAC streaming driver
@@ -134,7 +149,13 @@ CFLAGS += -DUSE_DRIVER_DAC_STREAM=$(USE_DRIVER_DAC_STREAM)
 ifeq ($(USE_DRIVER_DAC_STREAM), 1)
 SOURCE += $(DRIVERSDIR)/stream/dac/dac_stream.c
 CFLAGS += -I$(DRIVERSDIR)/stream/dac
-CFLAGS += -I$(DRIVERSDIR)/stream
+endif
+
+## I2S streaming driver
+CFLAGS += -DUSE_DRIVER_I2S_STREAM=$(USE_DRIVER_I2S_STREAM)
+ifeq ($(USE_DRIVER_I2S_STREAM), 1)
+SOURCE += $(DRIVERSDIR)/stream/i2s/i2s_stream.c
+CFLAGS += -I$(DRIVERSDIR)/stream/i2s
 endif
 
 ###############################################################

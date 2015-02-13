@@ -83,6 +83,12 @@ CFLAGS += -Wformat=0
 CFLAGS += -Wl,-Map,$(OUTPUT_PREFIX).map
 CFLAGS += -Wno-attributes
 
+AFLAGS  = $(CPU_FLAGS) -I. -x assembler-with-cpp
+AFLAGS += -D__ASSEMBLY__
+ASFLAGS += -Wa,-adhlns=$(addprefix $(OUTDIR)/, $(notdir $(addsuffix .lst, $(basename $<))))
+#ASFLAGS += -Wa,-g$(DEBUG)
+#ASFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
+
 ## Linker options
 # to allow for C++, removed -nostartfiles
 LINKER_FLAGS += -Xlinker -o$(OUTPUT_PREFIX).elf -Xlinker -M -Xlinker -Map=$(OUTPUT_PREFIX).map -Xlinker
@@ -98,7 +104,7 @@ LIBS += -lm
 ####################################################################
 
 # List of all source files without directory and file-extension.
-ALLSRCBASE = $(notdir $(basename $(SOURCE)))
+ALLSRCBASE = $(notdir $(basename $(SOURCE))) $(notdir $(basename $(ASOURCE))) 
 # List of all objects files.
 OBJS = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(ALLSRCBASE)))
 
@@ -119,6 +125,14 @@ $(OUTDIR)/$(notdir $(basename $(1))).o : $(1)
 	$(CC) -c  $$(CFLAGS) $$< -o $$@
 endef
 $(foreach src, $(SOURCE), $(eval $(call COMPILE_C_TEMPLATE, $(src))))
+
+# Assemble: create object files from assembler source files.
+define ASSEMBLE_TEMPLATE
+$(OUTDIR)/$(notdir $(basename $(1))).o : $(1)
+	@echo $$< "->" $$@
+	$(CC) -c $$(ASFLAGS) $$< -o $$@
+endef
+$(foreach src, $(ASOURCE), $(eval $(call ASSEMBLE_TEMPLATE, $(src))))
 
 # compile startup code
 $(OUTDIR)/startup.o : $(STARTUP_SOURCE) Makefile
