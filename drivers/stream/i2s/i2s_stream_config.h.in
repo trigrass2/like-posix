@@ -31,72 +31,44 @@
  */
 
 /**
- * @addtogroup adc
+ * @addtogroup i2s
  *
- * example ADC stream configuration file (place h file at project level)
+ * example I2S stream configuration file (place h file at project level)
  *
- * @file adc_stream_config.h
+ * @file i2s_stream_config.h
  * @{
  */
 
-#ifndef ADC_STREAM_CONFIG_H
-#define ADC_STREAM_CONFIG_H
+#ifndef I2S_STREAM_CONFIG_H
+#define I2S_STREAM_CONFIG_H
 
-/**
- * number of channels, minimum of 2, and must be a power of 2
- */
-#define ADC_STREAM_CHANNEL_COUNT             2
+
 /**
  * the number of samples in the sample buffer.
  * only half the lengtth of this buffer is accessible in the stream callback function at a time.
  * dont use this in the stream callback, use the length, channels and channel arguments to traverse the buffer.
  */
-#define ADC_STREAM_BUFFER_LENGTH             512
+#define I2S_STREAM_BUFFER_LENGTH             1024
 /**
  * the maximum number of connections allowed on the stream.
  */
-#define ADC_STREAM_MAX_CONNECTIONS           4
+#define I2S_STREAM_MAX_CONNECTIONS           4
 /**
  * this is the value used when clearing the buffer.
  */
-#define ADC_STREAM_BUFFER_CLEAR_VALUE        0
+#define I2S_STREAM_BUFFER_CLEAR_VALUE        0
 /**
  * default samplerate. the stream is initialised with this value.
  */
-#define ADC_STREAM_DEFAULT_SAMPLERATE        48000
+#define I2S_STREAM_DEFAULT_SAMPLERATE        48000
 
-/**
- * channels to use on the master ADC (ADC1).
- */
-#define ADC_STREAM_MASTER_ADC_CHANNELS     {ADC_Channel_0}
-/**
- * channels to use on the slave ADC (ADC2).
- */
-#define ADC_STREAM_SLAVE_ADC_CHANNELS      {ADC_Channel_1}
-/**
- * the GPIO ports where all the selected ADC channels appear on the chip.
- */
-#define ADC_STREAM_CHANNEL_PORTS           {GPIOA, GPIOA}
-/**
- * the GPIO pins (corresponding to the ports above) where all the selected ADC channels appear on the chip.
- */
-#define ADC_STREAM_CHANNEL_PINS            {GPIO_Pin_0,  GPIO_Pin_1}
 /**
  * the DMA interrupt priority.
  */
-#define ADC_STREAM_DMA_IRQ_PRIORITY         4
- /**
-  * sets the input sample rate timer - can be 2, 3 or 4 to select
-  * TIM2, TIM3, TIM4 respectively.
-  */
-#define ADC_STREAM_SR_TIMER_UNIT            3
-/**
- * sets ADC data alignment, may be ADC_DataAlign_Left or ADC_DataAlign_Right
- */
-#define ADC_STREAM_ALIGNMENT                ADC_DataAlign_Left
+#define I2S_STREAM_DMA_IRQ_PRIORITY         4
 
 
-#endif // ADC_STREAM_CONFIG_H
+#endif // I2S_STREAM_CONFIG_H
 /**
  *
  */

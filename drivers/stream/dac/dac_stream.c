@@ -67,10 +67,11 @@ void start()
  * @file dac_stream.c
  * @{
  */
-#include "dac_stream.h"
 
 #include <string.h>
 #include "asserts.h"
+#include "dac_stream.h"
+#include "stream_common.h"
 
 #if USE_FREERTOS
 #include "FreeRTOS.h"
@@ -83,8 +84,8 @@ void start()
 #error "buffer DAC_STREAM_BUFFER_LENGTH must be a multiple of 2"
 #endif
 
-void dac_stream_processing_task(void* p);
-void init_samplerate_timer();
+
+void init_dac_samplerate_timer();
 void init_local_dac();
 void init_local_dac_dma();
 void init_local_dac_io();
@@ -97,39 +98,20 @@ static stream_t dac_stream;
 
 void dac_stream_init()
 {
-    log_init(&dac_stream.log, "dac_stream");
-
-    // set default samplerate
-    dac_stream.samplerate = DAC_STREAM_DEFAULT_SAMPLERATE;
-    // clear out service register
-    memset(dac_stream.connections, 0, DAC_STREAM_MAX_CONNECTIONS * sizeof(void*));
-    dac_stream._buffer = dac_stream_buffer;
-    dac_stream.connections = dac_stream_connections;
-
-#if USE_FREERTOS
-    dac_stream.ready = xSemaphoreCreateBinary();
-    assert_true(dac_stream.ready);
-
-    assert_true(xTaskCreate(dac_stream_processing_task,
-            "dac_stream",
-            configMINIMAL_STACK_SIZE + 128,
-            NULL,
-            tskIDLE_PRIORITY + 3,
-            NULL) == pdPASS);
-#endif
+    init_stream(&dac_stream, "dac_stream", DAC_STREAM_DEFAULT_SAMPLERATE,
+            DAC_STREAM_MAX_CONNECTIONS, dac_stream_buffer, dac_stream_connections,
+            DAC_STREAM_BUFFER_LENGTH, DAC_STREAM_CHANNEL_COUNT, 3, 128, DAC_FULL_SCALE_AMPLITUDE_MV);
 
     init_local_dac_io();
     init_local_dac();
-    init_samplerate_timer();
+    init_dac_samplerate_timer();
 
     // enable dma interrupt
-    NVIC_InitTypeDef dma_nvic =
-    {
-        .NVIC_IRQChannel = DAC_STREAM_DMA_IRQ_CHANNEL,
-        .NVIC_IRQChannelPreemptionPriority = DAC_STREAM_DMA_IRQ_PRIORITY,
-        .NVIC_IRQChannelSubPriority = 0,
-        .NVIC_IRQChannelCmd = ENABLE
-    };
+    NVIC_InitTypeDef dma_nvic;
+    dma_nvic.NVIC_IRQChannel = DAC_STREAM_DMA_IRQ_CHANNEL;
+    dma_nvic.NVIC_IRQChannelPreemptionPriority = DAC_STREAM_DMA_IRQ_PRIORITY;
+    dma_nvic.NVIC_IRQChannelSubPriority = 0;
+    dma_nvic.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&dma_nvic);
 }
 
@@ -143,7 +125,7 @@ void DAC_STREAM_INTERRUPT_HANDLER()
     if(DMA_GetITStatus(DAC_STREAM_DMA_TC) == SET)
     {
         // transfer complete
-        dac_stream.buffer = dac_stream._buffer + ((DAC_STREAM_BUFFER_LENGTH / 2) * DAC_STREAM_CHANNEL_COUNT);
+        dac_stream.buffer = dac_stream._buffer + ((DAC_STREAM_BUFFER_LENGTH / 2) * dac_stream.channels);
         xSemaphoreGiveFromISR(dac_stream.ready, &xHigherPriorityTaskWoken);
         DMA_ClearITPendingBit(DAC_STREAM_DMA_TC);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -168,7 +150,7 @@ void DAC_STREAM_INTERRUPT_HANDLER()
     if(DMA_GetITStatus(DAC_STREAM_DMA_STREAM, DAC_STREAM_DMA_TC) == SET)
     {
         // transfer complete
-        dac_stream.buffer = dac_stream._buffer + ((DAC_STREAM_BUFFER_LENGTH / 2) * DAC_STREAM_CHANNEL_COUNT);
+        dac_stream.buffer = dac_stream._buffer;
         xSemaphoreGiveFromISR(dac_stream.ready, &xHigherPriorityTaskWoken);
         DMA_ClearITPendingBit(DAC_STREAM_DMA_STREAM, DAC_STREAM_DMA_TC);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -176,7 +158,7 @@ void DAC_STREAM_INTERRUPT_HANDLER()
     if(DMA_GetITStatus(DAC_STREAM_DMA_STREAM, DAC_STREAM_DMA_HT) == SET)
     {
         // half transfer complete
-        dac_stream.buffer = dac_stream._buffer;
+        dac_stream.buffer = dac_stream._buffer + ((DAC_STREAM_BUFFER_LENGTH / 2) * dac_stream.channels);
         xSemaphoreGiveFromISR(dac_stream.ready, &xHigherPriorityTaskWoken);
         DMA_ClearITPendingBit(DAC_STREAM_DMA_STREAM, DAC_STREAM_DMA_HT);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -184,39 +166,35 @@ void DAC_STREAM_INTERRUPT_HANDLER()
 }
 #endif
 
-void init_samplerate_timer()
+void init_dac_samplerate_timer()
 {
     // Audio sample rate, select trigger
     RCC_APB1PeriphClockCmd(DAC_STREAM_SR_TIMER_CLOCK, ENABLE);
-    TIM_TimeBaseInitTypeDef input_timer_init =
-    {
-            .TIM_Period = (DAC_SR_TIMER_CLOCK_RATE / DAC_STREAM_DEFAULT_SAMPLERATE) - 1,
-            .TIM_Prescaler = DAC_SR_TIMER_PRESCALER-1,
-            .TIM_CounterMode = TIM_CounterMode_Up,             // counter mode
-            .TIM_ClockDivision = TIM_CKD_DIV1,                   // clock divider value (1, 2 or 4) (has no effect on OC/PWM)
-    };
+    TIM_TimeBaseInitTypeDef input_timer_init;
+    input_timer_init.TIM_Period = (DAC_SR_TIMER_CLOCK_RATE/dac_stream.samplerate)-1;
+    input_timer_init.TIM_Prescaler = DAC_SR_TIMER_PRESCALER - 1;
+    input_timer_init.TIM_CounterMode = TIM_CounterMode_Up;             // counter mode
+    input_timer_init.TIM_ClockDivision = TIM_CKD_DIV1;                   // clock divider value (1, 2 or 4) (has no effect on OC/PWM)
+
     TIM_TimeBaseInit(DAC_STREAM_SR_TIMER, &input_timer_init);
-    TIM_SelectOutputTrigger(DAC_STREAM_SR_TIMER, DAC_STREAM_SR_TIMER_TRIGGER_OUT); // DAC_ExternalTrigConv_T2_TRGO
-    dac_stream_set_samplerate(DAC_STREAM_DEFAULT_SAMPLERATE);
+    TIM_SelectOutputTrigger(DAC_STREAM_SR_TIMER, DAC_STREAM_SR_TIMER_TRIGGER_OUT);
+    dac_stream_set_samplerate(dac_stream.samplerate);
 }
 
 void init_local_dac_io()
 {
     uint8_t i;
+    GPIO_InitTypeDef gpioi;
     GPIO_TypeDef* stream_input_ports[DAC_STREAM_CHANNEL_COUNT] = DAC_STREAM_CHANNEL_PORTS;
     uint16_t stream_input_pins[DAC_STREAM_CHANNEL_COUNT] = DAC_STREAM_CHANNEL_PINS;
 #if FAMILY == STM32F1
-    GPIO_InitTypeDef gpioi = {
-            .GPIO_Speed = GPIO_Speed_2MHz,
-            .GPIO_Mode = GPIO_Mode_AIN
-    };
+    gpioi.GPIO_Speed = GPIO_Speed_2MHz;
+    gpioi.GPIO_Mode = GPIO_Mode_AIN;
 #elif FAMILY == STM32F4
-    GPIO_InitTypeDef gpioi = {
-            .GPIO_Speed = GPIO_Speed_2MHz,
-            .GPIO_Mode = GPIO_Mode_AN,
-            .GPIO_OType = GPIO_OType_OD,
-            .GPIO_PuPd = GPIO_PuPd_NOPULL
-    };
+    gpioi.GPIO_Speed = GPIO_Speed_2MHz;
+    gpioi.GPIO_Mode = GPIO_Mode_AN;
+    gpioi.GPIO_OType = GPIO_OType_OD;
+    gpioi.GPIO_PuPd = GPIO_PuPd_NOPULL;
 #endif
     // DAC IO pins
     for(i = 0; i < DAC_STREAM_CHANNEL_COUNT; i++)
@@ -232,22 +210,20 @@ void init_local_dac_io()
  */
 void init_local_dac()
 {
-    // Audio DAC init
-    // clock init
-    RCC_APB1PeriphClockCmd(DAC_STREAM_DAC_CLOCK, ENABLE);
-
     // we dont support single DAC operation at this time
     assert_true(DAC_STREAM_UNIQUE_DACS == 2);
 
+    // clock init
+    RCC_APB1PeriphClockCmd(DAC_STREAM_DAC_CLOCK, ENABLE);
+
     DAC_DeInit();
 
-    DAC_InitTypeDef dac_init =
-    {
-            .DAC_Trigger = DAC_STREAM_TRIGGER_SOURCE,
-            .DAC_WaveGeneration = DAC_WaveGeneration_None,
-            .DAC_LFSRUnmask_TriangleAmplitude = 0,
-            .DAC_OutputBuffer = DAC_OutputBuffer_Enable
-    };
+    DAC_InitTypeDef dac_init;
+    dac_init.DAC_Trigger = DAC_STREAM_TRIGGER_SOURCE;
+    dac_init.DAC_WaveGeneration = DAC_WaveGeneration_None;
+    dac_init .DAC_LFSRUnmask_TriangleAmplitude = 0;
+    dac_init.DAC_OutputBuffer = DAC_OutputBuffer_Enable;
+
     DAC_Init(DAC_STREAM_MASTER_DAC, &dac_init);
     DAC_Init(DAC_STREAM_SLAVE_DAC, &dac_init);
 
@@ -280,7 +256,7 @@ void init_local_dac_dma()
     dma_init.DMA_PeripheralBaseAddr = (uint32_t)DAC_DHR12LD_Address;
     dma_init.DMA_MemoryBaseAddr = (uint32_t)dac_stream._buffer;
     dma_init.DMA_DIR = DMA_DIR_PeripheralDST;
-    dma_init.DMA_BufferSize = sizeof(dac_stream._buffer)/sizeof(uint32_t);
+    dma_init.DMA_BufferSize = sizeof(dac_stream_buffer)/sizeof(uint32_t);
     dma_init.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
     dma_init.DMA_MemoryInc = DMA_MemoryInc_Enable;
     dma_init.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
@@ -310,7 +286,7 @@ void init_local_dac_dma()
     dma_init.DMA_PeripheralBaseAddr = (uint32_t)DAC_DHR12LD_Address;
     dma_init.DMA_Memory0BaseAddr = (uint32_t)dac_stream._buffer; //Destination address
     dma_init.DMA_DIR = DMA_DIR_MemoryToPeripheral;
-    dma_init.DMA_BufferSize = sizeof(dac_stream._buffer)/sizeof(uint32_t); //Buffer size
+    dma_init.DMA_BufferSize = sizeof(dac_stream_buffer)/sizeof(uint32_t); //Buffer size
     dma_init.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
     dma_init.DMA_MemoryInc = DMA_MemoryInc_Enable;
     dma_init.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
@@ -342,7 +318,7 @@ void dac_stream_start()
 {
     dac_stream.buffer = NULL;
     //clear the buffer
-    memset(dac_stream._buffer, DAC_STREAM_BUFFER_CLEAR_VALUE, sizeof(dac_stream._buffer));
+    memset(dac_stream._buffer, DAC_STREAM_BUFFER_CLEAR_VALUE, sizeof(dac_stream_buffer));
 
     // setup dac_stream
     // enable DAC DMA channel
@@ -371,116 +347,37 @@ void dac_stream_stop()
     // DAC trigger disable
     DAC->CR &= ~(DAC_CR_TEN1 | DAC_CR_TEN2);
 
+#if FAMILY == STM32F1
     DMA_Cmd(DAC_STREAM_DMA_CHANNEL, DISABLE);
+#elif FAMILY == STM32F4
+    DMA_Cmd(DAC_STREAM_DMA_STREAM, DISABLE);
+#endif
 
     log_debug(&dac_stream.log, "dac_stream stopped");
 }
 
 /**
- * @brief   sets the stream sample rate.
- * @param   samplerate is the sample rate in Hz, in the range of STREAM_SR_PERIOD_RELOAD_MIN and STREAM_SR_PERIOD_RELOAD_MAX.
- *          if a sample rate out of range is specified, the default of @ref DAC_STREAM_DEFAULT_SAMPLERATE is set.
- * @retval  returns true if the operation was successful, false otherwise.
+ * @brief   wraps stream_set_samplerate, see stream_common.c for info.
  */
 void dac_stream_set_samplerate(uint32_t samplerate)
 {
-    dac_stream.samplerate = samplerate;
-
-    if((dac_stream.samplerate < STREAM_SR_MIN) || (dac_stream.samplerate > STREAM_SR_MAX))
-    {
-        dac_stream.samplerate = DAC_STREAM_DEFAULT_SAMPLERATE;
-        log_debug(&dac_stream.log, "invalid sample rate: %d", dac_stream.samplerate);
-    }
-
-    log_debug(&dac_stream.log, "sample rate set to %dHz", dac_stream.samplerate);
-
-    DAC_STREAM_SR_TIMER->ARR = (DAC_SR_TIMER_CLOCK_RATE/dac_stream.samplerate)-1;
+    stream_set_samplerate(&dac_stream, DAC_STREAM_SR_TIMER, DAC_SR_TIMER_CLOCK_RATE, samplerate);
 }
 
 /**
- * @brief   gets the stream sample rate.
- * @retval  returns the sample rate in Hz.
+ * @brief   wraps stream_get_samplerate, see stream_common.c for info.
  */
 uint32_t dac_stream_get_samplerate()
 {
-    return dac_stream.samplerate;
+    return stream_get_samplerate(&dac_stream);
 }
 
 /**
- * @brief   enters an stream service interface into the service register,
- *          if it is not there already and there is a space for it.
- *          up to DAC_STREAM_MAX_CONNECTIONS services may be registered.
- *          The size of the interface buffer (interface->bufferSize) is set to DAC_STREAM_BUFFER_LENGTH/2.
- *          The number of bytes in the buffer available to the service is calculated by:
- *          size-in-bytes = interface->bufferSize * sizeof(uint16_t) * number-of-DAC_STREAM_CHANNEL_COUNT
- * @param   interface is a pointer to the interface to register.
+ * @brief   wraps stream_connect_service, see stream_common.c for info.
  */
-void dac_stream_connect_service(stream_connection_t* interface)
+void dac_stream_connect_service(stream_connection_t* interface, void* ctx, uint8_t stream_channel)
 {
-    uint8_t i;
-    bool registered = false;
-
-    // check that it is not already registered
-    for(i = 0; i < DAC_STREAM_MAX_CONNECTIONS; i++)
-    {
-        // check already registerd
-        if(interface == dac_stream.connections[i])
-        {
-            log_debug(&dac_stream.log, "service %s already registered", interface->name);
-            registered = true;
-            break;
-        }
-    }
-
-    if(!registered)
-    {
-        for(i = 0; i < DAC_STREAM_MAX_CONNECTIONS; i++)
-        {
-            // check for an empty space
-            if(!dac_stream.connections[i])
-            {
-                dac_stream.connections[i] = interface;
-                log_debug(&dac_stream.log, "service %s registered in slot %d", interface->name, i);
-                registered = true;
-                break;
-            }
-        }
-    }
-
-    if(!registered)
-        log_debug(&dac_stream.log, "no space in service register for %s", interface->name);
-}
-
-
-/**
- * handler for stream processing in main loop.
- */
-void dac_stream_processing_task(void* p)
-{
-    (void)p;
-    uint8_t connection;
-    uint8_t channel;
-    stream_connection_t* interface;
-
-    while(1)
-    {
-        dac_stream.buffer = NULL;
-        xSemaphoreTake(dac_stream.ready, 1000/portTICK_RATE_MS);
-
-        if(!dac_stream.buffer)
-            continue;
-
-        // call all registered + enabled service channel buffer read functions
-        for(channel = 0; channel < DAC_STREAM_CHANNEL_COUNT; channel++)
-        {
-            for(connection = 0; connection < DAC_STREAM_MAX_CONNECTIONS; connection++)
-            {
-                interface = dac_stream.connections[connection];
-                if(interface && interface->enabled)
-                    interface->process(dac_stream.buffer, DAC_STREAM_BUFFER_LENGTH/2, DAC_STREAM_CHANNEL_COUNT, channel);
-            }
-        }
-    }
+    stream_connect_service(interface, ctx, &dac_stream, stream_channel);
 }
 
 

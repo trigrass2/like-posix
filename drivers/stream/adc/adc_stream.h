@@ -42,19 +42,26 @@
 
 #include <stdint.h>
 
-#include "adc_stream_config.h.in"
 #include "board_config.h"
+#include "adc_config.h"
+#include "adc_stream_config.h"
 #include "cutensils.h"
 
+
+#if FAMILY == STM32F1
+#define ADC_SR_TIMER_PRESCALER             36
+#elif FAMILY == STM32F4
+#define ADC_SR_TIMER_PRESCALER             84
+#endif
+
+#define ADC_SR_TIMER_CLOCK_RATE            ((SystemCoreClock/2)/ADC_SR_TIMER_PRESCALER)
 
 #if ADC_STREAM_SR_TIMER_UNIT == 2
 #define ADC_STREAM_SR_TIMER                TIM2
 #define ADC_STREAM_SR_TIMER_CLOCK          RCC_APB1Periph_TIM2
 #if FAMILY == STM32F1
-#define ADC_SR_TIMER_PRESCALER             36
 #define ADC_STREAM_SR_TIMER_TRIGGER_OUT    TIM_TRGOSource_OC2Ref
 #elif FAMILY == STM32F4
-#define ADC_SR_TIMER_PRESCALER             84
 #define ADC_STREAM_SR_TIMER_TRIGGER_OUT    TIM_TRGOSource_Update
 #endif
 
@@ -62,25 +69,14 @@
 #define ADC_STREAM_SR_TIMER                TIM3
 #define ADC_STREAM_SR_TIMER_CLOCK          RCC_APB1Periph_TIM3
 #define ADC_STREAM_SR_TIMER_TRIGGER_OUT    TIM_TRGOSource_Update
-#if FAMILY == STM32F1
-#define ADC_SR_TIMER_PRESCALER             36
-#elif FAMILY == STM32F4
-#define ADC_SR_TIMER_PRESCALER             84
-#endif
 
 #elif ADC_STREAM_SR_TIMER_UNIT == 4
 
 #define ADC_STREAM_SR_TIMER                TIM4
 #define ADC_STREAM_SR_TIMER_CLOCK          RCC_APB1Periph_TIM4
 #define ADC_STREAM_SR_TIMER_TRIGGER_OUT    TIM_TRGOSource_OC4Ref
-#if FAMILY == STM32F1
-#define ADC_SR_TIMER_PRESCALER             36
-#elif FAMILY == STM32F4
-#define ADC_SR_TIMER_PRESCALER             84
-#endif
-#endif
 
-#define ADC_SR_TIMER_CLOCK_RATE            ((SystemCoreClock/2)/ADC_SR_TIMER_PRESCALER)
+#endif
 
 #if FAMILY == STM32F1
 #define ADC_STREAM_DMA_CLOCK               RCC_AHBPeriph_DMA1
@@ -135,6 +131,10 @@
 #define ADC_STREAM_UNIQUE_ADCS             2
 #define ADC_STREAM_UNIQUE_ADC_CLOCKS       {RCC_APB2Periph_ADC1, RCC_APB2Periph_ADC2}
 
+/* ADC CDR register base address */
+#define ADC_STREAM_CDR_ADDRESS               ((uint32_t)0x40012308)
+
+
 #include "stream_defs.h"
 
 void adc_stream_init();
@@ -142,7 +142,7 @@ void adc_stream_start();
 void adc_stream_stop();
 void adc_stream_set_samplerate(uint32_t samplerate);
 uint32_t adc_stream_get_samplerate();
-void adc_stream_connect_service(stream_connection_t* interface);
+void adc_stream_connect_service(stream_connection_t* interface, void* ctx, uint8_t stream_channel);
 
 
 #endif // ADC_STREAM_H
