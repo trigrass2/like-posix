@@ -37,7 +37,7 @@
 #define I2S_USE_MCLKOUT         I2S_MCLKOutput_Enable
 #define I2S_USE_MODE            I2S_Mode_MasterTx
 #define I2S_USE_FORMAT          I2S_DataFormat_16b
-#define I2S_USE_DATA_STD        I2S_Standard_MSB
+#define I2S_USE_DATA_STD        I2S_Standard_LSB
 #define I2S_USE_CPOL            I2S_CPOL_Low
 
 #define I2S_FULL_SCALE_AMPLITUDE_MV  2000

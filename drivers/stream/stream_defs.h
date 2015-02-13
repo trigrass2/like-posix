@@ -52,8 +52,9 @@
 
 #define DEFAULT_STREAM_RESOLUTION            65536
 
-typedef void(*stream_callback_t)(uint16_t* buffer, uint16_t length, uint8_t channels, void* ctx);
 typedef struct _stream_connection_t stream_connection_t;
+
+typedef void(*stream_callback_t)(uint16_t* buffer, uint16_t length, uint8_t channels, stream_connection_t* conn);
 
 typedef struct {
     uint16_t* buffer;                       ///< private to stream driver, points to the current buffer phase or NULL if no data is ready.
@@ -68,13 +69,13 @@ typedef struct {
     uint16_t full_scale_amplitude;          ///< a number that may be used to scale the input/output of a stream.
 } stream_t;
 
-struct _stream_connection_t{
+typedef struct _stream_connection_t{
     stream_callback_t process;              ///< function called to do signal processing on the stream buffer.
     const char* name;                       ///< name string for this channel.
     bool enabled;                           ///< enables processing on this connection.
     void* ctx;                              ///< application context data, set by the application.
     stream_t* stream;                       ///< stream this connection is associated with.
     uint8_t stream_channel;                ///< stream channel this connection is associated with.
-};
+}stream_connection_t;
 
 #endif // STREAM_DEFS_H

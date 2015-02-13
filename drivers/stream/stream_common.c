@@ -187,7 +187,7 @@ void stream_processing_task(stream_t* stream)
             {
                 interface = stream->connections[connection];
                 if(interface && interface->enabled && (interface->stream_channel == channel))
-                    interface->process(stream->buffer + channel, stream->length/2, stream->channels, interface->ctx);
+                    interface->process(stream->buffer + channel, stream->length/2, stream->channels, interface);
             }
         }
     }

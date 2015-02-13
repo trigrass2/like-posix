@@ -51,9 +51,6 @@
 
 #if I2S_STREAM_UNIT == 2
 
-#define I2S_STREAM_I2S_DR                   0x4000380C
-#define I2S_STREAM_I2S_EXT_DR               0x4000340C
-
 #define I2S_STREAM_TX_DMA_STREAM            DMA1_Stream4
 #define I2S_STREAM_TX_DMA_CHANNEL           DMA_Channel_0
 #define I2S_STREAM_TX_DMA_IRQ_CHANNEL       DMA1_Stream4_IRQn
@@ -71,9 +68,10 @@
 #define I2S_STREAM_RX_INTERRUPT_HANDLER     DMA1_Stream3_IRQHandler
 
 #define I2S_STREAM_I2S_PERIPHERAL           SPI2
-#define I2S_STREAM_I2S_PERIPHERAL_EXT       I2S2ext
+#define I2S_STREAM_I2S_EXT_PERIPHERAL       I2S2ext
 #define I2S_STREAM_I2S_CLOCK                RCC_APB1Periph_SPI2
 #define I2S_STREAM_I2S_ALT_FUNCTION         GPIO_AF_SPI2
+#define I2S_STREAM_I2S_EXT_ALT_FUNCTION     GPIO_AF_I2S2ext
 
 #define I2S_STREAM_SD_PORT                  GPIOB
 #define I2S_STREAM_SD_PIN                   GPIO_Pin_15
@@ -93,9 +91,6 @@
 
 #elif I2S_STREAM_UNIT == 3
 
-#define I2S_STREAM_I2S_DR                   0x40003C0C
-#define I2S_STREAM_I2S_EXT_DR               0x4000400C
-
 #define I2S_STREAM_TX_DMA_STREAM            DMA1_Stream7
 #define I2S_STREAM_TX_DMA_CHANNEL           DMA_Channel_0
 #define I2S_STREAM_TX_DMA_IRQ_CHANNEL       DMA1_Stream7_IRQn
@@ -113,9 +108,10 @@
 #define I2S_STREAM_RX_INTERRUPT_HANDLER     DMA1_Stream0_IRQHandler
 
 #define I2S_STREAM_I2S_PERIPHERAL           SPI3
-#define I2S_STREAM_I2S_PERIPHERAL_EXT       I2S3ext
+#define I2S_STREAM_I2S_EXT_PERIPHERAL       I2S3ext
 #define I2S_STREAM_I2S_CLOCK                RCC_APB1Periph_SPI3
 #define I2S_STREAM_I2S_ALT_FUNCTION         GPIO_AF_SPI3
+#define I2S_STREAM_I2S_EXT_ALT_FUNCTION     GPIO_AF_I2S3ext
 
 #define I2S_STREAM_SD_PORT                  GPIOB
 #define I2S_STREAM_SD_PIN                   GPIO_Pin_5

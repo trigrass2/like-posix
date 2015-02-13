@@ -167,9 +167,10 @@ void init_local_i2s_io()
     gpioi.GPIO_Pin = I2S_STREAM_WS_PIN;
     GPIO_Init(I2S_STREAM_WS_PORT, &gpioi);
     GPIO_PinAFConfig(I2S_STREAM_WS_PORT, I2S_STREAM_WS_PINSOURCE, I2S_STREAM_I2S_ALT_FUNCTION);
+
     gpioi.GPIO_Pin = I2S_STREAM_EXT_SD_PIN;
     GPIO_Init(I2S_STREAM_EXT_SD_PORT, &gpioi);
-    GPIO_PinAFConfig(I2S_STREAM_EXT_SD_PORT, I2S_STREAM_EXT_SD_PINSOURCE, I2S_STREAM_I2S_ALT_FUNCTION);
+    GPIO_PinAFConfig(I2S_STREAM_EXT_SD_PORT, I2S_STREAM_EXT_SD_PINSOURCE, I2S_STREAM_I2S_EXT_ALT_FUNCTION);
 }
 
 void init_local_i2s()
@@ -188,11 +189,9 @@ void init_local_i2s()
     i2s_init.I2S_DataFormat = I2S_USE_FORMAT;
     i2s_init.I2S_Standard = I2S_USE_DATA_STD;
     i2s_init.I2S_CPOL = I2S_USE_CPOL;
-
     I2S_Init(I2S_STREAM_I2S_PERIPHERAL, &i2s_init);
-    I2S_FullDuplexConfig(I2S_STREAM_I2S_PERIPHERAL_EXT, &i2s_init);
-
     log_debug(&i2s_tx_stream.log, "I2S initialised");
+    I2S_FullDuplexConfig(I2S_STREAM_I2S_EXT_PERIPHERAL, &i2s_init);
     log_debug(&i2s_rx_stream.log, "I2S initialised");
 }
 
@@ -210,7 +209,7 @@ void init_local_i2s_dma()
     DMA_DeInit(I2S_STREAM_TX_DMA_STREAM);
 
     dma_init.DMA_Channel = I2S_STREAM_TX_DMA_CHANNEL;
-    dma_init.DMA_PeripheralBaseAddr = I2S_STREAM_I2S_DR;
+    dma_init.DMA_PeripheralBaseAddr = (uint32_t)&I2S_STREAM_I2S_PERIPHERAL->DR;
     dma_init.DMA_Memory0BaseAddr = (uint32_t)i2s_tx_stream._buffer;
     dma_init.DMA_DIR = DMA_DIR_MemoryToPeripheral;
     dma_init.DMA_BufferSize = sizeof(i2s_tx_stream_buffer)/sizeof(uint16_t); //Buffer size
@@ -234,7 +233,7 @@ void init_local_i2s_dma()
     DMA_DeInit(I2S_STREAM_RX_DMA_STREAM);
 
     dma_init.DMA_Channel = I2S_STREAM_RX_DMA_CHANNEL;
-    dma_init.DMA_PeripheralBaseAddr = I2S_STREAM_I2S_EXT_DR;
+    dma_init.DMA_PeripheralBaseAddr = (uint32_t)&I2S_STREAM_I2S_EXT_PERIPHERAL->DR;
     dma_init.DMA_Memory0BaseAddr = (uint32_t)i2s_rx_stream._buffer;
     dma_init.DMA_DIR = DMA_DIR_PeripheralToMemory;
     dma_init.DMA_BufferSize = sizeof(i2s_rx_stream_buffer)/sizeof(uint16_t); //Buffer size
@@ -250,7 +249,7 @@ void init_local_i2s_dma()
     dma_init.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
 
     DMA_Init(I2S_STREAM_RX_DMA_STREAM, &dma_init);
-    SPI_I2S_DMACmd(I2S_STREAM_I2S_PERIPHERAL_EXT, SPI_I2S_DMAReq_Rx, ENABLE);
+    SPI_I2S_DMACmd(I2S_STREAM_I2S_EXT_PERIPHERAL, SPI_I2S_DMAReq_Rx, ENABLE);
     DMA_ITConfig(I2S_STREAM_RX_DMA_STREAM, DMA_IT_TC | DMA_IT_HT, ENABLE);
 
     log_debug(&i2s_rx_stream.log, "DMA initialised");
@@ -274,9 +273,8 @@ void i2s_stream_start()
     DMA_Cmd(I2S_STREAM_TX_DMA_STREAM, ENABLE);
     DMA_Cmd(I2S_STREAM_RX_DMA_STREAM, ENABLE);
     I2S_Cmd(I2S_STREAM_I2S_PERIPHERAL, ENABLE);
-    I2S_Cmd(I2S_STREAM_I2S_PERIPHERAL_EXT, ENABLE);
-
     log_debug(&i2s_tx_stream.log, "stream started");
+    I2S_Cmd(I2S_STREAM_I2S_EXT_PERIPHERAL, ENABLE);
     log_debug(&i2s_rx_stream.log, "stream started");
 }
 
@@ -289,16 +287,15 @@ void i2s_stream_stop()
     i2s_rx_stream.buffer = NULL;
 
     I2S_Cmd(I2S_STREAM_I2S_PERIPHERAL, DISABLE);
-    I2S_Cmd(I2S_STREAM_I2S_PERIPHERAL_EXT, DISABLE);
+    I2S_Cmd(I2S_STREAM_I2S_EXT_PERIPHERAL, DISABLE);
 
     SPI_I2S_DMACmd(I2S_STREAM_I2S_PERIPHERAL, SPI_I2S_DMAReq_Tx, DISABLE);
-    SPI_I2S_DMACmd(I2S_STREAM_I2S_PERIPHERAL_EXT, SPI_I2S_DMAReq_Rx, DISABLE);
+    SPI_I2S_DMACmd(I2S_STREAM_I2S_EXT_PERIPHERAL, SPI_I2S_DMAReq_Rx, DISABLE);
 
     // disable I2S DMA channel
     DMA_Cmd(I2S_STREAM_TX_DMA_STREAM, DISABLE);
-    DMA_Cmd(I2S_STREAM_RX_DMA_STREAM, DISABLE);
-
     log_debug(&i2s_tx_stream.log, "stream stopped");
+    DMA_Cmd(I2S_STREAM_RX_DMA_STREAM, DISABLE);
     log_debug(&i2s_rx_stream.log, "stream stopped");
 }
 
@@ -310,14 +307,13 @@ void i2s_stream_set_samplerate(uint32_t samplerate)
     i2s_tx_stream.samplerate = i2s_rx_stream.samplerate = samplerate;
     I2S_InitTypeDef i2s_init;
     i2s_init.I2S_AudioFreq = i2s_tx_stream.samplerate;
-    i2s_init.I2S_MCLKOutput = I2S_MCLKOutput_Enable;
-    i2s_init.I2S_Mode = I2S_Mode_MasterTx;
-    i2s_init.I2S_DataFormat = I2S_DataFormat_16b;
-    i2s_init.I2S_Standard = I2S_Standard_MSB;
-    i2s_init.I2S_CPOL = I2S_CPOL_Low;
-
+    i2s_init.I2S_MCLKOutput = I2S_USE_MCLKOUT;
+    i2s_init.I2S_Mode = I2S_USE_MODE;
+    i2s_init.I2S_DataFormat = I2S_USE_FORMAT;
+    i2s_init.I2S_Standard = I2S_USE_DATA_STD;
+    i2s_init.I2S_CPOL = I2S_USE_CPOL;
     I2S_Init(I2S_STREAM_I2S_PERIPHERAL, &i2s_init);
-    I2S_FullDuplexConfig(I2S_STREAM_I2S_PERIPHERAL_EXT, &i2s_init);
+    I2S_FullDuplexConfig(I2S_STREAM_I2S_EXT_PERIPHERAL, &i2s_init);
 }
 
 /**
