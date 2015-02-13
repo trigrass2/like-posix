@@ -312,6 +312,11 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 
 			// TODO can we used this flag? FA_CREATE_NEW
 		}
+		else if(fte->mode == S_IFIFO)
+		{
+		    // for character devices always read device descriptor file
+		    ff_flags = FA_READ;
+		}
 
 		if(f_open(&fte->file, (const TCHAR*)name, (BYTE)ff_flags) == FR_OK)
 		{
