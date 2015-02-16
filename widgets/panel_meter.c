@@ -52,7 +52,7 @@
  *          .border_colour=FOREST_GREEN,        // colour of border
  *          .size={320, 96}                     // size of background, make x long enough to fit the digits
  *      },                                      // make y the same height as the display font
- *      .textbox = {
+ *      .text = {
  *          .font=&Digital_7_Italic_96,         // display font
  *          .colour=FOREST_GREEN                // display text colour
  *      }
@@ -65,15 +65,13 @@ void init_panel_meter(panel_meter_t* meter, char* buffer, int16_t length, bool r
 {
     // draw background with units
     meter->length = length;
-    meter->length = length;
-    meter->background.type = SQUARE;
-    meter->background.fill = true;
+    meter->text.shape.type = SQUARE;
+    meter->text.shape.fill = true;
     if(rounded)
-        meter->background.radius = 8;
+        meter->text.shape.radius = 8;
     else
-        meter->background.radius = 0;
-    text_set_buffer(&meter->textbox, buffer);
-    text_set_background_shape(&meter->textbox, &meter->background);
+        meter->text.shape.radius = 0;
+    text_set_buffer(&meter->text, buffer);
     memset(buffer, '\0', meter->length);
     draw_panel_meter(meter);
 }
@@ -84,18 +82,18 @@ void init_panel_meter(panel_meter_t* meter, char* buffer, int16_t length, bool r
  */
 void draw_panel_meter(panel_meter_t* meter)
 {
-    const char* buffer = meter->textbox.buffer;
-    const font_t* font = meter->textbox.font;
+    const char* buffer = meter->text.buffer;
+    const font_t* font = meter->text.font;
 
-    text_set_justification(&meter->textbox, JUSTIFY_BOTTOM|JUSTIFY_RIGHT);
-    text_set_buffer(&meter->textbox, meter->units);
-    text_set_font(&meter->textbox, meter->units_font);
-    draw_textbox(&meter->textbox, meter->location);
+    text_set_justification(&meter->text, JUSTIFY_BOTTOM|JUSTIFY_RIGHT);
+    text_set_buffer(&meter->text, meter->units);
+    text_set_font(&meter->text, meter->units_font);
+    text_draw(&meter->text, meter->location);
 
     // reset font / buffer for data text
-    text_set_buffer(&meter->textbox, buffer);
-    text_set_font(&meter->textbox, font);
-    text_set_justification(&meter->textbox, JUSTIFY_LEFT);
+    text_set_buffer(&meter->text, buffer);
+    text_set_font(&meter->text, font);
+    text_set_justification(&meter->text, JUSTIFY_LEFT);
 }
 
 /**
@@ -104,26 +102,26 @@ void draw_panel_meter(panel_meter_t* meter)
  */
 void update_panel_meter(panel_meter_t* meter, float value)
 {
-    text_blank_text(&meter->textbox, meter->location);
-    snprintf((char*)meter->textbox.buffer, meter->length-1, meter->prescision, (double)value);
-    redraw_textbox_text(&meter->textbox, meter->location);
+    text_blank_text(&meter->text, meter->location);
+    snprintf((char*)meter->text.buffer, meter->length-1, meter->prescision, (double)value);
+    text_redraw_text(&meter->text, meter->location);
 }
 
 void panel_meter_set_units(panel_meter_t* meter, const char* units)
 {
-    const char* buffer = meter->textbox.buffer;
-    const font_t* font = meter->textbox.font;
-    text_set_justification(&meter->textbox, JUSTIFY_BOTTOM|JUSTIFY_RIGHT);
-    text_set_buffer(&meter->textbox, meter->units);
-    text_set_font(&meter->textbox, meter->units_font);
-    text_blank_text(&meter->textbox, meter->location);
+    const char* buffer = meter->text.buffer;
+    const font_t* font = meter->text.font;
+    text_set_justification(&meter->text, JUSTIFY_BOTTOM|JUSTIFY_RIGHT);
+    text_set_buffer(&meter->text, meter->units);
+    text_set_font(&meter->text, meter->units_font);
+    text_blank_text(&meter->text, meter->location);
     meter->units = units;
-    text_set_buffer(&meter->textbox, meter->units);
-    redraw_textbox_text(&meter->textbox, meter->location);
+    text_set_buffer(&meter->text, meter->units);
+    text_redraw_text(&meter->text, meter->location);
     // reset font / buffer for data text
-    text_set_buffer(&meter->textbox, buffer);
-    text_set_font(&meter->textbox, font);
-    text_set_justification(&meter->textbox, JUSTIFY_LEFT);
+    text_set_buffer(&meter->text, buffer);
+    text_set_font(&meter->text, font);
+    text_set_justification(&meter->text, JUSTIFY_LEFT);
 }
 
 const char* panel_meter_get_units(panel_meter_t* meter)

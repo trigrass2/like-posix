@@ -37,17 +37,58 @@
 #include "lcd.h"
 #include "image.h"
 
-void draw_image(const image_t* image, point_t location)
+void image_init(image_t* image, point_t location)
+{
+    image->location = location;
+}
+
+void image_draw(image_t* image)
 {
     uint32_t i;
     LCD_LOCK();
 
     lcd_set_entry_mode_window();
-    lcd_set_window(location.x, location.y, image->width, image->height);
+    lcd_set_window(image->location.x, image->location.y, image->size.x, image->size.y);
     lcd_set_cursor(0, 0);
     lcd_rw_gram();
-    for(i = 0; i < (uint32_t)(image->width * image->height); i++)
+    for(i = 0; i < (uint32_t)(image->size.x * image->size.y); i++)
         write_data(image->data[i]);
+    lcd_set_entry_mode_normal();
+
+    LCD_UNLOCK();
+}
+
+void icon_setup(icon_t* icon, point_t location, colour_t foreground, colour_t background)
+{
+    icon->foreground = foreground;
+    icon->background = background;
+    icon->location = location;
+}
+
+void icon_draw(icon_t* icon)
+{
+    uint32_t i;
+    uint8_t alpha;
+
+    LCD_LOCK();
+
+    lcd_set_entry_mode_window();
+    lcd_set_window(icon->location.x, icon->location.y, icon->size.x, icon->size.y);
+    lcd_set_cursor(0, 0);
+    lcd_rw_gram();
+
+    for(i = 0; i < (uint32_t)(icon->size.x * icon->size.y); i++)
+    {
+        alpha = icon->data[i];
+        // speed up writes, no math for alpha = 0 or 255
+        if(alpha == 0)
+            write_data(icon->background);
+        else if(alpha == MAX_ALPHA)
+            write_data(icon->foreground);
+        else
+            write_data(blend_colour(icon->foreground, alpha, icon->background, MAX_ALPHA));
+    }
+
     lcd_set_entry_mode_normal();
 
     LCD_UNLOCK();

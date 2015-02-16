@@ -38,117 +38,107 @@
 #define DEBUG_TOUCH_KEY(...) ((void)0)
 #endif
 
-static void touch_on_key_stroke(touch_handler_t* handler);
+static void touch_key_on_key_stroke(touch_handler_t* handler);
 
 
-bool touch_add_key(touch_handler_t* handler)
+bool touch_key_add(touch_key_t* key)
 {
-	handler->backend_key_callback = touch_on_key_stroke;
-	handler->pressed = false;
-
-	touch_redraw_key(handler);
-	return touch_add_handler(handler);
+    key->handler.backend_key_callback = touch_key_on_key_stroke;
+    key->handler.pressed = false;
+	touch_key_redraw(key);
+	touch_panel_handler_init(&key->handler, &key->location, &key->text.shape.size, key);
+	return touch_panel_add_handler(&key->handler);
 }
 
-void touch_enable_key(touch_handler_t* handler, bool enable)
+void touch_key_enable(touch_key_t* key, bool enable)
 {
-    handler->enabled = enable;
+    key->handler.enabled = enable;
 }
 
-void touch_redraw_key(touch_handler_t* handler)
+void touch_key_redraw(touch_key_t* key)
 {
-	draw_textbox(handler->keydata->text, handler->location);
+	text_draw(&key->text, key->location);
 }
 
-void touch_redraw_text(touch_handler_t* handler)
+void touch_key_redraw_text(touch_key_t* key)
 {
-	redraw_textbox_text(handler->keydata->text, handler->location);
+	text_redraw_text(&key->text, key->location);
 }
 
-void touch_set_callback(touch_handler_t* key, touch_callback_t callback)
+void touch_key_set_callback(touch_key_t* key, touch_callback_t callback)
 {
-	key->key_callback = callback;
+    key->handler.key_callback = callback;
 }
 
-void touch_set_appdata(touch_handler_t* key, void* appdata)
+void touch_key_set_appdata(touch_key_t* key, void* appdata)
 {
-	key->appdata = appdata;
+    key->handler.appdata = appdata;
 }
 
-void* touch_get_appdata(touch_handler_t* handler)
+void* touch_key_get_appdata(touch_key_t* key)
 {
-	return handler->appdata;
+	return key->handler.appdata;
 }
 
-text_t* touch_get_text(touch_handler_t* handler)
+text_t* touch_key_get_text(touch_key_t* key)
 {
-	return handler->keydata->text;
+	return &key->text;
 }
 
-bool touch_press_is(touch_handler_t* handler, keypress_type_t type)
+bool touch_key_press_is(touch_key_t* key, keypress_type_t type)
 {
-	return handler->press_type == type;
+	return key->handler.press_type == type;
 }
 
-bool touch_key_is(touch_handler_t* handler, touch_handler_t* key)
+keypress_type_t touch_key_get_press_type(touch_key_t* key)
 {
-	return handler == key;
+    return key->handler.press_type;
 }
 
-keypress_type_t touch_get_press_type(touch_handler_t* handler)
+void touch_key_on_key_stroke(touch_handler_t* handler)
 {
-    return handler->press_type;
-}
+    touch_key_t* key = (touch_key_t*)(handler->parent);
 
-const char* touch_get_press_type_string(touch_handler_t* handler)
-{
-    return key_press_type[handler->press_type];
-}
-
-void touch_on_key_stroke(touch_handler_t* handler)
-{
-	DEBUG_TOUCH_KEY("%s %s\n", touch_get_press_type_string(handler), handler->keydata->text->buffer);
+	DEBUG_TOUCH_KEY("%s %s\n", touch_panel_get_press_type_string(handler), key->text.buffer);
 
 	switch(handler->press_type)
 	{
 		case KEY_DOWN:
 		{
-			bool redraw = handler->keydata->text->shape->fill_colour !=
-				handler->keydata->alt_colour;
+			bool redraw = key->text.shape.fill_colour != key->alt_colour;
 			if(redraw)
 			{
-				colour_t colour = handler->keydata->text->shape->fill_colour;
-				handler->keydata->text->shape->fill_colour = handler->keydata->alt_colour;
-				handler->keydata->alt_colour = colour;
+				colour_t colour = key->text.shape.fill_colour;
+				key->text.shape.fill_colour = key->alt_colour;
+				key->alt_colour = colour;
 			}
 			if(redraw)
-				touch_redraw_key(handler);
+				touch_key_redraw(key);
 			if(handler->key_callback)
-				handler->key_callback(handler);
+			    handler->key_callback(key);
 		}
 		break;
 
 		case KEY_UP:
 		{
-			bool redraw = handler->keydata->text->shape->fill_colour !=
-				handler->keydata->alt_colour;
+			bool redraw = key->text.shape.fill_colour != key->alt_colour;
 			if(redraw)
 			{
-				colour_t colour = handler->keydata->text->shape->fill_colour;
-				handler->keydata->text->shape->fill_colour = handler->keydata->alt_colour;
-				handler->keydata->alt_colour = colour;
+				colour_t colour = key->text.shape.fill_colour;
+				key->text.shape.fill_colour = key->alt_colour;
+				key->alt_colour = colour;
 			}
 			if(redraw)
-				touch_redraw_key(handler);
+			    touch_key_redraw(key);
 			if(handler->key_callback)
-				handler->key_callback(handler);
+			    handler->key_callback(key);
 		}
 		break;
 
 		// KEY_TAP, KEY_LONG_PRESS,KEY_HOLD, SWIPE_LEFT, SWIPE_RIGHT, SWIPE_UP, SWIPE_DOWN
 		default:
-			if(handler->key_callback)
-				handler->key_callback(handler);
+		    if(handler->key_callback)
+		        handler->key_callback(key);
 		break;
 	}
 }

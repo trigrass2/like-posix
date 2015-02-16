@@ -38,12 +38,32 @@
 #ifndef IMAGE_H_
 #define IMAGE_H_
 
+/**
+ * an image is a set of pixel data, drawn to the screen verbatim
+ */
 typedef struct  {
-    uint16_t width;
-    uint16_t height;
+    const point_t size;
+    point_t location;
     const uint16_t* data;
 } image_t;
 
-void draw_image(const image_t* image, point_t location);
+/**
+ * an icon is a set of pixel data, defined in grayscale. the pixel value is treated as the ratio
+ * between the foreground and background colors.
+ */
+typedef struct  {
+    const point_t size;
+    point_t location;
+    colour_t foreground;
+    colour_t background;
+    const uint8_t* data;
+} icon_t;
+
+
+void image_init(image_t* image, point_t location);
+void image_draw(image_t* image);
+
+void icon_init(icon_t* icon, point_t location, colour_t foreground, colour_t background);
+void icon_draw(icon_t* icon);
 
 #endif // IMAGE_H_

@@ -43,8 +43,7 @@ typedef struct {
     const char* units;
     const font_t* units_font;
     point_t location;
-    shape_t background;
-    text_t textbox;
+    text_t text;
 } panel_meter_t;
 
 void init_panel_meter(panel_meter_t* meter, char* buffer, int16_t length, bool rounded);

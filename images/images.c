@@ -115,9 +115,9 @@ static const uint16_t micro_sd_blue_aa_data[] = {
     0x0000,0x0000,0x0000,0x0000,
 };
 
-const image_t micro_sd_blue_aa = {
-    23,
-    28,
+image_t micro_sd_blue_aa = {
+    {23,28},
+    {0,0},
     micro_sd_blue_aa_data
 };
 
@@ -205,9 +205,9 @@ static const uint16_t micro_sd_gray_aa_data[] = {
     0x1082,0x0841,0x0020,0x0000,
 };
 
-const image_t micro_sd_gray_aa = {
-    23,
-    28,
+image_t micro_sd_gray_aa = {
+    {23,28},
+    {0,0},
     micro_sd_gray_aa_data
 };
 
@@ -247,9 +247,9 @@ static const uint16_t down_gray_aa_data[] = {
     0x10A2,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
 };
 
-const image_t down_gray_aa = {
-    15,
-    17,
+image_t down_gray_aa = {
+    {15,17},
+    {0,0},
     down_gray_aa_data
 };
 
@@ -288,9 +288,9 @@ static const uint16_t down_dim_aa_data[] = {
     0x1903,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
 };
 
-const image_t down_dim_aa = {
-    15,
-    17,
+image_t down_dim_aa = {
+    {15,17},
+    {0,0},
     down_dim_aa_data
 };
 
@@ -329,9 +329,9 @@ static const uint16_t up_bright_aa_data[] = {
     0xFB00,0xFB00,0xFB00,0xE2A0,0x1840,0x0000,0x0000,
 };
 
-const image_t up_bright_aa = {
-    15,
-    17,
+image_t up_bright_aa = {
+    {15,17,},
+    {0,0},
     up_bright_aa_data
 };
 
@@ -370,9 +370,9 @@ static const uint16_t up_gray_aa_data[] = {
     0x738E,0x738E,0x738E,0x630C,0x0841,0x0000,0x0000,
 };
 
-const image_t up_gray_aa = {
-    15,
-    17,
+image_t up_gray_aa = {
+    {15,17},
+    {0,0},
     up_gray_aa_data
 };
 
@@ -411,9 +411,9 @@ static const uint16_t up_dim_aa_data[] = {
     0xBC2C,0xBC2C,0xBC0C,0xA3AA,0x0820,0x0000,0x0000,
 };
 
-const image_t up_dim_aa = {
-    15,
-    17,
+image_t up_dim_aa = {
+    {15,17},
+    {0,0},
     up_dim_aa_data
 };
 
@@ -452,9 +452,9 @@ static const uint16_t down_bright_aa_data[] = {
     0x0140,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
 };
 
-const image_t down_bright_aa = {
-    15,
-    17,
+image_t down_bright_aa = {
+    {15,17},
+    {0,0},
     down_bright_aa_data
 };
 

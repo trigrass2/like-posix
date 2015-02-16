@@ -43,7 +43,7 @@
 #endif
 
 typedef struct {
-    text_t* text;
+    text_t text;
     TaskHandle_t statusbar_task_handle;
     point_t location;
 #if STATUSBAR_INCLUDE_CLOCK
@@ -58,25 +58,21 @@ static void statusbar_task(void* pvParameters);
 void statusbar_update_clock();
 #endif
 
-static shape_t statusbar_shape = {
-    .type=SQUARE,
-    .fill_colour=STATUSBAR_BACKGROUND_COLOUR,
-    .border_colour=STATUSBAR_BORDER_COLOUR,
-    .fill=STATUSBAR_FILL,
-    .size=STATUSBAR_SIZE,
-    .radius=5,
-};
-
-static text_t statusbar_text = {
-    .buffer=NULL,
-    .font=&STATUSBAR_FONT,
-    .colour=STATUSBAR_TEXT_COLOUR,
-    .justify=JUSTIFY_CENTRE,
-    .shape=&statusbar_shape
-};
-
 static statusbar_t statusbar = {
-    .text=&statusbar_text,
+    .text = {
+        .buffer=NULL,
+        .font=&STATUSBAR_FONT,
+        .colour=STATUSBAR_TEXT_COLOUR,
+        .justify=JUSTIFY_CENTRE,
+        .shape={
+            .type=SQUARE,
+            .fill_colour=STATUSBAR_BACKGROUND_COLOUR,
+            .border_colour=STATUSBAR_BORDER_COLOUR,
+            .fill=STATUSBAR_FILL,
+            .size=STATUSBAR_SIZE,
+            .radius=5,
+        },
+    },
     .statusbar_task_handle=NULL,
     .location=STATUSBAR_ORIGIN,
 #if STATUSBAR_INCLUDE_CLOCK
@@ -90,6 +86,30 @@ void statusbar_init()
 //    RTC_Configuration();
 #endif
     statusbar.clock_buffer[0] = '\0';
+
+    uint16_t icon_offset = statusbar.location.x + STATUSBAR_GAP;
+
+#if STATUSBAR_INCLUDE_SD_STATUS_ICON
+    image_init(&micro_sd_blue_aa, (point_t){icon_offset, statusbar.location.y + SD_STATUS_Y_GAP});
+    image_init(&micro_sd_gray_aa, (point_t){icon_offset, statusbar.location.y + SD_STATUS_Y_GAP});
+
+    icon_offset += micro_sd_blue_aa.size.x;
+    icon_offset += STATUSBAR_GAP;
+#endif
+
+#if STATUSBAR_INCLUDE_LINK_DATA_ICONS
+    image_init(&up_bright_aa, (point_t){icon_offset, statusbar.location.y + LINK_DATA_Y_GAP});
+    image_init(&up_gray_aa, (point_t){icon_offset, statusbar.location.y + LINK_DATA_Y_GAP});
+
+    icon_offset += up_gray_aa.size.x;
+
+    image_init(&down_bright_aa, (point_t){icon_offset, (statusbar.location.y + STATUSBAR_SIZE_Y) - down_bright_aa.size.y - LINK_DATA_Y_GAP});
+    image_init(&down_gray_aa, (point_t){icon_offset, (statusbar.location.y + STATUSBAR_SIZE_Y) - down_gray_aa.size.y - LINK_DATA_Y_GAP});
+
+    icon_offset += down_gray_aa.size.x;
+    icon_offset += STATUSBAR_GAP;
+#endif
+
     assert_true(xTaskCreate(statusbar_task,
                              "statusbar",
                              configMINIMAL_STACK_SIZE + STATUSBAR_TASK_STACK_SIZE,
@@ -102,17 +122,17 @@ void statusbar_init()
 void statusbar_update_clock()
 {
     const char* ampm;
-    text_set_buffer(statusbar.text, statusbar.clock_buffer);
-    text_set_justification(statusbar.text, CLOCK_JUSTIFICATION);
+    text_set_buffer(&statusbar.text, statusbar.clock_buffer);
+    text_set_justification(&statusbar.text, CLOCK_JUSTIFICATION);
 
     time_t t = time(NULL);
     struct tm* lt = localtime(&t);
 
     ampm = lt->tm_hour > 11 ? "pm" : "am";
 
-    text_blank_text(statusbar.text, statusbar.location);
+    text_blank_text(&statusbar.text, statusbar.location);
     snprintf((char*)statusbar.clock_buffer, sizeof(statusbar.clock_buffer)-1, statusbar.clock_format, lt->tm_hour%12, lt->tm_min, lt->tm_sec, ampm);
-    redraw_textbox_text(statusbar.text, statusbar.location);
+    text_redraw_text(&statusbar.text, statusbar.location);
 }
 #endif
 
@@ -120,21 +140,19 @@ void statusbar_task(void* pvParameters)
 {
     (void)pvParameters;
     portTickType last_execution_time = xTaskGetTickCount();
+
 #if STATUSBAR_INCLUDE_LINK_DATA_ICONS
     unsigned long sent = 0;
     unsigned long received = 0;
     bool up = true;
     bool down = true;
 #endif
-    uint16_t icon_offset;
 
-    redraw_textbox_background(statusbar.text, statusbar.location);
+    text_redraw_background(&statusbar.text, statusbar.location);
 
     for(;;)
     {
         vTaskDelayUntil(&last_execution_time, STATUSBAR_UPDATE_RATE/portTICK_RATE_MS);
-
-        icon_offset = statusbar.location.x + STATUSBAR_GAP;
 
 #if STATUSBAR_INCLUDE_CLOCK
         statusbar_update_clock();
@@ -142,17 +160,10 @@ void statusbar_task(void* pvParameters)
 
 #if STATUSBAR_INCLUDE_SD_STATUS_ICON
         if(sdfs_ready())
-        {
-            draw_image(&micro_sd_blue_aa, (point_t){icon_offset, statusbar.location.y + SD_STATUS_Y_GAP});
-            icon_offset += micro_sd_blue_aa.width;
-        }
+            image_draw(&micro_sd_blue_aa);
         else
-        {
-            draw_image(&micro_sd_gray_aa, (point_t){icon_offset, statusbar.location.y + SD_STATUS_Y_GAP});
-            icon_offset += micro_sd_gray_aa.width;
-        }
+            image_draw(&micro_sd_gray_aa);
 #endif
-        icon_offset += STATUSBAR_GAP;
 
 #if STATUSBAR_INCLUDE_LINK_DATA_ICONS
         if(net_ip_packets_sent() > sent)
@@ -161,16 +172,14 @@ void statusbar_task(void* pvParameters)
             if(!up)
             {
                 up = true;
-                draw_image(&up_bright_aa, (point_t){icon_offset, statusbar.location.y + LINK_DATA_Y_GAP});
+                image_draw(&up_bright_aa);
             }
         }
         else if(up)
         {
             up = false;
-            draw_image(&up_gray_aa, (point_t){icon_offset, statusbar.location.y + LINK_DATA_Y_GAP});
+            image_draw(&up_gray_aa);
         }
-
-        icon_offset += up_gray_aa.width;
 
         if(net_ip_packets_received() > received)
         {
@@ -178,18 +187,14 @@ void statusbar_task(void* pvParameters)
             if(!down)
             {
                 down = true;
-                draw_image(&down_bright_aa, (point_t){icon_offset, (statusbar.location.y + STATUSBAR_SIZE_Y) - down_bright_aa.height - LINK_DATA_Y_GAP});
+                image_draw(&down_bright_aa);
             }
         }
         else if(down)
         {
             down = false;
-            draw_image(&down_gray_aa, (point_t){icon_offset, (statusbar.location.y + STATUSBAR_SIZE_Y) - down_gray_aa.height - LINK_DATA_Y_GAP});
+            image_draw(&down_gray_aa);
         }
-
-        icon_offset += down_gray_aa.width;
-        icon_offset += STATUSBAR_GAP;
-
 #endif
 
         taskYIELD();

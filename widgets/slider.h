@@ -44,16 +44,12 @@
 #define SLIDER_SLIDE_MARGINS    2
 
 typedef struct {
-    point_t location;
-    shape_t background;
     point_t slide_position;
     shape_t slide;
     int16_t min;
     int16_t max;
     int16_t value;
-    text_t textbox;
     touch_key_t touch_key;
-    touch_handler_t handler;
 } slider_t;
 
 void slider_init(slider_t* slider, point_t location, point_t size, int16_t min, int16_t max);

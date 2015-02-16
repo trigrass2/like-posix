@@ -32,13 +32,13 @@
 
 #include "slider.h"
 
-static void slider_touch_callback(touch_handler_t* slider);
+static void slider_touch_callback(touch_key_t* handler);
 
 void slider_init(slider_t* slider, point_t location, point_t size, int16_t min, int16_t max)
 {
     slider->slide_position.x = location.x + SLIDER_SLIDE_MARGINS;
     slider->slide_position.y = location.y + SLIDER_SLIDE_MARGINS;
-    slider->location = location;
+    slider->touch_key.location = location;
     slider->min = min;
     slider->max = max;
     slider->value = min;
@@ -51,56 +51,52 @@ void slider_init(slider_t* slider, point_t location, point_t size, int16_t min, 
     slider->slide.size.y = size.y/SLIDER_SLIDE_RATIO;
     slider->slide.type = SQUARE;
 
-    slider->background.border_colour = DARK_GREY;
-    slider->background.fill = true;
-    slider->background.fill_colour = MID_GREY;
-    slider->background.radius = 2;
-    slider->background.size = size;
-    slider->background.type = SQUARE;
+    slider->touch_key.text.shape.border_colour = DARK_GREY;
+    slider->touch_key.text.shape.fill = true;
+    slider->touch_key.text.shape.fill_colour = MID_GREY;
+    slider->touch_key.text.shape.radius = 2;
+    slider->touch_key.text.shape.size = size;
+    slider->touch_key.text.shape.type = SQUARE;
 
-    slider->textbox.buffer = NULL;
-    slider->textbox.colour = BLACK;
-    slider->textbox.font = &Ubuntu_16;
-    slider->textbox.justify = JUSTIFY_LEFT;
-    slider->textbox.shape = &slider->background;
+    slider->touch_key.text.buffer = NULL;
+    slider->touch_key.text.colour = BLACK;
+    slider->touch_key.text.font = &Ubuntu_16;
+    slider->touch_key.text.justify = JUSTIFY_LEFT;
 
-    slider->touch_key.text = &slider->textbox;
     slider->touch_key.alt_colour = DARK_GREY;
 
-    slider->handler.location = location;
-    slider->handler.keydata = &slider->touch_key;
+    touch_key_set_callback(&slider->touch_key, (touch_callback_t)slider_touch_callback);
+    touch_key_set_appdata(&slider->touch_key, slider);
+    touch_key_add(&slider->touch_key);
+    touch_key_enable(&slider->touch_key, true);
 
-    touch_set_callback(&slider->handler, slider_touch_callback);
-    touch_set_appdata(&slider->handler, slider);
-    touch_add_key(&slider->handler);
-    touch_enable_key(&slider->handler, true);
     draw_shape(&slider->slide, slider->slide_position);
 }
 
-void slider_touch_callback(touch_handler_t* th)
+void slider_touch_callback(touch_key_t* key)
 {
-    slider_t* slider = (slider_t*)touch_get_appdata(th);
+    slider_t* slider = (slider_t*)touch_key_get_appdata(key);
     colour_t fill;
     colour_t brdr;
     int16_t value = slider->value;
     point_t pt;
 
-    if(th->press_type == KEY_HOLD)
+    if(key->handler.press_type == KEY_HOLD)
     {
-        pt = touch_xy();
+        pt = touch_panel_xy();
 
         // move the handle to the new position
-        if(pt.y < slider->location.y + SLIDER_SLIDE_MARGINS)
-            pt.y = slider->location.y + SLIDER_SLIDE_MARGINS;
-        else if(pt.y > slider->location.y + slider->background.size.y - (slider->slide.size.y + SLIDER_SLIDE_MARGINS))
-            pt.y = slider->location.y + slider->background.size.y - (slider->slide.size.y + SLIDER_SLIDE_MARGINS);
+        if(pt.y < slider->touch_key.location.y + SLIDER_SLIDE_MARGINS)
+            pt.y = slider->touch_key.location.y + SLIDER_SLIDE_MARGINS;
+        else if(pt.y > slider->touch_key.location.y + slider->touch_key.text.shape.size.y - (slider->slide.size.y + SLIDER_SLIDE_MARGINS))
+            pt.y = slider->touch_key.location.y + slider->touch_key.text.shape.size.y - (slider->slide.size.y + SLIDER_SLIDE_MARGINS);
 
         // calculate application freindly slider value
         // min + ((((max - min ) * curr pixel) / (pixel range))
         value = slider->min + (((slider->max - slider->min) *
-           (pt.y - (slider->location.y + SLIDER_SLIDE_MARGINS))) /
-           ((slider->location.y + slider->textbox.shape->size.y - (SLIDER_SLIDE_MARGINS + slider->slide.size.y))  -
-           (slider->location.y + SLIDER_SLIDE_MARGINS)));
+           (pt.y - (slider->touch_key.location.y + SLIDER_SLIDE_MARGINS))) /
+           ((slider->touch_key.location.y + slider->touch_key.text.shape.size.y - (SLIDER_SLIDE_MARGINS + slider->slide.size.y))  -
+           (slider->touch_key.location.y + SLIDER_SLIDE_MARGINS)));
 
         if(slider->value != value)
         {
@@ -108,8 +104,8 @@ void slider_touch_callback(touch_handler_t* th)
             fill = slider->slide.fill_colour;
             brdr = slider->slide.border_colour;
             // undraw the slide handle
-            slider->slide.border_colour = slider->background.fill_colour;
-            slider->slide.fill_colour = slider->background.fill_colour;
+            slider->slide.border_colour = slider->touch_key.text.shape.fill_colour;
+            slider->slide.fill_colour = slider->touch_key.text.shape.fill_colour;
             draw_shape(&slider->slide, slider->slide_position);
             // restore colours, update position
             slider->slide.fill_colour = fill;
@@ -118,7 +114,7 @@ void slider_touch_callback(touch_handler_t* th)
         }
     }
     // redraw slide handle
-    if((slider->value != value) || (th->press_type == KEY_UP))
+    if((slider->value != value) || (key->handler.press_type == KEY_UP))
     {
         // save new value
         slider->value = value;
@@ -129,8 +125,8 @@ void slider_touch_callback(touch_handler_t* th)
 void slider_set_colours(slider_t* slider, colour_t border, colour_t background, colour_t alt_background,
                         colour_t slide_border, colour_t slide_background)
 {
-    slider->background.border_colour = border;
-    slider->background.fill_colour = background;
+    slider->touch_key.text.shape.border_colour = border;
+    slider->touch_key.text.shape.fill_colour = background;
     slider->slide.border_colour = slide_border;
     slider->slide.fill_colour = slide_background;
     slider->touch_key.alt_colour = alt_background;
@@ -138,6 +134,6 @@ void slider_set_colours(slider_t* slider, colour_t border, colour_t background, 
 
 void slider_redraw(slider_t* slider)
 {
-    touch_redraw_key(&slider->handler);
+    touch_key_redraw(&slider->touch_key);
     draw_shape(&slider->slide, slider->slide_position);
 }

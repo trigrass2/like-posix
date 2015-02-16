@@ -40,22 +40,27 @@
 #ifndef TOUCH_KEY_H_
 #define TOUCH_KEY_H_
 
+typedef struct {
+    text_t text;
+    colour_t alt_colour;                ///< text string colour
+    point_t location;
+    touch_handler_t handler;
+}touch_key_t;
+
 // define to enable debug
 // #define DEBUG_TOUCH_KEY_PRINTF
 
-bool touch_add_key(touch_handler_t* key);
-void touch_redraw_key(touch_handler_t* handler);
-void touch_redraw_text(touch_handler_t* handler);
-void touch_enable_key(touch_handler_t* handler, bool enable);
+bool touch_key_add(touch_key_t* key);
+void touch_key_redraw(touch_key_t* key);
+void touch_key_redraw_text(touch_key_t* key);
+void touch_key_enable(touch_key_t* key, bool enable);
 
-text_t* touch_get_text(touch_handler_t* handler);
-keypress_type_t touch_get_press_type(touch_handler_t* handler);
-bool touch_press_is(touch_handler_t* handler, keypress_type_t type);
-bool touch_key_is(touch_handler_t* handler, touch_handler_t* key);
-const char* touch_get_press_type_string(touch_handler_t* handler);
-void* touch_get_appdata(touch_handler_t* key);
+text_t* touch_key_get_text(touch_key_t* key);
+keypress_type_t touch_key_get_press_type(touch_key_t* key);
+bool touch_key_press_is(touch_key_t* key, keypress_type_t type);
 
-void touch_set_callback(touch_handler_t* key, touch_callback_t callback);
-void touch_set_appdata(touch_handler_t* key, void* appdata);
+void touch_key_set_callback(touch_key_t* key, touch_callback_t callback);
+void touch_key_set_appdata(touch_key_t* key, void* appdata);
+void* touch_key_get_appdata(touch_key_t* key);
 
 #endif // TOUCH_KEY_H_

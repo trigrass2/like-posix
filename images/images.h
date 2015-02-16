@@ -36,14 +36,14 @@
 #ifndef IMAGES_H_
 #define IMAGES_H_
 
-extern const image_t micro_sd_gray_aa;
-extern const image_t micro_sd_blue_aa;
+extern image_t micro_sd_gray_aa;
+extern image_t micro_sd_blue_aa;
 
-extern const image_t up_bright_aa;
-extern const image_t up_dim_aa;
-extern const image_t up_gray_aa;
-extern const image_t down_bright_aa;
-extern const image_t down_dim_aa;
-extern const image_t down_gray_aa;
+extern image_t up_bright_aa;
+extern image_t up_dim_aa;
+extern image_t up_gray_aa;
+extern image_t down_bright_aa;
+extern image_t down_dim_aa;
+extern image_t down_gray_aa;
 
 #endif // IMAGES_H_
