@@ -77,36 +77,35 @@ typedef enum {
 	KEY_TAP,
 } keypress_type_t;
 
-typedef struct {
-	text_t* text;
-	colour_t alt_colour;				///< text string colour
-}touch_key_t;
-
 typedef struct _touch_handler_t touch_handler_t;
 
-typedef void(*touch_callback_t)(touch_handler_t*);
+typedef void(*touch_backend_callback_t)(touch_handler_t*);
+typedef void(*touch_callback_t)(void*);
 
-struct _touch_handler_t {
+typedef struct _touch_handler_t {
     bool enabled;							///< enables / disables key callbacks
-	point_t location;						///< the location of the key on the display
-	touch_key_t* keydata;					///< the graphical key data
+    void* parent;                           ///< point to the parent object - most likely a touch_key_t
+	point_t* location;						///< the location of the key on the display
+	point_t* size;					        ///< the graphical size of the key
 	void* appdata;							///< set by the application, is a pointer to application data.
 	touch_callback_t key_callback;			///< set by application to be run on key press
-	touch_callback_t backend_key_callback;	///< not to be set by application.
+	touch_backend_callback_t backend_key_callback;	///< not to be set by application.
 	bool pressed;							///< read only by application. the current state of the key (true = presed, false = not pressed)
 	bool long_pressed;						///< read only by application. the current state of the key (true = long presed, false = not long pressed)
 	keypress_type_t press_type;				///< read only by application. the direction of a swipe on the key.
-};
+}touch_handler_t;
 
-bool touch_init();
-point_t touch_xy();
+bool touch_panel_init();
+point_t touch_panel_xy();
 
-bool touch_add_handler(touch_handler_t* handler);
-void touch_remove_handler(touch_handler_t* handler);
-void touch_clear_handlers();
-void touch_set_long_press_duration(uint16_t duration);
-void touch_set_tap_duration(uint16_t min_duration, uint16_t max_duration);
-void touch_set_swipe_length(uint16_t length);
+void touch_panel_handler_init(touch_handler_t* handler, point_t* location, point_t* size, void* parent);
+bool touch_panel_add_handler(touch_handler_t* handler);
+void touch_panel_remove_handler(touch_handler_t* handler);
+void touch_panel_clear_handlers();
+void touch_panel_set_long_press_duration(uint16_t duration);
+void touch_panel_set_tap_duration(uint16_t min_duration, uint16_t max_duration);
+void touch_panel_set_swipe_length(uint16_t length);
+const char* touch_panel_get_press_type_string(touch_handler_t* handler);
 
 
 #endif ///< TOUCH_PANEL_H_

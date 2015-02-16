@@ -60,21 +60,21 @@ typedef struct {
 
 touch_task_t touch_task_data;
 
-static void touch_interpreter_task(void *pvParameters);
+static void touch_panel_interpreter_task(void *pvParameters);
 
 /**
  * initializes the touch panel driver, and starts the touch panel interpreter task.
  */
-bool touch_init()
+bool touch_panel_init()
 {
     panel_init();
     memset(&touch_task_data, 0, sizeof(touch_task_t));
 
-    touch_set_long_press_duration(TOUCH_DEFAULT_LONG_PRESS_MS);
-    touch_set_tap_duration(TOUCH_DEFAULT_TAP_MIN_MS, TOUCH_DEFAULT_TAP_MAX_MS);
-    touch_set_swipe_length(TOUCH_DEFAULT_SWIPE_LENGTH);
+    touch_panel_set_long_press_duration(TOUCH_DEFAULT_LONG_PRESS_MS);
+    touch_panel_set_tap_duration(TOUCH_DEFAULT_TAP_MIN_MS, TOUCH_DEFAULT_TAP_MAX_MS);
+    touch_panel_set_swipe_length(TOUCH_DEFAULT_SWIPE_LENGTH);
 
-    return xTaskCreate(touch_interpreter_task,
+    return xTaskCreate(touch_panel_interpreter_task,
                         "touch",
                         configMINIMAL_STACK_SIZE + TOUCH_TASK_STACK_SIZE,
                         &touch_task_data,
@@ -82,13 +82,27 @@ bool touch_init()
                         NULL) == pdPASS;
 }
 
+const char* touch_panel_get_press_type_string(touch_handler_t* handler)
+{
+    return key_press_type[handler->press_type];
+}
 /**
  * @retval the last touched point - best read from a callback
  * registered with a touch handler.
  */
-point_t touch_xy()
+point_t touch_panel_xy()
 {
 	return touch_task_data._touch_point;
+}
+
+/**
+ * initializes the touch handler.
+ */
+void touch_panel_handler_init(touch_handler_t* handler, point_t* location, point_t* size, void* parent)
+{
+    handler->location = location;
+    handler->size = size;
+    handler->parent = parent;
 }
 
 /**
@@ -96,9 +110,11 @@ point_t touch_xy()
  * with a key or other graphical object on the
  * LCD under the touch panel.
  *
+ * Note: be sure to call touch_panel_handler_init() before calling this function.
+ *
  * @retval returns true if the handler was added.
  */
-bool touch_add_handler(touch_handler_t* handler)
+bool touch_panel_add_handler(touch_handler_t* handler)
 {
 	assert_param(handler->backend_key_callback != NULL);
 
@@ -116,7 +132,7 @@ bool touch_add_handler(touch_handler_t* handler)
 /**
  * removes a touch handler.
  */
-void touch_remove_handler(touch_handler_t* handler)
+void touch_panel_remove_handler(touch_handler_t* handler)
 {
 	for(uint8_t i = 0; i < TOUCH_MAX_HANDLERS; i++)
 	{
@@ -131,7 +147,7 @@ void touch_remove_handler(touch_handler_t* handler)
 /**
  * removes all touch handlers.
  */
-void touch_clear_handlers()
+void touch_panel_clear_handlers()
 {
     for(uint8_t i = 0; i < TOUCH_MAX_HANDLERS; i++)
         touch_task_data._handlers[i] = NULL;
@@ -140,7 +156,7 @@ void touch_clear_handlers()
 /**
  * set the duration, counted in touch poll cycles, of a long press.
  */
-void touch_set_long_press_duration(uint16_t duration)
+void touch_panel_set_long_press_duration(uint16_t duration)
 {
     touch_task_data.long_press_duration = duration;
 }
@@ -148,7 +164,7 @@ void touch_set_long_press_duration(uint16_t duration)
 /**
  * set the window, counted in touch poll cycles, of a tap.
  */
-void touch_set_tap_duration(uint16_t min_duration, uint16_t max_duration)
+void touch_panel_set_tap_duration(uint16_t min_duration, uint16_t max_duration)
 {
     touch_task_data.tap_min_duration = min_duration;
     touch_task_data.tap_max_duration = max_duration;
@@ -158,7 +174,7 @@ void touch_set_tap_duration(uint16_t min_duration, uint16_t max_duration)
  * set the length in pixels, of a swipe. to activate a swipe callback,
  * the swipe must traverse this many pixels on a single handler.
  */
-void touch_set_swipe_length(uint16_t length)
+void touch_panel_set_swipe_length(uint16_t length)
 {
     touch_task_data.swipe_length = length;
 }
@@ -169,7 +185,7 @@ void touch_set_swipe_length(uint16_t length)
  * while the touch persists the on_hold handler is run every poll period, if there is one.
  * when the touch is lifted, the on_release handler is run, if there is one.
  */
-void touch_interpreter_task(void *pvParameters)
+void touch_panel_interpreter_task(void *pvParameters)
 {
     touch_handler_t* handler;
 	touch_task_t* tt_params = (touch_task_t*)pvParameters;
@@ -199,10 +215,10 @@ void touch_interpreter_task(void *pvParameters)
                 if(handler && handler->enabled)
                 {
                     // check if press is on current handler area
-                    if(tt_params->_touch_point.x > handler->location.x &&
-                       tt_params->_touch_point.y > handler->location.y &&
-                       tt_params->_touch_point.x < (handler->location.x + handler->keydata->text->shape->size.x) &&
-                       tt_params->_touch_point.y < (handler->location.y + handler->keydata->text->shape->size.y))
+                    if(tt_params->_touch_point.x > handler->location->x &&
+                       tt_params->_touch_point.y > handler->location->y &&
+                       tt_params->_touch_point.x < (handler->location->x + handler->size->x) &&
+                       tt_params->_touch_point.y < (handler->location->y + handler->size->y))
                     {
                         if(!handler->pressed)
                         {
