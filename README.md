@@ -27,3 +27,18 @@ include $(DEVICE_SUPPORT_DIR)/device/device.mk
 ```
 
 The user makefile should call **buildlinkerscript** as part of its **all** target. this makes sure  the linker script exists, and matches the chip specified for the board, in board.mk.
+
+Timers
+------
+
+Timers are used to support device drivers. It can be hard to work out if its safe to use a timer in the application. The drivers that use timers are:
+
+|module	|file      |set in              |defaults to   |shared with|
+|-------|----------|--------------------|--------------|-----------|
+|systimer|systimer.c|board/<board>/systime_config.h|TIM2|lcd|
+|adc_stream|adc_stream.c|<project>/adc_stream_config.h|TIM3||
+|dac_stream|dac_stream.c|<project>/dac_stream_config.h|TIM6||
+|i2s_stream|i2s_stream.c|<project>/i2s_stream_config.h|TIM5||
+|ds1820|ds1820.c|<project>/ds1820_config.h|TIM4||
+|lcd|lcd.c|<project>/board/<board>/lcd_config.h|TIM2|systimer|
+|pwm|pwm.c|pwm_config.h|any left over||
