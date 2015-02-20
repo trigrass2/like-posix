@@ -158,6 +158,13 @@ SOURCE += $(DRIVERSDIR)/stream/i2s/i2s_stream.c
 CFLAGS += -I$(DRIVERSDIR)/stream/i2s
 endif
 
+## PWM driver
+CFLAGS += -DUSE_DRIVER_PWM=$(USE_DRIVER_PWM)
+ifeq ($(USE_DRIVER_PWM), 1)
+SOURCE += $(DRIVERSDIR)/pwm/pwm.c
+CFLAGS += -I$(DRIVERSDIR)/pwm
+endif
+
 ###############################################################
 # Include drivers for specific targets
 ###############################################################
