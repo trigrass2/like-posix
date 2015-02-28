@@ -50,7 +50,8 @@ static void stream_processing_task(stream_t* stream);
 
 void init_stream(stream_t* stream, const char* name, uint32_t samplerate,
                 uint16_t maxconns, uint16_t* stream_buffer, stream_connection_t** connections,
-                uint16_t buffer_length, uint8_t channel_count, uint8_t task_prio, uint16_t task_stack, uint16_t full_scale_amplitude)
+                uint16_t buffer_length, uint8_t channel_count, uint8_t task_prio, uint16_t task_stack,
+                uint16_t full_scale_amplitude, uint32_t resolution)
 {
     log_init(&stream->log, name);
 
@@ -63,6 +64,10 @@ void init_stream(stream_t* stream, const char* name, uint32_t samplerate,
     stream->length = buffer_length;
     stream->ready = NULL;
     stream->full_scale_amplitude = full_scale_amplitude;
+    stream->resolution = resolution;
+
+
+    printf("%d\n", stream->full_scale_amplitude);
 
     memset(stream->connections, 0, maxconns * sizeof(stream_connection_t*));
 
@@ -211,3 +216,17 @@ void stream_connection_enable(stream_connection_t* interface, bool enable)
     }
 }
 
+bool stream_connection_enabled(stream_connection_t* interface)
+{
+    return interface->enabled;
+}
+
+uint32_t stream_get_resolution(stream_connection_t* interface)
+{
+    return interface->stream->resolution;
+}
+
+uint32_t stream_get_full_scale_amplitude_mv(stream_connection_t* interface)
+{
+    return interface->stream->full_scale_amplitude;
+}

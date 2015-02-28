@@ -183,9 +183,7 @@
 #define DAC_STREAM_TRIGGER_SOURCE          DAC_Trigger_T7_TRGO
 #endif
 
-#define DAC_DHR12LD_Address                 ((uint32_t)(DAC_BASE + 0x20 + DAC_Align_12b_L))
-#define DAC_DHR12RD_Address                 ((uint32_t)(DAC_BASE + 0x20 + DAC_Align_12b_R))
-#define DAC_DHR8RD_Address                  ((uint32_t)(DAC_BASE + 0x20 + DAC_Align_8b_R))
+#define DAC_DR                             ((uint32_t)(DAC_BASE + 0x20 + DAC_STREAM_ALIGNMENT))
 
 #define DAC_STREAM_MASTER_DAC              DAC_Channel_1
 #define DAC_STREAM_SLAVE_DAC               DAC_Channel_2

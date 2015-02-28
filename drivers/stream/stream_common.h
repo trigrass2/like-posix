@@ -36,10 +36,15 @@
 #include "stream_defs.h"
 void init_stream(stream_t* stream, const char* name, uint32_t samplerate,
                 uint16_t maxconns, uint16_t* stream_buffer, stream_connection_t** connections,
-                uint16_t buffer_length, uint8_t channel_count, uint8_t task_prio, uint16_t task_stack, uint16_t full_scale_amplitude);
+                uint16_t buffer_length, uint8_t channel_count, uint8_t task_prio, uint16_t task_stack, uint16_t full_scale_amplitude, uint32_t resolution);
 void stream_set_samplerate(stream_t* stream, TIM_TypeDef* samplerate_timer, uint32_t timer_clockrate, uint32_t samplerate);
 uint32_t stream_get_samplerate(stream_t* stream);
+
 void stream_connect_service(stream_connection_t* interface, void* ctx, stream_t* stream, uint8_t stream_channel);
 void stream_connection_enable(stream_connection_t* interface, bool enable);
+bool stream_connection_enabled(stream_connection_t* interface);
+
+uint32_t stream_get_resolution(stream_connection_t* stream);
+uint32_t stream_get_full_scale_amplitude_mv(stream_connection_t* stream);
 
 #endif /* STREAM_COMMON_H_ */

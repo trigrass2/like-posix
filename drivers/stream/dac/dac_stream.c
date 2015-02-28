@@ -98,9 +98,11 @@ static stream_t dac_stream;
 
 void dac_stream_init()
 {
+    uint32_t resolution = DAC_STREAM_ALIGNMENT == DAC_Align_12b_L ? 65536 : 4096;
+
     init_stream(&dac_stream, "dac_stream", DAC_STREAM_DEFAULT_SAMPLERATE,
             DAC_STREAM_MAX_CONNECTIONS, dac_stream_buffer, dac_stream_connections,
-            DAC_STREAM_BUFFER_LENGTH, DAC_STREAM_CHANNEL_COUNT, 3, 128, DAC_FULL_SCALE_AMPLITUDE_MV);
+            DAC_STREAM_BUFFER_LENGTH, DAC_STREAM_CHANNEL_COUNT, 3, 128, DAC_FULL_SCALE_AMPLITUDE_MV, resolution);
 
     init_local_dac_io();
     init_local_dac();
@@ -253,7 +255,7 @@ void init_local_dac_dma()
     DMA_DeInit(DAC_STREAM_DMA_CHANNEL);
 
     // todo how to set DAC data reg address?
-    dma_init.DMA_PeripheralBaseAddr = (uint32_t)DAC_DHR12LD_Address;
+    dma_init.DMA_PeripheralBaseAddr = (uint32_t)DAC_DR;
     dma_init.DMA_MemoryBaseAddr = (uint32_t)dac_stream._buffer;
     dma_init.DMA_DIR = DMA_DIR_PeripheralDST;
     dma_init.DMA_BufferSize = sizeof(dac_stream_buffer)/sizeof(uint32_t);
@@ -283,7 +285,7 @@ void init_local_dac_dma()
     DMA_DeInit(DAC_STREAM_DMA_STREAM);
 
     dma_init.DMA_Channel = DAC_STREAM_DMA_CHANNEL;
-    dma_init.DMA_PeripheralBaseAddr = (uint32_t)DAC_DHR12LD_Address;
+    dma_init.DMA_PeripheralBaseAddr = (uint32_t)DAC_DR;
     dma_init.DMA_Memory0BaseAddr = (uint32_t)dac_stream._buffer; //Destination address
     dma_init.DMA_DIR = DMA_DIR_MemoryToPeripheral;
     dma_init.DMA_BufferSize = sizeof(dac_stream_buffer)/sizeof(uint32_t); //Buffer size

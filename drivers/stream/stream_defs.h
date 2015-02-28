@@ -67,6 +67,7 @@ typedef struct {
     uint8_t channels;                       ///< the number of channels supported by this stream
     uint16_t length;                        ///< stream buffer length, in samples
     uint16_t full_scale_amplitude;          ///< a number that may be used to scale the input/output of a stream.
+    uint32_t resolution;                    ///< stream resolution, eg 65536 for a 16 bit device. used to scale the input/output of a stream.
 } stream_t;
 
 typedef struct _stream_connection_t{

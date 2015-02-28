@@ -70,12 +70,24 @@ static stream_t i2s_rx_stream;
 
 void i2s_stream_init()
 {
+    uint32_t resolution;
+    if(I2S_USE_FORMAT == I2S_DataFormat_16b)
+        resolution = 65536;
+    else if(I2S_USE_FORMAT == I2S_DataFormat_16bextended)
+        resolution = 65536;
+    else if(I2S_USE_FORMAT == I2S_DataFormat_24b)
+        resolution = 16777216;
+    else if(I2S_USE_FORMAT == I2S_DataFormat_32b)
+        resolution = 4294967295; // hackkk
+    else
+        assert_true(0);
+
     init_stream(&i2s_tx_stream, "i2s_tx_stream", I2S_STREAM_DEFAULT_SAMPLERATE,
             I2S_STREAM_MAX_CONNECTIONS, i2s_tx_stream_buffer, i2s_tx_stream_connections,
-            I2S_STREAM_BUFFER_LENGTH, I2S_STREAM_CHANNEL_COUNT, 3, 128, I2S_FULL_SCALE_AMPLITUDE_MV);
+            I2S_STREAM_BUFFER_LENGTH, I2S_STREAM_CHANNEL_COUNT, 3, 128, I2S_FULL_SCALE_AMPLITUDE_MV, resolution);
     init_stream(&i2s_rx_stream, "i2s_rx_stream", I2S_STREAM_DEFAULT_SAMPLERATE,
             I2S_STREAM_MAX_CONNECTIONS, i2s_rx_stream_buffer, i2s_rx_stream_connections,
-            I2S_STREAM_BUFFER_LENGTH, I2S_STREAM_CHANNEL_COUNT, 3, 128, I2S_FULL_SCALE_AMPLITUDE_MV);
+            I2S_STREAM_BUFFER_LENGTH, I2S_STREAM_CHANNEL_COUNT, 3, 128, I2S_FULL_SCALE_AMPLITUDE_MV, resolution);
 
     init_local_i2s_io();
     init_local_i2s();
