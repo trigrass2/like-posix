@@ -61,6 +61,8 @@ SOURCE += $(DRIVERSDIR)/touch_panel/tsc2046.c
 SOURCE += $(DRIVERSDIR)/touch_panel/touch_panel.c
 CFLAGS += -I $(DRIVERSDIR)/touch_panel
 CFLAGS += -I $(DRIVERSDIR)/lcd
+SOURCE += $(DRIVERSDIR)/lcd_backlight/lcd_backlight.c
+CFLAGS += -I $(DRIVERSDIR)/lcd_backlight
 endif
 
 ## USART
