@@ -121,8 +121,8 @@ void pwm_init(pwm_t* pwm, const char* name, uint32_t frequency, uint16_t resolut
             TIM_OutputState_Enable,     // output state
             TIM_OutputState_Enable,     // complementary output state
             0,                          // capture compare pulse value
-            TIM_OCPolarity_Low,         // output polarity
-            TIM_OCPolarity_Low,         // complementary output polarity
+            TIM_OCPolarity_High,        // output polarity
+            TIM_OCNPolarity_Low,        // complementary output polarity
             TIM_OCIdleState_Set,        // idle state
             TIM_OCIdleState_Set,        // complementary idle state
     };
@@ -207,7 +207,7 @@ void pwm_init(pwm_t* pwm, const char* name, uint32_t frequency, uint16_t resolut
 
 void pwm_set_duty(pwm_t* pwm, uint16_t duty)
 {
-    if(duty < pwm->resolution)
+    if(duty <= pwm->resolution)
     {
         switch(pwm->channel)
         {
@@ -227,7 +227,7 @@ void pwm_set_duty(pwm_t* pwm, uint16_t duty)
         log_debug(&pwm->log, "duty=%d", duty);
     }
     else
-        log_error(&pwm->log, "duty %d out of range (0-%d)", duty, pwm->resolution-1);
+        log_error(&pwm->log, "duty %d out of range (0-%d)", duty, pwm->resolution);
 }
 
 /**
