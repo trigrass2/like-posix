@@ -40,6 +40,7 @@ bool wait_for_address(netconf_t* netconf);
 
 const char* net_hostname();
 const char* net_lip();
+const char* net_mac();
 
 unsigned long net_ip_packets_sent();
 unsigned long net_ip_packets_received();

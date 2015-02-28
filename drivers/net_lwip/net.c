@@ -329,6 +329,21 @@ const char* net_hostname()
     return netif_list->hostname;
 }
 
+static char mac[18];
+
+const char* net_mac()
+{
+    // get the local IP address
+    sprintf(mac, "%02x:%02x:%02x:%02x:%02x:%02x",
+             ((char*)&netif_list->hwaddr)[0],
+             ((char*)&netif_list->hwaddr)[1],
+             ((char*)&netif_list->hwaddr)[2],
+             ((char*)&netif_list->hwaddr)[3],
+             ((char*)&netif_list->hwaddr)[4],
+             ((char*)&netif_list->hwaddr)[5]);
+    return (const char*)mac;
+}
+
 static char lip[16];
 
 const char* net_lip()
