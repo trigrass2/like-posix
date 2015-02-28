@@ -41,6 +41,7 @@
 
 #include <stdarg.h>
 #include <stdint.h>
+#include <math.h>
 #include <unistd.h> // open(), close() etc
 #include <ctype.h> // isdigit() etc
 #include <fcntl.h>
@@ -56,6 +57,7 @@
 #define ZERO_FLAG 16
 #define LONG_FLAG 32
 #define SHORT_FLAG 64
+#define FLOAT_FLAG 128
 
 typedef char*(*putx_t)(int, char**, const char*);
 
@@ -122,7 +124,8 @@ static inline void hashflag(int fd, putx_t _put_str, unsigned int flags, char** 
 
 static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, const char * fmt, va_list argp)
 {
-	double d;
+	float d;
+    float prescision = DEFAULT_FTOA_PRECISION;
 	int ret = -1;
 	char* start = *dst;
 	void* v;
@@ -163,6 +166,10 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 							flags |= HASH_FLAG;
 							fmt++;
 						break;
+                        case '.':
+                            flags |= FLOAT_FLAG;
+                            fmt++;
+                        break;
 					}
 
 					// handle padding
@@ -215,6 +222,9 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 							fmt++;
 							while(*fmt == c)
 								fmt++;
+						break;
+						case 'f':
+						    prescision = 1 / pow(10, padding);
 						break;
 					}
 
@@ -367,9 +377,9 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 						break;
 
 						case 'f':
-							d = (double)va_arg(argp, double);
+							d = (float)va_arg(argp, double);
 							plusflag(fd, _put_char, flags, dst);
-							_put_str(fd, dst, ftoa(intbuf, d));
+							_put_str(fd, dst, ftoa(intbuf, d, prescision));
 						break;
 
 						case '%':

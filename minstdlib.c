@@ -83,6 +83,9 @@ char* itoa(int value, char* str, int base)
 	return str;
 }
 
+/**
+ * convert long long/int64_t type to ascii.
+ */
 char* ditoa(int64_t value, char* str, int base)
 {
 	static char num[] = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -114,69 +117,76 @@ char* ditoa(int64_t value, char* str, int base)
 	return str;
 }
 
-static double PRECISION = 0.00000000000001;
-
-char * ftoa(char *s, double n)
+/**
+ * convert long long/int64_t type to ascii.
+ */
+char* ftoa(char *dst, float num, float prescision)
 {
 	// handle special cases
-	if (isnan(n)) {
-		strcpy(s, "nan");
-	} else if (isinf(n)) {
-		strcpy(s, "inf");
-	} else if (n == (double)0.0) {
-		strcpy(s, "0");
-	} else {
+	if(isnan(num))
+		strcpy(dst, "nan");
+	else if(isinf(num))
+		strcpy(dst, "inf");
+	else if(num == 0.0)
+		strcpy(dst, "0");
+	else
+	{
 		int digit, m, m1 = 0;
-		char *c = s;
-		int neg = (n < 0);
+		char *c = dst;
+		int neg = (num < 0);
 		if (neg)
-			n = -n;
+			num = -num;
 		// calculate magnitude
-		m = log10(n);
+		m = (float)log10(num);
 		int useExp = (m >= 14 || (neg && m >= 9) || m <= -9);
-		if (neg)
+		if(neg)
 			*(c++) = '-';
 		// set up for scientific notation
-		if (useExp) {
-			if (m < 0)
-				m -= (double)1.0;
-			n = n / pow((double)10.0, m);
+		if(useExp)
+		{
+			if(m < 0)
+				m -= 1.0;
+			num = num / (float)pow(10.0, m);
 			m1 = m;
 			m = 0;
 		}
-		if (m < (double)1.0) {
+		if(m < 1.0)
 			m = 0;
-		}
+
 		// convert the number
-		while (n > PRECISION || m >= 0) {
-			double weight = pow((double)10.0, m);
-			if (weight > 0 && !isinf(weight)) {
-				digit = floor(n / weight);
-				n -= (digit * weight);
+		while(num > prescision || m >= 0) {
+			float weight = (float)pow(10.0, m);
+			if(weight > 0 && !isinf(weight))
+			{
+				digit = (float)floor(num / weight);
+				num -= (digit * weight);
 				*(c++) = '0' + digit;
 			}
-			if (m == 0 && n > 0)
+			if (m == 0 && num > 0)
 				*(c++) = '.';
 			m--;
 		}
-		if (useExp) {
+		if(useExp) {
 			// convert the exponent
 			int i, j;
 			*(c++) = 'e';
-			if (m1 > 0) {
+			if(m1 > 0)
 				*(c++) = '+';
-			} else {
+			else
+			{
 				*(c++) = '-';
 				m1 = -m1;
 			}
 			m = 0;
-			while (m1 > 0) {
+			while(m1 > 0)
+			{
 				*(c++) = '0' + m1 % 10;
 				m1 /= 10;
 				m++;
 			}
 			c -= m;
-			for (i = 0, j = m-1; i<j; i++, j--) {
+			for (i = 0, j = m-1; i<j; i++, j--)
+			{
 				// swap without temporary
 				c[i] ^= c[j];
 				c[j] ^= c[i];
@@ -184,9 +194,9 @@ char * ftoa(char *s, double n)
 			}
 			c += m;
 		}
-		*(c) = '\0';
+		*c = '\0';
 	}
-	return s;
+	return dst;
 }
 
 /**

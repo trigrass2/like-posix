@@ -44,11 +44,14 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <float.h>
+
+#define DEFAULT_FTOA_PRECISION FLT_MIN
 
 void strreverse(char* begin, char* end);
 char* itoa(int value, char* str, int base);
 char* ditoa(int64_t value, char* str, int base);
-char* ftoa(char *s, double n);
+char* ftoa(char *dst, float num, float prescision);
 
 #include <stdlib.h>
 
