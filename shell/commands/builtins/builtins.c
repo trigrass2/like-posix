@@ -31,8 +31,8 @@
  */
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <time.h>
-#include <sys/time.h>
 #include "builtins.h"
 #include "system.h"
 #include "cutensils.h"
@@ -132,6 +132,18 @@ int sh_uname(int fdes, const char** args, unsigned char nargs)
     return SHELL_CMD_EXIT;
 }
 
+int sh_reboot(int fdes, const char** args, unsigned char nargs)
+{
+    (void)args;
+    (void)nargs;
+
+    send(fdes, "rebooting"SHELL_NEWLINE, sizeof("rebooting"SHELL_NEWLINE)-1, 0);
+    sleep(1);
+    soft_reset();
+
+    return SHELL_CMD_EXIT;
+}
+
 shell_cmd_t sh_help_cmd = {
      .name = "help",
      .usage = "prints a list of available commands",
@@ -163,3 +175,8 @@ shell_cmd_t sh_uname_cmd = {
     .cmdfunc = sh_uname
 };
 
+shell_cmd_t sh_reboot_cmd = {
+    .name = "reboot",
+    .usage = "reboots the device",
+    .cmdfunc = sh_reboot
+};
