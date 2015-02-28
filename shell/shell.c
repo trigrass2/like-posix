@@ -86,6 +86,7 @@ int start_shell(shellserver_t* shellserver, const char* configfile)
 	register_command(shellserver, &sh_exit_cmd, NULL, NULL, NULL);
 	register_command(shellserver, &sh_date_cmd, NULL, NULL, NULL);
     register_command(shellserver, &sh_uname_cmd, NULL, NULL, NULL);
+    register_command(shellserver, &sh_reboot_cmd, NULL, NULL, NULL);
 
 	return start_threaded_server(&shellserver->server, configfile, shell_instance_thread, shellserver, SHELL_TASK_STACK_SIZE, SHELL_TASK_PRIORITY);
 }
