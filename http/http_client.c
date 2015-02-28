@@ -83,6 +83,7 @@ request.buffer = buffer;
 request.content_length = 0;
 
 // configure the response
+memset(&response, 0, sizeof(http_response_t));
 response.buffer = buffer;
 response.size = sizeof(buffer);
 
@@ -241,6 +242,9 @@ char* http_split_content(char* response) {
 	return NULL;
 }
 
+/**
+ * only decodes fields if found - the response structure should be initialized with default values that make sense.
+ */
 int http_receive_response(int fd, http_response_t* response)
 {
     // receive header and possibly part of body
@@ -249,6 +253,7 @@ int http_receive_response(int fd, http_response_t* response)
     int field;
     char* value;
     char* end;
+
     // use the end of the buffer to save values...
     char* save = response->buffer + (response->size - 1);
 
@@ -412,6 +417,13 @@ if(http_get_file(url, &response, output, buffer, sizeof(buffer)))
 }
 
 \endcode
+ *
+ * @param   url - the full URL to get eg http://host:port/path/to/file.html
+ * @param   response - a pointer to an http response object.
+ * @param   output - a pointer a filepath to save the url endpoint to, eg "./file.html"
+ * @param   buffer - working area, used to store received header, response string
+ *              fields will end up pointing to parts of this memory.
+ * @param   size - the length of the buffer in bytes.
  */
 http_response_t* http_get_file(char* url, http_response_t* response, const char* output, char* buffer, int size)
 {
@@ -436,6 +448,8 @@ http_response_t* http_get_file(char* url, http_response_t* response, const char*
         .content_length = 0
     };
 
+    // init the response
+    memset(response, 0, sizeof(http_response_t));
     response->buffer = buffer;
     response->size = size;
 
