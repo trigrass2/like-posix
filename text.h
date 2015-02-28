@@ -86,6 +86,7 @@ point_t text_justify(text_t* text, point_t location);
 point_t text_bounds(const char* str, const font_t* font);
 
 void text_set_justification(text_t* text, justify_t justification);
+void text_set_filled(text_t* text, bool filled);
 void text_set_font(text_t* text, const font_t* font);
 void text_set_colour(text_t* text, colour_t colour);
 void text_set_background_colour(text_t* text, colour_t colour);

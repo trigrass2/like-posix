@@ -157,6 +157,14 @@ void text_set_border_colour(text_t* text, colour_t colour)
 }
 
 /**
+ * sets the intended filled state, does not redraw the textbox.
+ */
+void text_set_filled(text_t* text, bool filled)
+{
+    text->shape.fill = filled;
+}
+
+/**
  * sets the text buffer, does not redraw the textbox.
  */
 void text_set_buffer(text_t* text, const char* str)

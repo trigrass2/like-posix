@@ -198,7 +198,7 @@ void touch_key_set_justification(touch_key_t* key, justify_t justify)
     key->text.justify = justify;
 }
 
-void touch_key_set_font(touch_key_t* key, font_t* font)
+void touch_key_set_font(touch_key_t* key, const font_t* font)
 {
     key->text.font = font;
 }

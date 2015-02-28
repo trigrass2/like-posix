@@ -41,17 +41,17 @@
 uint8_t buffer[16];
 panel_meter_t panelmeter;
 // plain panel meter with default colour
-init_panel_meter(&panelmeter, buffer, sizeof(buffer), (point_t){100, 40}, (point_t){0, 0}, true,
-                     "%02f, "units", &Ubuntu_20);
+panel_meter_init(&panelmeter, buffer, sizeof(buffer), (point_t){100, 40}, (point_t){0, 0}, true,
+                     "%02f, "units", &Ubintu_32, &Ubuntu_16);
 // enable touch handling
 // panel_meter_enable_touch(&panelmeter, callback, appdata);
 // set colours
 // touch_key_set_colour(&panelmeter->touch_key, border, background, alt, text);
 \endcode
  */
-void init_panel_meter(panel_meter_t* meter, char* buffer, int16_t length,
+void panel_meter_init(panel_meter_t* meter, char* buffer, int16_t length,
                         point_t position, point_t size, bool rounded,
-                        char* precision, char* units, font_t* units_font)
+                        char* precision, char* units, const font_t* font, const font_t* units_font)
 {
     // draw background with units
     meter->length = length;
@@ -61,9 +61,9 @@ void init_panel_meter(panel_meter_t* meter, char* buffer, int16_t length,
     meter->units_font = units_font;
 
     touch_key_init(&meter->touch_key, position, size, buffer, rounded ? 8 : 0);
-//    touch_key_set_colour(&meter->touch_key, border, background, alt, text);
+    touch_key_set_font(&meter->touch_key, font);
 
-    draw_panel_meter(meter);
+    panel_meter_draw(meter);
 }
 
 /**
@@ -79,7 +79,7 @@ void panel_meter_enable_touch(panel_meter_t* meter, touch_callback_t callback, v
  * redraws the whole panel meter. the panel meter structure
  * must be initialized with init_panel_meter() before this function is safe to use.
  */
-void draw_panel_meter(panel_meter_t* meter)
+void panel_meter_draw(panel_meter_t* meter)
 {
     const char* buffer = meter->touch_key.text.buffer;
     const font_t* font = meter->touch_key.text.font;
@@ -100,7 +100,7 @@ void draw_panel_meter(panel_meter_t* meter)
  * updates the the text part of the panel meter. the panel meter structure
  * must be initialized with init_panel_meter() before this function is safe to use.
  */
-void update_panel_meter(panel_meter_t* meter, float value)
+void panel_meter_update(panel_meter_t* meter, float value)
 {
     text_blank_text(&meter->touch_key.text, meter->touch_key.location);
     snprintf((char*)meter->touch_key.text.buffer, meter->length-1, meter->precision, (double)value);
