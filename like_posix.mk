@@ -29,6 +29,7 @@ endif
 
 # all system call that build independent of OS are included here
 SYSCALLS += $(LIKEPOSIX_DIR)/time.c
+SYSCALLS += $(LIKEPOSIX_DIR)/libgen.c
 
 SOURCE += $(SYSCALLS)
 
