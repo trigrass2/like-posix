@@ -47,6 +47,7 @@ const char* key_press_type[] = {
 };
 
 typedef struct {
+    uint16_t inactivity_timeout;                       ///< user settable, inactivity timeout in poll periods
     uint16_t long_press_duration;                       ///< user settable, define the number of poll periods required to register a long press
     uint16_t tap_min_duration;                          ///< user settable, define min timing in key poll periods, of a tap
     uint16_t tap_max_duration;                          ///< user settable, define max timing in key poll periods, of a tap
@@ -56,6 +57,9 @@ typedef struct {
     uint16_t _long_press_count;                         ///< not user settable
     uint16_t _tap_count;                                ///< not user settable
     point_t  _swipe_start;                              ///< not user settable
+    uint16_t  _inactivity_count;                         ///< not user settable
+    void(*inactivity_callback)(void);                   ///< user settable, a function that is called after a period of inactivity.
+    void(*activity_callback)(void);                     ///< user settable, a function that is called once on activity.
 }touch_task_t;
 
 touch_task_t touch_task_data;
@@ -73,6 +77,7 @@ bool touch_panel_init()
     touch_panel_set_long_press_duration(TOUCH_DEFAULT_LONG_PRESS_MS);
     touch_panel_set_tap_duration(TOUCH_DEFAULT_TAP_MIN_MS, TOUCH_DEFAULT_TAP_MAX_MS);
     touch_panel_set_swipe_length(TOUCH_DEFAULT_SWIPE_LENGTH);
+    touch_panel_set_inactivity_timeout(TOUCH_DEFAULT_INACTIVITY_TIMEOUT);
 
     return xTaskCreate(touch_panel_interpreter_task,
                         "touch",
@@ -154,6 +159,13 @@ void touch_panel_clear_handlers()
 }
 
 /**
+ * set the duration, counted in touch poll cycles, of the inactivity timer.
+ */
+void touch_panel_set_inactivity_timeout(uint16_t timeout)
+{
+    touch_task_data.inactivity_timeout = timeout;
+}
+/**
  * set the duration, counted in touch poll cycles, of a long press.
  */
 void touch_panel_set_long_press_duration(uint16_t duration)
@@ -180,6 +192,16 @@ void touch_panel_set_swipe_length(uint16_t length)
 }
 
 /**
+ * set callback functions called when the panel is touched,
+ * and when it has not been touched for the inactivity period.
+ */
+void touch_panel_set_activity_callbacks(void(*on_activity)(void), void(*on_inactivity)(void))
+{
+    touch_task_data.inactivity_callback = on_inactivity;
+    touch_task_data.activity_callback = on_activity;
+}
+
+/**
  * polls the touch pad.
  * on a touch the on_press handler is run, if there is one.
  * while the touch persists the on_hold handler is run every poll period, if there is one.
@@ -195,7 +217,23 @@ void touch_panel_interpreter_task(void *pvParameters)
     for(;;)
     {
 		while(!panel_ready() && !down_count)
+		{
 		    usleep(TOUCH_TASK_POLL_RATE * 1000);
+
+		    if(tt_params->_inactivity_count < touch_task_data.inactivity_timeout)
+		        tt_params->_inactivity_count++;
+		    else if(tt_params->_inactivity_count == touch_task_data.inactivity_timeout)
+		    {
+		        if(tt_params->inactivity_callback)
+		            tt_params->inactivity_callback();
+                tt_params->_inactivity_count++;
+		    }
+		}
+
+		if(tt_params->_inactivity_count == (touch_task_data.inactivity_timeout + 1))
+		    tt_params->_inactivity_count = 0;
+		else
+		    tt_params->_inactivity_count = 3;
 
         // flush last reading
         panel_x();
@@ -203,106 +241,118 @@ void touch_panel_interpreter_task(void *pvParameters)
 
 		while(panel_ready() || down_count)
 		{
-            // get new reading
-            tt_params->_touch_point.x = panel_x();
-            tt_params->_touch_point.y = panel_y();
+		    if(tt_params->_inactivity_count == 0 && tt_params->activity_callback)
+		    {
+	            tt_params->_inactivity_count = 1;
+		        tt_params->activity_callback();
+                tt_params->_inactivity_count = 2;
+		    }
+		    else if(tt_params->_inactivity_count == 2)
+		    {
 
-//            log_edebug(NULL, "%d,%d", tt_params->_touch_point.x, tt_params->_touch_point.y);
+		    }
+		    else
+		    {
+                // get new reading
+                tt_params->_touch_point.x = panel_x();
+                tt_params->_touch_point.y = panel_y();
 
-            for(uint8_t i = 0; i < TOUCH_MAX_HANDLERS; i++)
-            {
-                handler = touch_task_data._handlers[i];
-                if(handler && handler->enabled)
+    //            log_edebug(NULL, "%d,%d", tt_params->_touch_point.x, tt_params->_touch_point.y);
+
+                for(uint8_t i = 0; i < TOUCH_MAX_HANDLERS; i++)
                 {
-                    // check if press is on current handler area
-                    if(tt_params->_touch_point.x > handler->location->x &&
-                       tt_params->_touch_point.y > handler->location->y &&
-                       tt_params->_touch_point.x < (handler->location->x + handler->size->x) &&
-                       tt_params->_touch_point.y < (handler->location->y + handler->size->y))
+                    handler = touch_task_data._handlers[i];
+                    if(handler && handler->enabled)
                     {
-                        if(!handler->pressed)
+                        // check if press is on current handler area
+                        if(tt_params->_touch_point.x > handler->location->x &&
+                           tt_params->_touch_point.y > handler->location->y &&
+                           tt_params->_touch_point.x < (handler->location->x + handler->size->x) &&
+                           tt_params->_touch_point.y < (handler->location->y + handler->size->y))
                         {
-                            handler->press_type = KEY_DOWN;
-                            handler->backend_key_callback(handler);
-                            handler->pressed = true;
-                            down_count++;
-                            tt_params->_long_press_count = 0;
-                            tt_params->_tap_count = 0;
-                            tt_params->_swipe_start = tt_params->_touch_point;
-                            break;
-                        }
-                        else
-                        {
-                            // hold timing
-                            held_at = tt_params->_touch_point;
-                            handler->press_type = KEY_HOLD;
-                            handler->backend_key_callback(handler);
-
-                            // tap timing
-                            tt_params->_tap_count += TOUCH_TASK_POLL_RATE;
-
-                            // long press timing
-                            if(!handler->long_pressed)
+                            if(!handler->pressed)
                             {
-                                tt_params->_long_press_count += TOUCH_TASK_POLL_RATE;
-                                if(tt_params->_long_press_count >= tt_params->long_press_duration)
+                                handler->press_type = KEY_DOWN;
+                                handler->backend_key_callback(handler);
+                                handler->pressed = true;
+                                down_count++;
+                                tt_params->_long_press_count = 0;
+                                tt_params->_tap_count = 0;
+                                tt_params->_swipe_start = tt_params->_touch_point;
+                                break;
+                            }
+                            else
+                            {
+                                // hold timing
+                                held_at = tt_params->_touch_point;
+                                handler->press_type = KEY_HOLD;
+                                handler->backend_key_callback(handler);
+
+                                // tap timing
+                                tt_params->_tap_count += TOUCH_TASK_POLL_RATE;
+
+                                // long press timing
+                                if(!handler->long_pressed)
                                 {
-                                    handler->long_pressed = true;
-                                    handler->press_type = KEY_LONG_PRESS;
-                                    handler->backend_key_callback(handler);
+                                    tt_params->_long_press_count += TOUCH_TASK_POLL_RATE;
+                                    if(tt_params->_long_press_count >= tt_params->long_press_duration)
+                                    {
+                                        handler->long_pressed = true;
+                                        handler->press_type = KEY_LONG_PRESS;
+                                        handler->backend_key_callback(handler);
+                                    }
                                 }
                             }
                         }
-                    }
-                    else if(handler->pressed)
-                    {
-                        // swipe condition
-                        int16_t dx = tt_params->_swipe_start.x - held_at.x;
-                        int16_t dy = tt_params->_swipe_start.y - held_at.y;
-                        bool swiped = false;
-
-                        if(abs(dx) >= tt_params->swipe_length)
+                        else if(handler->pressed)
                         {
-                            swiped = true;
-                            if(dx < 0)
-                                handler->press_type = SWIPE_RIGHT;
-                            else
-                                handler->press_type = SWIPE_LEFT;
-                        }
-                        else if(abs(dy) >= tt_params->swipe_length)
-                        {
-                            swiped = true;
-                            if(dy < 0)
-                                handler->press_type = SWIPE_UP;
-                            else
-                                handler->press_type = SWIPE_DOWN;
-                        }
+                            // swipe condition
+                            int16_t dx = tt_params->_swipe_start.x - held_at.x;
+                            int16_t dy = tt_params->_swipe_start.y - held_at.y;
+                            bool swiped = false;
 
-                        if(swiped)
+                            if(abs(dx) >= tt_params->swipe_length)
+                            {
+                                swiped = true;
+                                if(dx < 0)
+                                    handler->press_type = SWIPE_RIGHT;
+                                else
+                                    handler->press_type = SWIPE_LEFT;
+                            }
+                            else if(abs(dy) >= tt_params->swipe_length)
+                            {
+                                swiped = true;
+                                if(dy < 0)
+                                    handler->press_type = SWIPE_UP;
+                                else
+                                    handler->press_type = SWIPE_DOWN;
+                            }
+
+                            if(swiped)
+                                handler->backend_key_callback(handler);
+
+                            // tap condition
+                            else if(tt_params->_tap_count <= (tt_params->tap_max_duration) &&
+                                tt_params->_tap_count >= (tt_params->tap_min_duration))
+                            {
+                                handler->press_type = KEY_TAP;
+                                handler->backend_key_callback(handler);
+                            }
+    //                        else
+    //                        {
+                            handler->press_type = KEY_UP;
                             handler->backend_key_callback(handler);
+    //                        }
+                            handler->long_pressed = false;
+                            handler->pressed = false;
 
-                        // tap condition
-                        else if(tt_params->_tap_count <= (tt_params->tap_max_duration) &&
-                            tt_params->_tap_count >= (tt_params->tap_min_duration))
-                        {
-                            handler->press_type = KEY_TAP;
-                            handler->backend_key_callback(handler);
+                            down_count--;
                         }
-//                        else
-//                        {
-                        handler->press_type = KEY_UP;
-                        handler->backend_key_callback(handler);
-//                        }
-                        handler->long_pressed = false;
-                        handler->pressed = false;
-
-                        down_count--;
                     }
                 }
-            }
+		    }
 
             usleep(TOUCH_TASK_POLL_RATE * 1000);
 		}
-
     }
 }

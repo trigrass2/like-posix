@@ -51,6 +51,7 @@
 #define TOUCH_DEFAULT_TAP_MIN_MS 	50
 #define TOUCH_DEFAULT_TAP_MAX_MS 	100
 #define TOUCH_DEFAULT_SWIPE_LENGTH 	70
+#define TOUCH_DEFAULT_INACTIVITY_TIMEOUT   (5000/TOUCH_TASK_POLL_RATE)
 
 /**
  * setup panel interface
@@ -102,6 +103,8 @@ void touch_panel_handler_init(touch_handler_t* handler, point_t* location, point
 bool touch_panel_add_handler(touch_handler_t* handler);
 void touch_panel_remove_handler(touch_handler_t* handler);
 void touch_panel_clear_handlers();
+void touch_panel_set_activity_callbacks(void(*on_activity)(void), void(*on_inactivity)(void));
+void touch_panel_set_inactivity_timeout(uint16_t timeout);
 void touch_panel_set_long_press_duration(uint16_t duration);
 void touch_panel_set_tap_duration(uint16_t min_duration, uint16_t max_duration);
 void touch_panel_set_swipe_length(uint16_t length);
