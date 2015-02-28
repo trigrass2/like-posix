@@ -34,6 +34,7 @@
 #include "net_cmds.h"
 
 #include "minstdlib.h"
+#include <libgen.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -45,12 +46,65 @@
 
 #include "lwip/inet.h"
 #include "net.h"
+#include "http_client.h"
 
-#define NETSTAT_HEADER  "Proto\tLocal Address\t\tForeign Address\t\tState"SHELL_NEWLINE
+
+#define HTTP_STATUS_ERROR               "http status: %d"SHELL_NEWLINE
+#define GET_ERROR                       "http get failed"SHELL_NEWLINE
+#define URL_ERROR                       "url not specified"SHELL_NEWLINE
+#define MEMORY_ERROR                    "error allocating memory for command"SHELL_NEWLINE
+#define NETSTAT_HEADER                  "Proto\tLocal Address\t\tForeign Address\t\tState"SHELL_NEWLINE
+
+
 void install_net_cmds(shellserver_t* sh)
 {
     register_command(sh, &sh_netstat_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_ifconfig_cmd, NULL, NULL, NULL);
+    register_command(sh, &sh_wget_cmd, NULL, NULL, NULL);
+}
+
+int sh_wget(int fdes, const char** args, unsigned char nargs)
+{
+    logger_t log;
+    char* buffer = malloc(128);
+    char* url = (char*)arg_by_index(0, args, nargs);
+    char* file;
+    http_response_t resp;
+    int status;
+
+    log_init(&log, "sh-wget");
+
+    if(buffer)
+    {
+        if(url)
+        {
+            file = basename(url);
+
+            if(file && file)
+            {
+                unlink(file);
+
+                if(!http_get_file(url, &resp, file, buffer, 128))
+                    send(fdes, GET_ERROR, sizeof(GET_ERROR)-1, 0);
+                status = resp.status;
+
+                // fail if we didnt get the 200 OK. using the buffer here may overwrite the http header info.
+                if(status != 200)
+                {
+                    sprintf(buffer, HTTP_STATUS_ERROR, status);
+                    send(fdes, buffer, strlen(buffer), 0);
+                }
+            }
+        }
+        else
+            send(fdes, URL_ERROR, sizeof(URL_ERROR)-1, 0);
+
+        free(buffer);
+    }
+    else
+        send(fdes, MEMORY_ERROR, sizeof(MEMORY_ERROR)-1, 0);
+
+    return SHELL_CMD_EXIT;
 }
 
 int sh_netstat(int fdes, const char** args, unsigned char nargs)
@@ -129,6 +183,8 @@ int sh_ifconfig(int fdes, const char** args, unsigned char nargs)
 
         free(buffer);
     }
+    else
+        send(fdes, MEMORY_ERROR, sizeof(MEMORY_ERROR)-1, 0);
 
     return SHELL_CMD_EXIT;
 }
@@ -144,4 +200,12 @@ shell_cmd_t sh_ifconfig_cmd = {
         .usage = "prints network interface info",
         .cmdfunc = sh_ifconfig
 };
+
+shell_cmd_t sh_wget_cmd = {
+        .name = "wget",
+        .usage = "very basic wget implementation. saves the url endpoint to the cwd."SHELL_NEWLINE \
+        "wget [url]",
+        .cmdfunc = sh_wget
+};
+
 
