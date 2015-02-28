@@ -32,7 +32,38 @@
 
 #include "text.h"
 
+const text_t text_defaults = {
+    .colour = WHITE,
+    .font = &Ubuntu_32,
+    .justify = JUSTIFY_LEFT,
+    .shape = {
+        .type = SQUARE,
+        .fill_colour = 0x3666,
+        .border_colour = 0x3666,
+        .fill = true,
+        .size = {60, 40},
+        .radius = 0
+    }
+};
 
+/**
+ * initializes a text box.
+ *
+ * does not implicitly draw the text box, use the text_draw()
+ * function after first initializing, then configuring the textbox.
+ */
+void text_init(text_t* text, point_t size, char* buffer, uint16_t radius)
+{
+    *text = text_defaults;
+    text->buffer = buffer;
+    text->shape.size = size;
+    text->shape.radius = radius;
+}
+
+/**
+ * returns the size in pixels, x and y, of a text string given the specified font.
+ * does not draw the text.
+ */
 point_t text_bounds(const char* str, const font_t* font)
 {
 	point_t size = {0, font->size};
@@ -46,6 +77,11 @@ point_t text_bounds(const char* str, const font_t* font)
 	return size;
 }
 
+/**
+ * returns the coordinates where text shoud be drawn, to justify
+ * it within the area of the specified textbox. location is the location of
+ * the textbox itself.
+ */
 point_t text_justify(text_t* text, point_t location)
 {
     // center text on shape
@@ -72,36 +108,57 @@ point_t text_justify(text_t* text, point_t location)
     return text_location;
 }
 
+/**
+ * returns the maximum height in pixels of the text in a text box.
+ */
 int16_t text_get_height(text_t* text)
 {
     return text->font->size;
 }
 
+/**
+ * sets the intended justification, does not redraw the textbox.
+ */
 void text_set_justification(text_t* text, justify_t justification)
 {
     text->justify = justification;
 }
 
+/**
+ * sets the intended text font, does not redraw the textbox.
+ */
 void text_set_font(text_t* text, const font_t* font)
 {
     text->font = font;
 }
 
+/**
+ * sets the intended text colour, does not redraw the textbox.
+ */
 void text_set_colour(text_t* text, colour_t colour)
 {
     text->colour = colour;
 }
 
+/**
+ * sets the intended background colour, does not redraw the textbox.
+ */
 void text_set_background_colour(text_t* text, colour_t colour)
 {
     text->shape.fill_colour = colour;
 }
 
+/**
+ * sets the intended border colour, does not redraw the textbox.
+ */
 void text_set_border_colour(text_t* text, colour_t colour)
 {
     text->shape.border_colour = colour;
 }
 
+/**
+ * sets the text buffer, does not redraw the textbox.
+ */
 void text_set_buffer(text_t* text, const char* str)
 {
     text->buffer = str;
@@ -113,6 +170,9 @@ void text_blank_text(text_t* text, point_t location)
     text_draw_raw(text, text_location, true);
 }
 
+/**
+ * sets the text buffer, blanks the old text then redraws the new text.
+ */
 void text_update_text(text_t* text, const char* str, point_t location)
 {
     point_t text_location = text_justify(text, location);
@@ -121,6 +181,9 @@ void text_update_text(text_t* text, const char* str, point_t location)
     text_draw_raw(text, text_location, false);
 }
 
+/**
+ * redraws the background, overwriting the text, then redraws the text.
+ */
 void text_draw(text_t* text, point_t location)
 {
     point_t text_location = text_justify(text, location);
@@ -128,17 +191,30 @@ void text_draw(text_t* text, point_t location)
     text_draw_raw(text, text_location, false);
 }
 
+/**
+ * redraws the old text only, without blanking anything.
+ */
 void text_redraw_text(text_t* text, point_t location)
 {
     point_t text_location = text_justify(text, location);
     text_draw_raw(text, text_location, false);
 }
 
+/**
+ * redraws the background, blanking the text.
+ */
 void text_redraw_background(text_t* text, point_t location)
 {
     draw_shape(&text->shape, location);
 }
 
+/**
+ * this is the fundamental text draw routine. writes the text buffer
+ * to the display at location. if blank is true, draws the background colour
+ * where the text should be. if false, draws the text like normal.
+ *
+ * does not draw the textbox background.
+ */
 void text_draw_raw(text_t* text, point_t location, bool blank)
 {
     LCD_LOCK();

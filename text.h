@@ -71,25 +71,28 @@ typedef struct {
     shape_t shape;
 } text_t;
 
+void text_init(text_t* text, point_t size, char* buffer, uint16_t radius);
 
 void text_draw(text_t* text, point_t location);
 void text_redraw_text(text_t* text, point_t location);
 void text_redraw_background(text_t* text, point_t location);
+void text_draw_raw(text_t* text, point_t location, bool blank);
 
+void text_set_buffer(text_t* text, const char* str);
+void text_blank_text(text_t* text, point_t location);
+void text_update_text(text_t* text, const char* str, point_t location);
+
+point_t text_justify(text_t* text, point_t location);
+point_t text_bounds(const char* str, const font_t* font);
 
 void text_set_justification(text_t* text, justify_t justification);
 void text_set_font(text_t* text, const font_t* font);
 void text_set_colour(text_t* text, colour_t colour);
 void text_set_background_colour(text_t* text, colour_t colour);
 void text_set_border_colour(text_t* text, colour_t colour);
-void text_set_buffer(text_t* text, const char* str);
-void text_blank_text(text_t* text, point_t location);
-void text_update_text(text_t* text, const char* str, point_t location);
 
 int16_t text_get_height(text_t* text);
 
-point_t text_justify(text_t* text, point_t location);
-point_t text_bounds(const char* str, const font_t* font);
-void text_draw_raw(text_t* text, point_t location, bool blank);
+
 
 #endif // TEXT_H_

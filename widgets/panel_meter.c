@@ -36,44 +36,43 @@
 /**
  * initialises and draws an LED panel meter style numeric display.
  *
- * the panel meter structure needs to be partially populated first:
- *
- *  // example buffer and structure definition:
- *  // number of digits = size of buffer-2,
- *  // for decimal point and null terminator
- *  uint8_t meter_buffer[16];
- *  panel_meter_t temperature = {
- *      .prescision = (const uint8_t*)"%.2f",   // floating point display,to 2 decimal places
- *      .location = {0, 0},                     // meter top left located at 0, 0
- *      .units = (const uint8_t*)"degrees",     // display unit `degrees`
- *      .units_font = &Ubuntu_32,               // display unit font
- *      .background = {
- *          .fill_colour=FOREST_GREEN,          // colour of background
- *          .border_colour=FOREST_GREEN,        // colour of border
- *          .size={320, 96}                     // size of background, make x long enough to fit the digits
- *      },                                      // make y the same height as the display font
- *      .text = {
- *          .font=&Digital_7_Italic_96,         // display font
- *          .colour=FOREST_GREEN                // display text colour
- *      }
- *  };
- *  // example initialization, a temperature meter with rounded corners
- *  init_panel_meter(&temperature, buffer_buffer, sizeof(meter_buffer), true);
- *
+\code
+
+uint8_t buffer[16];
+panel_meter_t panelmeter;
+// plain panel meter with default colour
+init_panel_meter(&panelmeter, buffer, sizeof(buffer), (point_t){100, 40}, (point_t){0, 0}, true,
+                     "%02f, "units", &Ubuntu_20);
+// enable touch handling
+// panel_meter_enable_touch(&panelmeter, callback, appdata);
+// set colours
+// touch_key_set_colour(&panelmeter->touch_key, border, background, alt, text);
+\endcode
  */
-void init_panel_meter(panel_meter_t* meter, char* buffer, int16_t length, bool rounded)
+void init_panel_meter(panel_meter_t* meter, char* buffer, int16_t length,
+                        point_t position, point_t size, bool rounded,
+                        char* precision, char* units, font_t* units_font)
 {
     // draw background with units
     meter->length = length;
-    meter->text.shape.type = SQUARE;
-    meter->text.shape.fill = true;
-    if(rounded)
-        meter->text.shape.radius = 8;
-    else
-        meter->text.shape.radius = 0;
-    text_set_buffer(&meter->text, buffer);
     memset(buffer, '\0', meter->length);
+    meter->precision = precision;
+    meter->units = units;
+    meter->units_font = units_font;
+
+    touch_key_init(&meter->touch_key, position, size, buffer, rounded ? 8 : 0);
+//    touch_key_set_colour(&meter->touch_key, border, background, alt, text);
+
     draw_panel_meter(meter);
+}
+
+/**
+ * enables touch event handling on the panel meter.
+ */
+void panel_meter_enable_touch(panel_meter_t* meter, touch_callback_t callback, void* appdata)
+{
+    touch_key_add(&meter->touch_key, callback, appdata);
+    touch_key_enable(&meter->touch_key, callback != NULL);
 }
 
 /**
@@ -82,18 +81,19 @@ void init_panel_meter(panel_meter_t* meter, char* buffer, int16_t length, bool r
  */
 void draw_panel_meter(panel_meter_t* meter)
 {
-    const char* buffer = meter->text.buffer;
-    const font_t* font = meter->text.font;
+    const char* buffer = meter->touch_key.text.buffer;
+    const font_t* font = meter->touch_key.text.font;
 
-    text_set_justification(&meter->text, JUSTIFY_BOTTOM|JUSTIFY_RIGHT);
-    text_set_buffer(&meter->text, meter->units);
-    text_set_font(&meter->text, meter->units_font);
-    text_draw(&meter->text, meter->location);
+    text_set_justification(&meter->touch_key.text, JUSTIFY_BOTTOM|JUSTIFY_RIGHT);
+    text_set_buffer(&meter->touch_key.text, meter->units);
+    text_set_font(&meter->touch_key.text, meter->units_font);
+
+    text_draw(&meter->touch_key.text, meter->touch_key.location);
 
     // reset font / buffer for data text
-    text_set_buffer(&meter->text, buffer);
-    text_set_font(&meter->text, font);
-    text_set_justification(&meter->text, JUSTIFY_LEFT);
+    text_set_buffer(&meter->touch_key.text, buffer);
+    text_set_font(&meter->touch_key.text, font);
+    text_set_justification(&meter->touch_key.text, JUSTIFY_LEFT);
 }
 
 /**
@@ -102,26 +102,26 @@ void draw_panel_meter(panel_meter_t* meter)
  */
 void update_panel_meter(panel_meter_t* meter, float value)
 {
-    text_blank_text(&meter->text, meter->location);
-    snprintf((char*)meter->text.buffer, meter->length-1, meter->prescision, (double)value);
-    text_redraw_text(&meter->text, meter->location);
+    text_blank_text(&meter->touch_key.text, meter->touch_key.location);
+    snprintf((char*)meter->touch_key.text.buffer, meter->length-1, meter->precision, (double)value);
+    text_redraw_text(&meter->touch_key.text, meter->touch_key.location);
 }
 
 void panel_meter_set_units(panel_meter_t* meter, const char* units)
 {
-    const char* buffer = meter->text.buffer;
-    const font_t* font = meter->text.font;
-    text_set_justification(&meter->text, JUSTIFY_BOTTOM|JUSTIFY_RIGHT);
-    text_set_buffer(&meter->text, meter->units);
-    text_set_font(&meter->text, meter->units_font);
-    text_blank_text(&meter->text, meter->location);
+    const char* buffer = meter->touch_key.text.buffer;
+    const font_t* font = meter->touch_key.text.font;
+    text_set_justification(&meter->touch_key.text, JUSTIFY_BOTTOM|JUSTIFY_RIGHT);
+    text_set_buffer(&meter->touch_key.text, meter->units);
+    text_set_font(&meter->touch_key.text, meter->units_font);
+    text_blank_text(&meter->touch_key.text, meter->touch_key.location);
     meter->units = units;
-    text_set_buffer(&meter->text, meter->units);
-    text_redraw_text(&meter->text, meter->location);
+    text_set_buffer(&meter->touch_key.text, meter->units);
+    text_redraw_text(&meter->touch_key.text, meter->touch_key.location);
     // reset font / buffer for data text
-    text_set_buffer(&meter->text, buffer);
-    text_set_font(&meter->text, font);
-    text_set_justification(&meter->text, JUSTIFY_LEFT);
+    text_set_buffer(&meter->touch_key.text, buffer);
+    text_set_font(&meter->touch_key.text, font);
+    text_set_justification(&meter->touch_key.text, JUSTIFY_LEFT);
 }
 
 const char* panel_meter_get_units(panel_meter_t* meter)

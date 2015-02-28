@@ -33,20 +33,23 @@
 #include <string.h>
 #include "graphics.h"
 #include "text.h"
+#include "touch_key.h"
 
 #ifndef PANEL_METER_H_
 #define PANEL_METER_H_
 
 typedef struct {
     int16_t length;
-    const char* prescision;
+    const char* precision;
     const char* units;
     const font_t* units_font;
-    point_t location;
-    text_t text;
+    touch_key_t touch_key;
 } panel_meter_t;
 
-void init_panel_meter(panel_meter_t* meter, char* buffer, int16_t length, bool rounded);
+void init_panel_meter(panel_meter_t* meter, char* buffer, int16_t length,
+                        point_t position, point_t size, bool rounded,
+                        char* precision, char* units, font_t* units_font);
+void panel_meter_enable_touch(panel_meter_t* meter, touch_callback_t callback, void* appdata);
 void draw_panel_meter(panel_meter_t* meter);
 void update_panel_meter(panel_meter_t* meter, float value);
 void panel_meter_set_units(panel_meter_t* meter, const char* units);

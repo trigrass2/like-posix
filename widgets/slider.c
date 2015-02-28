@@ -38,7 +38,6 @@ void slider_init(slider_t* slider, point_t location, point_t size, int16_t min, 
 {
     slider->slide_position.x = location.x + SLIDER_SLIDE_MARGINS;
     slider->slide_position.y = location.y + SLIDER_SLIDE_MARGINS;
-    slider->touch_key.location = location;
     slider->min = min;
     slider->max = max;
     slider->value = min;
@@ -51,24 +50,10 @@ void slider_init(slider_t* slider, point_t location, point_t size, int16_t min, 
     slider->slide.size.y = size.y/SLIDER_SLIDE_RATIO;
     slider->slide.type = SQUARE;
 
-    slider->touch_key.text.shape.border_colour = DARK_GREY;
-    slider->touch_key.text.shape.fill = true;
-    slider->touch_key.text.shape.fill_colour = MID_GREY;
-    slider->touch_key.text.shape.radius = 2;
-    slider->touch_key.text.shape.size = size;
-    slider->touch_key.text.shape.type = SQUARE;
-
-    slider->touch_key.text.buffer = NULL;
-    slider->touch_key.text.colour = BLACK;
-    slider->touch_key.text.font = &Ubuntu_16;
-    slider->touch_key.text.justify = JUSTIFY_LEFT;
-
-    slider->touch_key.alt_colour = DARK_GREY;
-
-    touch_key_set_callback(&slider->touch_key, (touch_callback_t)slider_touch_callback);
-    touch_key_set_appdata(&slider->touch_key, slider);
-    touch_key_add(&slider->touch_key);
+    touch_key_init(&slider->touch_key, location, size, NULL, 0);
+    touch_key_add(&slider->touch_key, (touch_callback_t)slider_touch_callback, slider);
     touch_key_enable(&slider->touch_key, true);
+    touch_key_redraw(&slider->touch_key);
 
     draw_shape(&slider->slide, slider->slide_position);
 }

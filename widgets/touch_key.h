@@ -42,7 +42,7 @@
 
 typedef struct {
     text_t text;
-    colour_t alt_colour;                ///< text string colour
+    colour_t alt_colour;
     point_t location;
     touch_handler_t handler;
 }touch_key_t;
@@ -50,15 +50,26 @@ typedef struct {
 // define to enable debug
 // #define DEBUG_TOUCH_KEY_PRINTF
 
-bool touch_key_add(touch_key_t* key);
+void touch_key_init(touch_key_t* key, point_t location, point_t size, char* buffer, uint16_t radius);
+bool touch_key_add(touch_key_t* key, touch_callback_t callback, void* appdata);
+void touch_key_enable(touch_key_t* key, bool enable);
+
 void touch_key_redraw(touch_key_t* key);
 void touch_key_redraw_text(touch_key_t* key);
-void touch_key_enable(touch_key_t* key, bool enable);
+void touch_key_blank_text(touch_key_t* key);
+void touch_key_draw_background(touch_key_t* key);
 
 text_t* touch_key_get_text(touch_key_t* key);
 keypress_type_t touch_key_get_press_type(touch_key_t* key);
 bool touch_key_press_is(touch_key_t* key, keypress_type_t type);
 
+void touch_key_set_buffer(touch_key_t* key, char* buffer);
+void touch_key_set_fill(touch_key_t* key, bool fill);
+void touch_key_set_radius(touch_key_t* key, uint16_t radius);
+void touch_key_set_justification(touch_key_t* key, justify_t justify);
+void touch_key_set_font(touch_key_t* key, font_t* font);
+void touch_key_set_size(touch_key_t* key, point_t size);
+void touch_key_set_colour(touch_key_t* key, colour_t border, colour_t background, colour_t alt_background, colour_t text);
 void touch_key_set_callback(touch_key_t* key, touch_callback_t callback);
 void touch_key_set_appdata(touch_key_t* key, void* appdata);
 void* touch_key_get_appdata(touch_key_t* key);
