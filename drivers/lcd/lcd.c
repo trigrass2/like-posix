@@ -102,18 +102,6 @@ void lcd_init(void)
     log_debug(&tftlog, "done...");
 }
 
-void lcd_backlight(uint8_t enable)
-{
-#ifdef LCD_BL_PIN
-    if(enable)
-        GPIO_SetBits(LCD_BL_PORT, LCD_BL_PIN);
-    else
-        GPIO_ResetBits(LCD_BL_PORT, LCD_BL_PIN);
-#else
-    (void)enable;
-#endif
-}
-
 void lcd_set_power(void)
 {
     // general setup
@@ -271,12 +259,6 @@ void lcd_port_init(void)
     // reset pin
     GPIO_InitStructure.GPIO_Pin = LCD_NRST_PIN;
     GPIO_Init(LCD_NRST_PORT, &GPIO_InitStructure);
-
-    // Backlight pin
-#ifdef LCD_BL_PIN
-    GPIO_InitStructure.GPIO_Pin = LCD_BL_PIN;
-    GPIO_Init(LCD_BL_PORT, &GPIO_InitStructure);
-#endif
 }
 
 void lcd_reset()

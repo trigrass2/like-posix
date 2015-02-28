@@ -246,7 +246,6 @@ extern SemaphoreHandle_t xLcdMutex;
 
 void lcd_init(void);
 unsigned int lcd_getdeviceid(void);
-void lcd_backlight(uint8_t enable);
 
 
 #endif // LCD_H_
