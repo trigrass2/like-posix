@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 135
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_Device_Library/Class/audio/src
+END
+usbd_audio_out_if.c
+K 25
+svn:wc:ra_dav:version-url
+V 155
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_Device_Library/Class/audio/src/usbd_audio_out_if.c
+END
+usbd_audio_core.c
+K 25
+svn:wc:ra_dav:version-url
+V 153
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_Device_Library/Class/audio/src/usbd_audio_core.c
+END

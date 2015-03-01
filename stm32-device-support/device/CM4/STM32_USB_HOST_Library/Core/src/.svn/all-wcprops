@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 126
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_HOST_Library/Core/src
+END
+usbh_core.c
+K 25
+svn:wc:ra_dav:version-url
+V 138
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_HOST_Library/Core/src/usbh_core.c
+END
+usbh_hcs.c
+K 25
+svn:wc:ra_dav:version-url
+V 137
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_HOST_Library/Core/src/usbh_hcs.c
+END
+usbh_ioreq.c
+K 25
+svn:wc:ra_dav:version-url
+V 139
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_HOST_Library/Core/src/usbh_ioreq.c
+END
+usbh_stdreq.c
+K 25
+svn:wc:ra_dav:version-url
+V 140
+/svn/research/!svn/ver/221944/DVV/Tools/Hardware/stm32/trunk/stm32_framework/Libraries/STM32F4/STM32_USB_HOST_Library/Core/src/usbh_stdreq.c
+END
