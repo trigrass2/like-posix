@@ -123,7 +123,7 @@ USE_DRIVER_PWM ?= 0
 STM32DEVSUPPORTDIR ?= ..
 
 ## specify location of the project: https://github.com/drmetal/stm32-build-env
-BUILD_ENV_DIR ?= $(STM32DEVSUPPORTDIR)/stm32-build-env
+BUILD_ENV_DIR ?= $(STM32DEVSUPPORTDIR)/build-env
 ## specify location of the project: https://github.com/drmetal/stm32-device-support
 DEVICE_SUPPORT_DIR ?= $(STM32DEVSUPPORTDIR)/stm32-device-support
 ## specify location of the project: https://github.com/drmetal/cutensils
@@ -148,4 +148,4 @@ GRAPHICSDIR ?= $(STM32DEVSUPPORTDIR)/graphics
 APP_ADDRESS_OFFSET ?= 0x0000
 
 # include the makefile that collects all modules together
-include $(STM32DEVSUPPORTDIR)/stm32-build-env/collect.mk
+include $(BUILD_ENV_DIR)/collect.mk
