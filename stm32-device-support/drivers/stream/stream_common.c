@@ -66,9 +66,6 @@ void init_stream(stream_t* stream, const char* name, uint32_t samplerate,
     stream->full_scale_amplitude = full_scale_amplitude;
     stream->resolution = resolution;
 
-
-    printf("%d\n", stream->full_scale_amplitude);
-
     memset(stream->connections, 0, maxconns * sizeof(stream_connection_t*));
 
 #if USE_FREERTOS

@@ -221,7 +221,7 @@ void init_local_i2s_dma()
     DMA_DeInit(I2S_STREAM_TX_DMA_STREAM);
 
     dma_init.DMA_Channel = I2S_STREAM_TX_DMA_CHANNEL;
-    dma_init.DMA_PeripheralBaseAddr = (uint32_t)&I2S_STREAM_I2S_PERIPHERAL->DR;
+    dma_init.DMA_PeripheralBaseAddr = (uint32_t)&(I2S_STREAM_I2S_PERIPHERAL->DR);
     dma_init.DMA_Memory0BaseAddr = (uint32_t)i2s_tx_stream._buffer;
     dma_init.DMA_DIR = DMA_DIR_MemoryToPeripheral;
     dma_init.DMA_BufferSize = sizeof(i2s_tx_stream_buffer)/sizeof(uint16_t); //Buffer size
@@ -245,7 +245,7 @@ void init_local_i2s_dma()
     DMA_DeInit(I2S_STREAM_RX_DMA_STREAM);
 
     dma_init.DMA_Channel = I2S_STREAM_RX_DMA_CHANNEL;
-    dma_init.DMA_PeripheralBaseAddr = (uint32_t)&I2S_STREAM_I2S_EXT_PERIPHERAL->DR;
+    dma_init.DMA_PeripheralBaseAddr = (uint32_t)&(I2S_STREAM_I2S_EXT_PERIPHERAL->DR);
     dma_init.DMA_Memory0BaseAddr = (uint32_t)i2s_rx_stream._buffer;
     dma_init.DMA_DIR = DMA_DIR_PeripheralToMemory;
     dma_init.DMA_BufferSize = sizeof(i2s_rx_stream_buffer)/sizeof(uint16_t); //Buffer size
