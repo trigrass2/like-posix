@@ -183,16 +183,16 @@ void prompt(shell_instance_t* sh)
 			if(data == 0x1B) // ESC
 			{
 				data = 0;
-				recv(sh->fdes, &data, 1, 0);
+				read(sh->fdes, &data, 1);
 				if(data == 0x5B)	// ANSI escaped sequences, ascii '['
 				{
 					data = 0;
-					recv(sh->fdes, &data, 1, 0);
+					read(sh->fdes, &data, 1);
 
 					if(data == 0x33) // ascii '3'
 					{
 						data = 0;
-						recv(sh->fdes, &data, 1, 0);
+						read(sh->fdes, &data, 1);
 						if(data == 0x7E) // DELETE, ascii '~'
 						{
 							if(sh->cursor_index < sh->input_index)
@@ -212,7 +212,7 @@ void prompt(shell_instance_t* sh)
 								// put cursor back where it should be
 								for(i = sh->input_index; i > sh->cursor_index; i--)
 								{
-									send(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1, 0);
+									write(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
 								}
 							}
 						}
@@ -236,7 +236,7 @@ void prompt(shell_instance_t* sh)
 						if(sh->cursor_index > 0)
 						{
 							sh->cursor_index--;
-							send(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1, 0);
+							write(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
 						}
 					}
 					else if(data == 0x43) // RIGHT
@@ -244,19 +244,19 @@ void prompt(shell_instance_t* sh)
 						if(sh->cursor_index < sh->input_index)
 						{
 							sh->cursor_index++;
-							send(sh->fdes, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1, 0);
+							write(sh->fdes, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1);
 						}
 					}
 				}
 				else if(data == 0x4F)	// HOME, END
 				{
 					data = 0;
-					recv(sh->fdes, &data, 1, 0);
+					read(sh->fdes, &data, 1);
 					if(data == 0x48) // HOME
 					{
 						while(sh->cursor_index > 0)
 						{
-							send(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1, 0);
+							write(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
 							sh->cursor_index--;
 						}
 					}
@@ -264,7 +264,7 @@ void prompt(shell_instance_t* sh)
 					{
 						while(sh->cursor_index < sh->input_index)
 						{
-							send(sh->fdes, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1, 0);
+							write(sh->fdes, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1);
 							sh->cursor_index++;
 						}
 					}
@@ -307,7 +307,7 @@ void prompt(shell_instance_t* sh)
 					// put cursor back where it should be
 					for(i = sh->input_index; i > sh->cursor_index; i--)
 					{
-						send(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1, 0);
+						write(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
 					}
 				}
 			}
@@ -342,12 +342,12 @@ void prompt(shell_instance_t* sh)
 						put_prompt(sh, SHELL_PROMPT, NULL, true);
 					}
 
-					send(sh->fdes, &sh->input_buffer[sh->cursor_index-1], strlen((const char*)&sh->input_buffer[sh->cursor_index-1]), 0);
+					write(sh->fdes, &sh->input_buffer[sh->cursor_index-1], strlen((const char*)&sh->input_buffer[sh->cursor_index-1]));
 
 					// put cursor back where it should be
 					for(i = sh->input_index; i > sh->cursor_index; i--)
 					{
-						send(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1, 0);
+						write(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
 					}
 				}
 			}
@@ -400,22 +400,22 @@ void clear_prompt(shell_instance_t* sh)
 void put_prompt(shell_instance_t* sh, const char* promptstr, const char* argstr, bool newline)
 {
     char* path;
-	send(sh->fdes, "\r", 1, 0);
+	write(sh->fdes, "\r", 1);
 	if(newline)
-		send(sh->fdes, "\n", 1, 0);
+		write(sh->fdes, "\n", 1);
 
 	path = getcwd(NULL, SHELL_CWD_LENGTH_MAX);
 
     if(path != NULL)
     {
-       send(sh->fdes, path, strlen(path), 0);
+       write(sh->fdes, path, strlen(path));
        free(path);
     }
 
 	if(promptstr)
-		send(sh->fdes, promptstr, strlen((const char*)promptstr), 0);
+		write(sh->fdes, promptstr, strlen((const char*)promptstr));
 	if(argstr)
-		send(sh->fdes, argstr, strlen((const char*)argstr), 0);
+		write(sh->fdes, argstr, strlen((const char*)argstr));
 }
 
 /**
@@ -507,7 +507,7 @@ void parse_input(shell_instance_t* sh, current_command_t* cmd)
 		// return command if one was found
 		if(head && head->name)
 		{
-			send(sh->fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1, 0);
+			write(sh->fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1);
 			// reduce number of arguments by one as first arg is just the command
 			cmd->nargs--;
 			cmd->cmd = head;
@@ -515,8 +515,8 @@ void parse_input(shell_instance_t* sh, current_command_t* cmd)
 		else if(cmd->args[0] != NULL)
 		{
 			// print error message if the buffer had some content but no valid command
-			send(sh->fdes, SHELL_NO_SUCH_COMMAND, sizeof(SHELL_NO_SUCH_COMMAND)-1, 0);
-			send(sh->fdes, cmd->args[0], strlen((const char*)cmd->args[0]), 0);
+			write(sh->fdes, SHELL_NO_SUCH_COMMAND, sizeof(SHELL_NO_SUCH_COMMAND)-1);
+			write(sh->fdes, cmd->args[0], strlen((const char*)cmd->args[0]));
 		}
 	}
 }
@@ -535,11 +535,11 @@ void shell_builtins(shell_instance_t* sh, int code, shell_cmd_t* cmd)
 		break;
 		case SHELL_CMD_PRINT_CMDS:
 			head = sh->head_cmd;
-			send(sh->fdes, SHELL_HELP_STR, sizeof(SHELL_HELP_STR)-1, 0);
+			write(sh->fdes, SHELL_HELP_STR, sizeof(SHELL_HELP_STR)-1);
 			while(head)
 			{
-				send(sh->fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1, 0);
-				send(sh->fdes, head->name, strlen((const char*)head->name), 0);
+				write(sh->fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1);
+				write(sh->fdes, head->name, strlen((const char*)head->name));
 				head = head->next;
 			}
 		break;

@@ -71,7 +71,7 @@ int sh_date(int fdes, const char** args, unsigned char nargs)
 		    end = buffer + length;
 		    length += sprintf(end, ".%03d", tv.tv_usec/1000);
 		    if(length > 0)
-		        send(fdes, buffer, length, 0);
+		        write(fdes, buffer, length);
 		}
 		free(buffer);
     }
@@ -93,38 +93,38 @@ int sh_uname(int fdes, const char** args, unsigned char nargs)
             confstr = (char*)get_config_value_by_key(buffer, STRING_BUFFER_SIZE, (const uint8_t*)DEFAULT_RESOLV_CONF_PATH, (const uint8_t*)"hostname");
             if(confstr)
             {
-                send(fdes, confstr, strlen(confstr), 0);
-                send(fdes, " ", sizeof(" ")-1, 0);
+                write(fdes, confstr, strlen(confstr));
+                write(fdes, " ", sizeof(" ")-1);
             }
             else
-                send(fdes, "unknown ", sizeof("unknown ")-1, 0);
+                write(fdes, "unknown ", sizeof("unknown ")-1);
         }
         if(all || has_switch("-o", args, nargs))
         {
-            send(fdes, OPERATING_SYSTEM, sizeof(OPERATING_SYSTEM)-1, 0);
-            send(fdes, " ", sizeof(" ")-1, 0);
+            write(fdes, OPERATING_SYSTEM, sizeof(OPERATING_SYSTEM)-1);
+            write(fdes, " ", sizeof(" ")-1);
         }
         if(all || has_switch("-k", args, nargs))
         {
-            send(fdes, KERNEL_VERSION, sizeof(KERNEL_VERSION)-1, 0);
-            send(fdes, " ", sizeof(" ")-1, 0);
+            write(fdes, KERNEL_VERSION, sizeof(KERNEL_VERSION)-1);
+            write(fdes, " ", sizeof(" ")-1);
         }
         if(all || has_switch("-i", args, nargs))
         {
-            send(fdes, BOARD, sizeof(BOARD)-1, 0);
-            send(fdes, " ", sizeof(" ")-1, 0);
+            write(fdes, BOARD, sizeof(BOARD)-1);
+            write(fdes, " ", sizeof(" ")-1);
         }
         if(all || has_switch("-p", args, nargs))
         {
-            send(fdes, DEVICE, sizeof(DEVICE)-1, 0);
-            send(fdes, " ", sizeof(" ")-1, 0);
+            write(fdes, DEVICE, sizeof(DEVICE)-1);
+            write(fdes, " ", sizeof(" ")-1);
         }
         if(all || has_switch("-v", args, nargs))
         {
-            send(fdes, PROJECT_VERSION, sizeof(PROJECT_VERSION)-1, 0);
-            send(fdes, " ", sizeof(" ")-1, 0);
+            write(fdes, PROJECT_VERSION, sizeof(PROJECT_VERSION)-1);
+            write(fdes, " ", sizeof(" ")-1);
         }
-        send(fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1, 0);
+        write(fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1);
 
         free(buffer);
     }
@@ -137,7 +137,7 @@ int sh_reboot(int fdes, const char** args, unsigned char nargs)
     (void)args;
     (void)nargs;
 
-    send(fdes, "rebooting"SHELL_NEWLINE, sizeof("rebooting"SHELL_NEWLINE)-1, 0);
+    write(fdes, "rebooting"SHELL_NEWLINE, sizeof("rebooting"SHELL_NEWLINE)-1);
     sleep(1);
     soft_reset();
 

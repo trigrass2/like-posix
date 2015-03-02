@@ -99,19 +99,19 @@ int sh_ls(int fdes, const char** args, unsigned char nargs)
                         break;
 
                     if(ent->d_type == DT_DIR)
-                        send(fdes, DIR_TEXT_START, sizeof(DIR_TEXT_START)-1, 0);
+                        write(fdes, DIR_TEXT_START, sizeof(DIR_TEXT_START)-1);
 
                     i = strlen(ent->d_name);
-                    send(fdes, ent->d_name, i, 0);
+                    write(fdes, ent->d_name, i);
 
                     if(ent->d_type == DT_DIR)
-                        send(fdes, DIR_TEXT_STOP, sizeof(DIR_TEXT_STOP)-1, 0);
+                        write(fdes, DIR_TEXT_STOP, sizeof(DIR_TEXT_STOP)-1);
 
                     if(ll)
                     {
                         // pad spaces
                         while(i++ < PAD_TO_FILESIZE)
-                            send(fdes, " ", 1, 0);
+                            write(fdes, " ", 1);
 
                         if(ent->d_type == DT_REG)
                         {
@@ -126,19 +126,19 @@ int sh_ls(int fdes, const char** args, unsigned char nargs)
                                     st.st_size /= 1000;
                                 }
                                 sprintf(size, "%d%s", st.st_size, units[i]);
-                                send(fdes, size, strlen(size), 0);
+                                write(fdes, size, strlen(size));
                             }
                         }
                         else
-                            send(fdes, "-", 1, 0);
+                            write(fdes, "-", 1);
 
-                        send(fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1, 0);
+                        write(fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1);
                     }
                     else
                     {
                         // pad spaces
                         while(i++ < PAD_TO_NEXT_FILE)
-                            send(fdes, " ", 1, 0);
+                            write(fdes, " ", 1);
                     }
                 }
                 closedir(dir);
@@ -159,8 +159,8 @@ int sh_cd(int fdes, const char** args, unsigned char nargs)
 
     if(chdir(path) == -1)
     {
-      send(fdes, path, strlen(path), 0);
-      send(fdes, IS_NOT_A_DIRECTORY, sizeof(IS_NOT_A_DIRECTORY)-1, 0);
+      write(fdes, path, strlen(path));
+      write(fdes, IS_NOT_A_DIRECTORY, sizeof(IS_NOT_A_DIRECTORY)-1);
     }
     return SHELL_CMD_EXIT;
 }
@@ -171,7 +171,7 @@ int sh_rm(int fdes, const char** args, unsigned char nargs)
 
     if(!nargs)
     {
-        send(fdes, ARGUMENT_NOT_SPECIFIED, sizeof(ARGUMENT_NOT_SPECIFIED)-1, 0);
+        write(fdes, ARGUMENT_NOT_SPECIFIED, sizeof(ARGUMENT_NOT_SPECIFIED)-1);
     }
 
     while(arg < nargs)
@@ -190,7 +190,7 @@ int sh_mkdir(int fdes, const char** args, unsigned char nargs)
     if(dir)
         mkdir(dir, 0777);
     else
-        send(fdes, ARGUMENT_NOT_SPECIFIED, sizeof(ARGUMENT_NOT_SPECIFIED)-1, 0);
+        write(fdes, ARGUMENT_NOT_SPECIFIED, sizeof(ARGUMENT_NOT_SPECIFIED)-1);
 
     return SHELL_CMD_EXIT;
 }
@@ -235,7 +235,7 @@ int sh_cat(int fdes, const char** args, unsigned char nargs)
 		{
 			len = read(ffd, buffer, sizeof(buffer));
 			if(len > 0)
-				send(fdes, buffer, len, 0);
+				write(fdes, buffer, len);
 		}
 		close(ffd);
 	}
@@ -250,10 +250,10 @@ int sh_mv(int fdes, const char** args, unsigned char nargs)
     if(path && newpath)
     {
         if(rename(path, newpath) == -1)
-            send(fdes, ERROR_MOVING_FILE, sizeof(ERROR_MOVING_FILE)-1, 0);
+            write(fdes, ERROR_MOVING_FILE, sizeof(ERROR_MOVING_FILE)-1);
     }
     else
-        send(fdes, ARGUMENT_NOT_SPECIFIED, sizeof(ARGUMENT_NOT_SPECIFIED)-1, 0);
+        write(fdes, ARGUMENT_NOT_SPECIFIED, sizeof(ARGUMENT_NOT_SPECIFIED)-1);
 
     return SHELL_CMD_EXIT;
 }
@@ -284,14 +284,14 @@ int sh_cp(int fdes, const char** args, unsigned char nargs)
                 fclose(f2);
             }
             else
-                send(fdes, ERROR_OPENING_DEST_FILE, sizeof(ERROR_OPENING_DEST_FILE)-1, 0);
+                write(fdes, ERROR_OPENING_DEST_FILE, sizeof(ERROR_OPENING_DEST_FILE)-1);
             fclose(f1);
         }
         else
-            send(fdes, ERROR_OPENING_SOURCE_FILE, sizeof(ERROR_OPENING_SOURCE_FILE)-1, 0);
+            write(fdes, ERROR_OPENING_SOURCE_FILE, sizeof(ERROR_OPENING_SOURCE_FILE)-1);
     }
     else
-        send(fdes, ARGUMENT_NOT_SPECIFIED, sizeof(ARGUMENT_NOT_SPECIFIED)-1, 0);
+        write(fdes, ARGUMENT_NOT_SPECIFIED, sizeof(ARGUMENT_NOT_SPECIFIED)-1);
 
     return SHELL_CMD_EXIT;
 }

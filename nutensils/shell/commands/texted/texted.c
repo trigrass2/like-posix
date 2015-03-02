@@ -45,7 +45,7 @@
 
 #define CTRL_X              0x18
 
-#define BACK_A_LINE()       send(fdes, SHELL_PREVIOUS_LINE, sizeof(SHELL_PREVIOUS_LINE)-1, 0);
+#define BACK_A_LINE()       write(fdes, SHELL_PREVIOUS_LINE, sizeof(SHELL_PREVIOUS_LINE)-1);
 #define IS_NEWLINE()        (buffer[index] == '\n')
 #define SEND_CURRENT_BUF()  send(fdes, &buffer[index], 1, 0)
 
@@ -83,12 +83,12 @@ int sh_texted(int fdes, const char** args, unsigned char nargs)
         file = open(args[0], O_RDWR | O_CREAT);
         if(file != -1)
         {
-            send(fdes, "\n********* ", sizeof("\n********* ")-1, 0);
-            send(fdes, "TextEd: ", sizeof("TextEd: ")-1, 0);
-            send(fdes, args[0], strlen(args[0]), 0);
-            send(fdes, " *********\n", sizeof(" *********\n")-1, 0);
-            send(fdes, "CTRL+X to exit\n", sizeof("CTRL+X to exit\n")-1, 0);
-            send(fdes, "Line:         Character:         \n\n", sizeof("Line:         Character:         \n\n")-1, 0);
+            write(fdes, "\n********* ", sizeof("\n********* ")-1);
+            write(fdes, "TextEd: ", sizeof("TextEd: ")-1);
+            write(fdes, args[0], strlen(args[0]));
+            write(fdes, " *********\n", sizeof(" *********\n")-1);
+            write(fdes, "CTRL+X to exit\n", sizeof("CTRL+X to exit\n")-1);
+            write(fdes, "Line:         Character:         \n\n", sizeof("Line:         Character:         \n\n")-1);
 
             buffer = calloc(TEXTED_PAGESIZE, 1);
 
@@ -97,13 +97,13 @@ int sh_texted(int fdes, const char** args, unsigned char nargs)
                 read(file, buffer, TEXTED_PAGESIZE-1);
 
                 // send buffer
-                send(fdes, buffer, strlen(buffer), 0);
+                write(fdes, buffer, strlen(buffer));
 
                 // rewind buffer
                 for(i = 0; buffer[i]; i++)
                 {
                     if(buffer[i] == '\n')
-                        send(fdes, SHELL_PREVIOUS_LINE, sizeof(SHELL_PREVIOUS_LINE)-1, 0);
+                        write(fdes, SHELL_PREVIOUS_LINE, sizeof(SHELL_PREVIOUS_LINE)-1);
                 }
 
                 while(input > 0)
@@ -111,9 +111,9 @@ int sh_texted(int fdes, const char** args, unsigned char nargs)
 
                     // position cursor
                     for(i = 0; i < line; i++)
-                        send(fdes, "\n", sizeof("\n")-1, 0);
+                        write(fdes, "\n", sizeof("\n")-1);
                     for(i = 0; i < character; i++)
-                        send(fdes, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1, 0);
+                        write(fdes, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1);
 
                     if(recv(fdes, &input, 1, 0) < 1)
                         break;
@@ -126,11 +126,11 @@ int sh_texted(int fdes, const char** args, unsigned char nargs)
                         break;
 
                         case 0x1B:
-                            recv(fdes, &input, 1, 0);
+                            read(fdes, &input, 1);
                             switch(input)
                             {
                                 case 0x5B:
-                                    recv(fdes, &input, 1, 0);
+                                    read(fdes, &input, 1);
                                     switch(input)
                                     {
                                         case 0x44:
@@ -188,13 +188,13 @@ int sh_texted(int fdes, const char** args, unsigned char nargs)
                     }
 
                     // send buffer
-                    send(fdes, buffer, strlen(buffer), 0);
+                    write(fdes, buffer, strlen(buffer));
 
                     // rewind buffer
                     for(i = 0; buffer[i]; i++)
                     {
                         if(buffer[i] == '\n')
-                            send(fdes, SHELL_PREVIOUS_LINE, sizeof(SHELL_PREVIOUS_LINE)-1, 0);
+                            write(fdes, SHELL_PREVIOUS_LINE, sizeof(SHELL_PREVIOUS_LINE)-1);
                     }
                 }
             }
