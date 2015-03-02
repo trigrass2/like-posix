@@ -308,24 +308,6 @@ more data # inline comment
 mykey my value # illegal
 ```
 
-FatFs
-=====
-
-placeholder for a FatFs distribution
-
-obtained from: http://elm-chan.org/fsw/ff/00index_e.html
-
- - Adds a diskio interface for stm32 microcontrollers.
- - relies upon the cutensils project 
- - relies upon the stm32-device-support project, for sdcard.h and sdcard driver implementation(s)
-
- freertos
-========
-
-placeholder for a freertos distribution
-
-obtained from: http://www.freertos.org
-
 graphics
 ========
 
@@ -424,7 +406,7 @@ relies upon:
 
 **stdio**
  
-Note, these are implemented in the minstdlibs project.
+Note, these are implemented in the minstdlibs module.
 
  * FILE* fopen(const char * filename, const char * mode);
  * int fclose(FILE* stream);
@@ -454,7 +436,7 @@ the file likeposix_config.h is required at project level, to configure like-posi
 ``` c
 
 /**
- * sample configuration for the like-posix project.
+ * sample configuration for the like-posix module.
  */
 
 #ifndef LIKEPOSIX_CONFIG_H_
@@ -486,7 +468,7 @@ the file likeposix_config.h is required at project level, to configure like-posi
 /**
  * enable full integration of lwip sockets in likeposix
  */
-#define ENABLE_LIKEPOSIX_SOCKETS    0
+#define ENABLE_LIKEPOSIX_SOCKETS    1
 
 #endif /* LIKEPOSIX_CONFIG_H_ */
 
@@ -520,10 +502,6 @@ It is loosely structured, as follows:
  - /rom
     - firmware images for use by the sdcard bootloader live here
 
-LwIP
-====
-
-placeholder for an LwIP distribution
 
 minstdlibs
 ==========
@@ -541,8 +519,8 @@ must be defined somewhere in your project.
 they are typically defined in syscalls.c... just #include <stdio.h> like normal wherever you want to use stdio.
 
 ``` c
-// examples of complete implementations targeting FreeRTOS and FatFs by ChaN may be found in syscalls.c in
-// the stm32_freertos project, https://github.com/drmetal/stm32_freertos
+// examples of complete implementations targeting FreeRTOS and FatFs by ChaN 
+// may be found in syscalls.c in the freertos module
 
 // example of _write, function to write a characters to a device or file
 int _write(int file, char *buffer, unsigned int count)
@@ -689,7 +667,7 @@ network oriented utilities.
 
 relies upon:
 
- - the cutensils project, https://github.com/drmetal/cutensils.
+ - the cutensils module
 
 Socket
 ------
@@ -882,4 +860,37 @@ Use netcat to test....
 nc <ipaddress> 22
 
 ```
+
+Third Party
+===========
+
+There are several third party libraries used by appleseed.
+
+LwIP
+----
+obtained from:
+
+http://savannah.nongnu.org/projects/lwip/
+
+currently at V1.4.1
+
+
+FatFs
+-----
+
+obtained from: http://elm-chan.org/fsw/ff/00index_e.html
+
+ - appleseed adds a diskio interface for stm32 microcontrollers.
+ - appleseed additions rely upon the cutensils module 
+ - appleseed additions rely upon the stm32-device-support module, for sdcard.h and sdcard driver implementation(s)
+ 
+
+FreeRTOS
+--------
+
+obtained from: 
+
+http://www.freertos.org
+
+currently at V8.0.0
 
