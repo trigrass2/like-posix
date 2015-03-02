@@ -60,6 +60,15 @@
 
 \endcode
  *
+ *
+ * Supports the like-posix device backend API. When compiled together with USE_POSIX_STYLE_IO set to 1,
+ * the following posix functions are available for USARTS:
+ *
+ * open, close, read, write, fstat, stat, isatty, tcgetattr, tcsetattr, cfgetispeed,
+ * cfgetospeed, cfsetispeed, cfsetospeed, tcdrain, tcflow, tcflush
+ *
+ * baudrate and timeout settings are supported by tcgetattr/tcsetattr.
+ *
  * @file usart.c
  * @{
  */
@@ -501,6 +510,16 @@ static int usart_ioctl(dev_ioctl_t* dev)
         // read baudrate
         dev->termios->c_ispeed = usart_get_baudrate(usart);
         dev->termios->c_ospeed = dev->termios->c_ispeed;
+    }
+
+    if(dev->termios->c_cc[VTIME] > 0)
+    {
+        // set device timeout in units of 10ms
+        dev->timeout = 10 * dev->termios->c_cc[VTIME];
+    }
+    else
+    {
+        dev->termios->c_cc[VTIME] = dev->timeout / 10;
     }
 
     // set character size

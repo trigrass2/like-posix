@@ -53,24 +53,24 @@ struct termios
 #define _HAVE_STRUCT_TERMIOS_C_OSPEED 1
   };
 
-/* c_cc characters */
-#define VINTR 0
-#define VQUIT 1
-#define VERASE 2
-#define VKILL 3
-#define VEOF 4
-#define VTIME 5
-#define VMIN 6
-#define VSWTC 7
-#define VSTART 8
-#define VSTOP 9
-#define VSUSP 10
-#define VEOL 11
-#define VREPRINT 12
-#define VDISCARD 13
-#define VWERASE 14
-#define VLNEXT 15
-#define VEOL2 16
+/* c_cc characters NOTE - when extending likeposix to include the following, ensure c_cc is extended to fit */
+#define VTIME 0
+//#define VINTR 1
+//#define VQUIT 2
+//#define VERASE 3
+//#define VKILL 4
+//#define VEOF 5
+//#define VMIN 6
+//#define VSWTC 7
+//#define VSTART 8
+//#define VSTOP 9
+//#define VSUSP 10
+//#define VEOL 11
+//#define VREPRINT 12
+//#define VDISCARD 13
+//#define VWERASE 14
+//#define VLNEXT 15
+//#define VEOL2 16
 
 /* c_iflag bits */
 #define IGNBRK  0000001
