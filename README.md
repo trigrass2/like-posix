@@ -1,7 +1,9 @@
-app-l-seed
-==========
+appleseed
+=========
 
-An Application framework for devices based on STM32Fx microcontrollers.
+Appleseed, is an application framework for devices based on STM32Fx microcontrollers.
+
+It provides a set of tools and services and for growing big juicy embedded applications.
 
 The intent is to make application development in posix style c easy, and faily complete, on platforms that are too under powered to run Linux, but are very highly capable when running light weight code.
 
@@ -9,70 +11,83 @@ Includes support for multi tasking (freertos), networking (lwip), filesystem (ch
 
 Each folder in this repository holds a module or a category of modules. These are described below....
 
+Including in a project
+----------------------
 
-stm32-build-env
-===============
+This repository may sit anywhere releative to a particular project, but a nice way to do it is with git submodule.
+
+Assume that the project is called "myproject", the following step is required once only, to add the submodule.
+```bash
+## things to do once
+# get a copy of myproject
+git clone url-of-myproject-repo
+# add appleseed as a submodule
+git submodule add https://github.com/drmetal/applseed.git
+# initialise and update
+git submodule init
+git submodule update
+# commit and push the new submodule
+git commit .gitmodules applseed -m "adding appleseed"
+git push
+
+# from now on pulls on the myproject repo may be done to include the submodukes as well
+git pull --recurse-submodules
+
+# pushes are done separately, since myproject and appleed are still two different repos
+git commit ...
+git push ...
+cd appleseed
+git commit ...
+git push ...
+```
+
+Future clones of "myproject" can be made including  appleseed.
+
+```bash
+#this will recursively bring all submodules in
+git clone --recursive url-of-myproject-repo
+# pull myproject and all submodules
+git pull --recurse-submodules
+# pull just myproject
+git pull
+# pull just appleseed
+cd appleseed
+git pull
+# commit and push as above...
+git commit ...
+git push ...
+cd appleseed
+git commit ...
+git push ...
+```
+
+Once you have the code on disk, include appleseed in your project makefile, this is outlined in the next section which describes the build-env folder.
+
+
+build-env
+=========
 
 Overview
 --------
 
-this project compiles a bunch of makefiles and scripts that can be used to build STM32 projects.
+this module collects up a bunch of makefiles and scripts that can be used to build STM32 projects.
 
 Both STM32F1 and STM32F4 are supported, as well as multiple boards. Chip and board support is implemented in 
 stm32-device-support/board and stm32-device-support/device.
-
-Requires
---------
-
-to use, clone the following projects into a new directory:
-
- - https://github.com/drmetal/stm32-build-env
- - https://github.com/drmetal/stm32-device-support
- - https://github.com/drmetal/like-posix
- - https://github.com/drmetal/freertos
- - https://github.com/drmetal/minstdlibs
- - https://github.com/drmetal/cutensils
- - https://github.com/drmetal/nutensils
- - https://github.com/drmetal/LwIP
- - https://github.com/drmetal/FatFs
  
  
-Demos
------
-
-**Led Blinker**
-
-https://github.com/drmetal/led-blink-demo.git
-
-**Posix File IO**
-
-https://github.com/drmetal/file-io-demo.git
-
-**Posix Sockets**
-
-https://github.com/drmetal/socket-demo.git
-
-
 Options in project Makefiles
 ----------------------------
 
-There are a few options that may be specified in the project makefile. 
+There are many options that may be specified in the project makefile. these are set to defaults in the file **setup.mk**.
 
-build options are:
+All of those settings may be overridden in your project makefile, or as envirponment variables, or from the command line.
 
- - make clean (remove all build artifacts)
- - make all (default build)
- - make release (no debug)
- - make debug (debug enabled)
+```bash
 
-to rebuild completely:
+```
 
- - make clean release
- - make clean debug
- 
-to change settings from the command line, Eg:
-
- - make clean release PROJECT_NAME="demo-project" BOARD="HY-STM32_100P"
+**setup.mk** must be included in you makefile after all your customizations and project configurations.
 
 Here is an example of a makefile
 
@@ -105,9 +120,77 @@ USE_DRIVER_SDCARD = 1
 USE_DRIVER_FAT_FILESYSTEM = 1
 
 ## be sure to include the other makefiles
-include ../stm32-build-env/setup.mk
+include appleseed/build-env/setup.mk
 ```
 
+build options
+-------------
+
+ - make clean (remove all build artifacts)
+ - make all (default build)
+ - make release (no debug)
+ - make debug (debug enabled)
+
+to rebuild completely:
+
+ - make clean release
+ - make clean debug
+
+```bash
+#example with build customization via command line parameters 
+make clean release PROJECT_NAME="demo-project" BOARD="HY-STM32_100P"
+```
+
+stm32-device-support
+====================
+
+A collection of code that supports building for different stm32fxxx devices.
+
+Includes chip and board configurations, and hardware drivers.
+
+chips supported: STM32F103VE, STM32F107RC, STM32F407VE, STM32F407VG
+boards supported: HY-STM32_100P, stm32f4_discovery, uemb1, uemb4
+
+
+build options
+------------------
+
+ - DEVICE_SUPPORT_DIR
+	 - the path to the stm32-device-support root directory, relative to the project makefile
+ - BOARD
+	 - the name of the board to build for - this must be one of those listed in board.mk->BOARDS
+ - APP_ADDRESS_OFFSET		
+ 	- can be set to some other value to make the built application run from a location other than the flash origin. for example setting to 0x4000 will offset the application in flash by 16KBytes. The first 16KBytes could then be used for a bootloader or non volatile data space... defaults to **0x0000**.
+
+ - USE_DRIVER_LWIP_NET
+	 - for boards that include an ethernet device, this option can be set to 1 to enable the device specfic ethernet driver. 
+
+submakefiles
+-----------------
+
+The user makefile should include the makefiles from this module:
+```make
+CFLAGS += -I$(DEVICE_SUPPORT_DIR)
+include $(DEVICE_SUPPORT_DIR)/board/board.mk
+include $(DEVICE_SUPPORT_DIR)/device/device.mk
+```
+
+The user makefile should call **buildlinkerscript** as part of its **all** target. this makes sure  the linker script exists, and matches the chip specified for the board, in board.mk.
+
+Timers
+------
+
+Timers are used to support device drivers. It can be hard to work out if its safe to use a timer in the application. The drivers that use timers are:
+
+|module	|file      |set in              |defaults to   |shared with|
+|-------|----------|--------------------|--------------|-----------|
+|systimer|systimer.c|board/<board>/systime_config.h|TIM2|lcd|
+|adc_stream|adc_stream.c|<project>/adc_stream_config.h|TIM3||
+|dac_stream|dac_stream.c|<project>/dac_stream_config.h|TIM6||
+|i2s_stream|i2s_stream.c|<project>/i2s_stream_config.h|TIM5||
+|ds1820|ds1820.c|<project>/ds1820_config.h|TIM4||
+|lcd|lcd.c|<project>/board/<board>/lcd_config.h|TIM2|systimer|
+|pwm|pwm.c|pwm_config.h|any left over||
 
 About memory on the STM32 devices, with FreeRTOS
 ------------------------------------------------
@@ -185,56 +268,45 @@ Memory Use Strategies
  - large buffers cant be taken from the task stack - it just bloats the task stacks way too much.
  - if they are used all the time, and really dont need to change in size, just define in bss and optionally protect access using a mutex.
  - if they are used not so often, or frequently change in size so that a static buffer would waste space, dynamic memory could be a good option.
-
-stm32-device-support
-====================
-
-A collection of code that supports stm32fxxx devices
-
-build options
-------------------
-
- - DEVICE_SUPPORT_DIR
-	 - the path to the stm32-device-support root directory, relative to the project makefile
- - BOARD
-	 - the name of the board to build for - this must be one of those listed in board.mk->BOARDS
- - APP_ADDRESS_OFFSET		
- 	- can be set to some other value to make the built application run from a location other than the flash origin. for example setting to 0x4000 will offset the application in flash by 16KBytes. The first 16KBytes could then be used for a bootloader or non volatile data space... defaults to **0x0000**.
-
- - USE_DRIVER_LWIP_NET
-	 - for boards that include an ethernet device, this option can be set to 1 to enable the device specfic ethernet driver. 
-
-submakefiles
------------------
-
-The user makefile should include the makefiles from this project:
-```make
-CFLAGS += -I$(DEVICE_SUPPORT_DIR)
-include $(DEVICE_SUPPORT_DIR)/board/board.mk
-include $(DEVICE_SUPPORT_DIR)/device/device.mk
-```
-
-The user makefile should call **buildlinkerscript** as part of its **all** target. this makes sure  the linker script exists, and matches the chip specified for the board, in board.mk.
-
-Timers
-------
-
-Timers are used to support device drivers. It can be hard to work out if its safe to use a timer in the application. The drivers that use timers are:
-
-|module	|file      |set in              |defaults to   |shared with|
-|-------|----------|--------------------|--------------|-----------|
-|systimer|systimer.c|board/<board>/systime_config.h|TIM2|lcd|
-|adc_stream|adc_stream.c|<project>/adc_stream_config.h|TIM3||
-|dac_stream|dac_stream.c|<project>/dac_stream_config.h|TIM6||
-|i2s_stream|i2s_stream.c|<project>/i2s_stream_config.h|TIM5||
-|ds1820|ds1820.c|<project>/ds1820_config.h|TIM4||
-|lcd|lcd.c|<project>/board/<board>/lcd_config.h|TIM2|systimer|
-|pwm|pwm.c|pwm_config.h|any left over||
+ 
 
 cutensils
 =========
 
-software utensils, written in c 
+software utensils, written in c. all the software in cutensils io in pure hardware independent c.
+
+Logger
+------
+
+This is a general logging module.
+supporting logging:
+ - to file
+ - to serial port
+ - to socket
+ - or any other file like device
+ - optionally with ansi colour
+ - optionally with timestamp
+
+Confparse
+---------
+
+configuration file parser / writer. supports:
+ - key value storage in files
+ - inline / whole line comments with the '#' character
+ - insertion / deletion / reading of key value pairs
+ - iteration over all key value pairs.
+
+```
+# Eg, example config file
+
+# whitespace is ok
+
+mykey myvalue
+an_integer 1234
+more data # inline comment
+# spaces inside keys or values not allowed
+mykey my value # illegal
+```
 
 FatFs
 =====

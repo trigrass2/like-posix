@@ -15,6 +15,19 @@ SHELL = /bin/bash
 DATE := $(shell date +"%F_%T")
 BUILDNO := $(shell date +"%m:%d:%T")
 
+
+# STM32DEVSUPPORTDIR
+# relative path to applesed root directory WRT the project root directory, the default works with:
+# projectdir -|
+# 			  |- main.c
+#			  |- Makefile
+#			  |- etc...
+# 			  |- appleseed -|
+# 			  				|- build-env
+# 			  				|- etc...
+#
+STM32DEVSUPPORTDIR ?= appleseed
+
 ## Supported boards:
 # HY-STM32_100P
 # stm32f4_discovery
@@ -119,8 +132,7 @@ USE_DRIVER_I2S_STREAM ?= 0
 # PWM driver
 USE_DRIVER_PWM ?= 0
 
-# the location of this stuff WRT the project
-STM32DEVSUPPORTDIR ?= ..
+
 
 ## specify location of the project: https://github.com/drmetal/stm32-build-env
 BUILD_ENV_DIR ?= $(STM32DEVSUPPORTDIR)/build-env
