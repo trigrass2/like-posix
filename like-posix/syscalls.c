@@ -165,8 +165,8 @@ typedef struct {
 
 #define DEFAULT_DEVICE_TIMEOUT          1000
 
-#define lock_filtab()                   (xSemaphoreTake(filtab.lock, 2000/portTICK_RATE_MS) == pdTRUE)
-#define unlock_filtab()                 xSemaphoreGive(filtab.lock)
+#define lock_filtab()                   1//(xSemaphoreTake(filtab.lock, 2000/portTICK_RATE_MS) == pdTRUE)
+#define unlock_filtab()                 //xSemaphoreGive(filtab.lock)
 
 #undef errno
 extern int errno;
