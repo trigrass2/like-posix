@@ -162,7 +162,7 @@ void I2S_STREAM_RX_INTERRUPT_HANDLER()
 void init_local_i2s_io()
 {
     GPIO_InitTypeDef gpioi;
-    gpioi.GPIO_Speed = GPIO_Speed_2MHz;
+    gpioi.GPIO_Speed = GPIO_Speed_50MHz;
     gpioi.GPIO_Mode = GPIO_Mode_AF;
     gpioi.GPIO_OType = GPIO_OType_PP;
     gpioi.GPIO_PuPd = GPIO_PuPd_NOPULL;
@@ -180,6 +180,7 @@ void init_local_i2s_io()
     GPIO_Init(I2S_STREAM_WS_PORT, &gpioi);
     GPIO_PinAFConfig(I2S_STREAM_WS_PORT, I2S_STREAM_WS_PINSOURCE, I2S_STREAM_I2S_ALT_FUNCTION);
 
+    gpioi.GPIO_OType = GPIO_OType_OD;
     gpioi.GPIO_Pin = I2S_STREAM_EXT_SD_PIN;
     GPIO_Init(I2S_STREAM_EXT_SD_PORT, &gpioi);
     GPIO_PinAFConfig(I2S_STREAM_EXT_SD_PORT, I2S_STREAM_EXT_SD_PINSOURCE, I2S_STREAM_I2S_EXT_ALT_FUNCTION);
