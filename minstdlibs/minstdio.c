@@ -455,6 +455,12 @@ FILE* fopen(const char * filename, const char * mode)
 	return fd != EOF ? (FILE*)fd : NULL;
 }
 
+FILE* fdopen(int fd, const char *mode)
+{
+    (void)mode;
+    return (FILE*)fd;
+}
+
 int fclose(FILE* stream)
 {
 	return close((intptr_t)stream);
