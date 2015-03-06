@@ -46,6 +46,7 @@
 #include "cutensils.h"
 #include "codec_config.h"
 #include "i2s_stream_config.h"
+#include "stream_common.h"
 
 #define I2S_STREAM_DMA_CLOCK                RCC_AHB1Periph_DMA1
 
@@ -140,8 +141,8 @@ void i2s_stream_start();
 void i2s_stream_stop();
 void i2s_stream_set_samplerate(uint32_t samplerate);
 uint32_t i2s_stream_get_samplerate();
-void i2s_tx_stream_connect_service(stream_connection_t* interface, void* ctx, uint8_t stream_channel);
-void i2s_rx_stream_connect_service(stream_connection_t* interface, void* ctx, uint8_t stream_channel);
+void i2s_tx_stream_connect_service(stream_connection_t* interface, uint8_t stream_channel);
+void i2s_rx_stream_connect_service(stream_connection_t* interface, uint8_t stream_channel);
 
 
 #endif // I2S_STREAM_H

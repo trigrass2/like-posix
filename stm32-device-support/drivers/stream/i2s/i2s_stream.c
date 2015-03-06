@@ -340,17 +340,17 @@ uint32_t i2s_stream_get_samplerate()
 /**
  * @brief   wraps stream_connect_service, see stream_common.c for info.
  */
-void i2s_tx_stream_connect_service(stream_connection_t* interface, void* ctx, uint8_t stream_channel)
+void i2s_tx_stream_connect_service(stream_connection_t* interface, uint8_t stream_channel)
 {
-    stream_connect_service(interface, ctx, &i2s_tx_stream, stream_channel);
+    stream_connect_service(interface, &i2s_tx_stream, stream_channel);
 }
 
 /**
  * @brief   wraps stream_connect_service, see stream_common.c for info.
  */
-void i2s_rx_stream_connect_service(stream_connection_t* interface, void* ctx, uint8_t stream_channel)
+void i2s_rx_stream_connect_service(stream_connection_t* interface, uint8_t stream_channel)
 {
-    stream_connect_service(interface, ctx, &i2s_rx_stream, stream_channel);
+    stream_connect_service(interface, &i2s_rx_stream, stream_channel);
 }
 
 
