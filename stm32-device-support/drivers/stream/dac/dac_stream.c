@@ -41,25 +41,22 @@
 
 #include "dac_stream.h"
 
-void dac_stream_callback(uint16_t* buffer, uint16_t length, uint8_t channels, uint8_t channel)
+void dac_stream_callback(uint16_t* buffer, uint16_t length, uint8_t channels, stream_connection_t* conn)
 {
-    // prints every time the dac buffer is ready to be "filled"
-    // normally would put signal processing code here
-    printf("%x %d %d %d\n", buffer, length, channels, channel);
+    printf("%s: %x %d %d %d\n", conn->name, buffer, length, channels, conn->stream_channel);
 }
 
-stream_connection_t dac_stream_conn = {
-        .process = dac_stream_callback,
-        .name = "dac stream tester",
-        .enabled = true
-};
+stream_connection_t dac_stream_conn;
 
 void start()
 {
     dac_stream_init();
-    dac_stream_set_samplerate(22050);
-    dac_stream_connect_service(&dac_stream_conn);
+    dac_stream_set_samplerate(2000);
     dac_stream_start();
+
+    stream_connection_init(&dac_stream_conn, dac_stream_callback, "dac process", NULL);
+    dac_stream_connect_service(&dac_stream_conn, 0);
+    stream_connection_enable(&dac_stream_conn, true);
 }
 
 \endcode
@@ -377,9 +374,9 @@ uint32_t dac_stream_get_samplerate()
 /**
  * @brief   wraps stream_connect_service, see stream_common.c for info.
  */
-void dac_stream_connect_service(stream_connection_t* interface, void* ctx, uint8_t stream_channel)
+void dac_stream_connect_service(stream_connection_t* interface, uint8_t stream_channel)
 {
-    stream_connect_service(interface, ctx, &dac_stream, stream_channel);
+    stream_connect_service(interface, &dac_stream, stream_channel);
 }
 
 
