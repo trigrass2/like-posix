@@ -70,25 +70,22 @@
 
 #include "adc_stream.h"
 
-void adc_stream_callback(uint16_t* buffer, uint16_t length, uint8_t channels, uint8_t channel)
+void adc_stream_callback(uint16_t* buffer, uint16_t length, uint8_t channels, stream_connection_t* conn)
 {
-    // prints every time the adc buffer is ready to be "emptied"
-    // normally would put signal processing code here
-    printf("%x %d %d %d\n", buffer, length, channels, channel);
+    printf("%s: %x %d %d %d\n", conn->name, buffer, length, channels, conn->stream_channel);
 }
 
-stream_connection_t adc_stream_conn = {
-        .process = adc_stream_callback,
-        .name = "adc stream tester",
-        .enabled = true
-};
+stream_connection_t adc_stream_conn;
 
 void start()
 {
     adc_stream_init();
-    adc_stream_set_samplerate(22050);
-    adc_stream_connect_service(&adc_stream_conn);
+    adc_stream_set_samplerate(2000);
     adc_stream_start();
+
+    stream_connection_init(&adc_stream_conn, adc_stream_callback, "adc process", NULL);
+    adc_stream_connect_service(&adc_stream_conn, 0);
+    stream_connection_enable(&adc_stream_conn, true);
 }
 
 \endcode
