@@ -30,6 +30,7 @@
  *
  */
 
+#include <string.h>
 #include "asserts.h"
 #include "stream_common.h"
 
@@ -114,6 +115,21 @@ uint32_t stream_get_samplerate(stream_t* stream)
 }
 
 /**
+ * @brief   initializes a connection structure.
+ *
+ * @param   interface is a pointer to the interface to register.
+ * @param   process is the callback function which will be called every time there is data ready for processing.
+ * @param   name is a string naming the connection.
+ * @param   ctx is a pointer to some application context data.
+ */
+void stream_connection_init(stream_connection_t* interface, stream_callback_t process, const char* name, void* ctx)
+{
+    interface->process = process;
+    interface->name = name;
+    interface->ctx = ctx;
+}
+
+/**
  * @brief   enters an stream service interface into the service register,
  *          if it is not there already and there is a space for it.
  *          up to DAC_STREAM_MAX_CONNECTIONS services may be registered.
@@ -121,16 +137,14 @@ uint32_t stream_get_samplerate(stream_t* stream)
  *          The number of bytes in the buffer available to the service is calculated by:
  *          size-in-bytes = interface->bufferSize * sizeof(uint16_t) * number-of-DAC_STREAM_CHANNEL_COUNT
  * @param   interface is a pointer to the interface to register.
- * @param   ctx is a pointer to some application context data.
  * @param   stream is the stream to register against.
  * @param   stream_channel is the stream channel to connect the service on.
  */
-void stream_connect_service(stream_connection_t* interface, void* ctx, stream_t* stream, uint8_t stream_channel)
+void stream_connect_service(stream_connection_t* interface, stream_t* stream, uint8_t stream_channel)
 {
     uint8_t i;
     bool registered = false;
 
-    interface->ctx = ctx;
     interface->stream = stream;
     interface->stream_channel = stream_channel;
 

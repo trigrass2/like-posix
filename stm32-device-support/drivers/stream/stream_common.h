@@ -40,7 +40,9 @@ void init_stream(stream_t* stream, const char* name, uint32_t samplerate,
 void stream_set_samplerate(stream_t* stream, TIM_TypeDef* samplerate_timer, uint32_t timer_clockrate, uint32_t samplerate);
 uint32_t stream_get_samplerate(stream_t* stream);
 
-void stream_connect_service(stream_connection_t* interface, void* ctx, stream_t* stream, uint8_t stream_channel);
+void stream_connection_init(stream_connection_t* interface, stream_callback_t process, const char* name, void* ctx);
+
+void stream_connect_service(stream_connection_t* interface, stream_t* stream, uint8_t stream_channel);
 void stream_connection_enable(stream_connection_t* interface, bool enable);
 bool stream_connection_enabled(stream_connection_t* interface);
 

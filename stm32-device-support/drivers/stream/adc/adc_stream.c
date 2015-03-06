@@ -557,9 +557,9 @@ uint32_t adc_stream_get_samplerate()
 /**
  * @brief   wraps stream_connect_service, see stream_common.c for info.
  */
-void adc_stream_connect_service(stream_connection_t* interface, void* ctx, uint8_t stream_channel)
+void adc_stream_connect_service(stream_connection_t* interface, uint8_t stream_channel)
 {
-    stream_connect_service(interface, ctx, &adc_stream, stream_channel);
+    stream_connect_service(interface, &adc_stream, stream_channel);
 }
 
 

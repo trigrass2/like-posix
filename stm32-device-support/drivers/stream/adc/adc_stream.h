@@ -46,6 +46,7 @@
 #include "adc_config.h"
 #include "adc_stream_config.h"
 #include "cutensils.h"
+#include "stream_common.h"
 
 
 #if FAMILY == STM32F1
@@ -142,7 +143,7 @@ void adc_stream_start();
 void adc_stream_stop();
 void adc_stream_set_samplerate(uint32_t samplerate);
 uint32_t adc_stream_get_samplerate();
-void adc_stream_connect_service(stream_connection_t* interface, void* ctx, uint8_t stream_channel);
+void adc_stream_connect_service(stream_connection_t* interface, uint8_t stream_channel);
 
 
 #endif // ADC_STREAM_H
