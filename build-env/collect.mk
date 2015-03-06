@@ -95,6 +95,7 @@ ASFLAGS += -Wa,-adhlns=$(addprefix $(OUTDIR)/, $(notdir $(addsuffix .lst, $(base
 ifndef __cplusplus
 LINKER_FLAGS += -nostartfiles
 endif
+LINKER_FLAGS += --specs=nano.specs
 LINKER_FLAGS += -Xlinker -o$(OUTPUT_PREFIX).elf -Xlinker -M -Xlinker -Map=$(OUTPUT_PREFIX).map -Xlinker
 ## note, if debug is enabled use -no-gc-sections - binaries will be unoptimised, read enormous
 LINKER_FLAGS +=  -gc-sections
