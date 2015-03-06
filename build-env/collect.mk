@@ -91,7 +91,10 @@ ASFLAGS += -Wa,-adhlns=$(addprefix $(OUTDIR)/, $(notdir $(addsuffix .lst, $(base
 #ASFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 
 ## Linker options
-# to allow for C++, removed -nostartfiles
+# to allow for C++, remove -nostartfiles
+ifndef __cplusplus
+LINKER_FLAGS += -nostartfiles
+endif
 LINKER_FLAGS += -Xlinker -o$(OUTPUT_PREFIX).elf -Xlinker -M -Xlinker -Map=$(OUTPUT_PREFIX).map -Xlinker
 ## note, if debug is enabled use -no-gc-sections - binaries will be unoptimised, read enormous
 LINKER_FLAGS +=  -gc-sections
