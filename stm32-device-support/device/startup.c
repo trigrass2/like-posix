@@ -44,8 +44,8 @@
 #define BSS_FILL    0
 #define STACK_FILL  0xA5A5A5A5
 
-#ifndef EXTENDED_UNHANDLED_INTERRUPT_HANDLER
-#define EXTENDED_UNHANDLED_INTERRUPT_HANDLER 0
+#ifndef CLEVER_DEFAULT_INTERRUPT_HANDLER
+#define CLEVER_DEFAULT_INTERRUPT_HANDLER 0
 #endif
 
 extern unsigned long _etext;
@@ -68,7 +68,7 @@ extern unsigned long _sstack;
 void Reset_Handler() __attribute__((__interrupt__));
 void __Init_Data();
 
-#if EXTENDED_UNHANDLED_INTERRUPT_HANDLER
+#if CLEVER_DEFAULT_INTERRUPT_HANDLER
 #include<stdio.h>
 void Default_Handler(const char* file, const char* function, const int line);
 #define MESSAGE() Default_Handler(__FILE__, __FUNCTION__, __LINE__);
@@ -77,7 +77,9 @@ void Default_Handler();
 #endif
 
 extern int main();                /* Application's main function */
+#ifdef __cplusplus
 extern void __libc_init_array();  /* calls CTORS of static objects */
+#endif
 
 /**
  * @brief  This is the code that gets called when the processor first
@@ -91,7 +93,9 @@ void Reset_Handler()
 	__Init_Data();
 
 	/* Call CTORS of static objects */
+#ifdef __cplusplus
 	__libc_init_array();
+#endif
 
 	/* Call Clock/RCC init */
 	SystemInit();
@@ -138,17 +142,20 @@ void __Init_Data()
 /**
  * @brief  unexpected interrupt handler
 */
-#if EXTENDED_UNHANDLED_INTERRUPT_HANDLER
+#if CLEVER_DEFAULT_INTERRUPT_HANDLER
 void Default_Handler(const char* file, const char* function, const int line)
 {
-    printf("unhandled interrupt: %s, %s, line %d\n", file, function, line);
-    while(1);
+    while(1)
+    {
+        printf("unhandled interrupt: %s, %s, line %d\n", file, function, line);
+        delay(2000);
+    }
 }
-#else // EXTENDED_UNHANDLED_INTERRUPT_HANDLER
+#else // CLEVER_DEFAULT_INTERRUPT_HANDLER
 void Default_Handler()
 {
     while(1);
 }
-#endif // EXTENDED_UNHANDLED_INTERRUPT_HANDLER
+#endif // CLEVER_DEFAULT_INTERRUPT_HANDLER
 
 /******************* (C) COPYRIGHT 2009 STMicroelectronics *****END OF FILE****/

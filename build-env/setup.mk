@@ -49,6 +49,9 @@ USE_FULL_ASSERT ?= 1
 # debug exceptions
 DEBUG_PRINTF_EXCEPTIONS ?= 0
 
+# extend interrupt handlers to printf some info on undefined interrupt (incleases binary size by a few kb)
+CLEVER_DEFAULT_INTERRUPT_HANDLER ?= 0
+
 # route stdout to CONSOLE USART
 USE_STDIO_USART ?= 0
 

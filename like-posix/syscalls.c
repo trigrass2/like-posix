@@ -66,6 +66,8 @@
  * int unlink(char *name)
  * int rename(const char *oldname, const char *newname)
  * void exit(int i)
+ * void init(void)
+ * void fini(void)
  * char* getcwd(char* buffer, size_t size)
  * DIR* opendir(const char *name)
  * int closedir(DIR *dirp)
@@ -1069,6 +1071,21 @@ int times(struct tm *buf)
 	(void)buf;
 	return -1;
 }
+
+#ifdef __cplusplus
+#ifndef _init()
+void _init()
+{
+
+}
+#endif
+#ifndef _fini
+void _fini()
+{
+
+}
+#endif
+#endif
 
 int _wait(int *status)
 {
