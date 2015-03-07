@@ -14,7 +14,7 @@ all :
 	g++ $(CPPFLAGS) $(CXXFLAGS) $(TEST_DIR)/*.cc $(SRC_DIR)/*.c $(GTEST_LIBS) -o test
 	
 clean :
-	rm -f test *.o
+	rm -f test *.o *.xml
 	
 run :
-	./test
+	./test --gtest_output=xml:xunit.xml

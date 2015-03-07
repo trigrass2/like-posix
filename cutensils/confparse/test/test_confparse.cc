@@ -235,36 +235,6 @@ TEST(test_confparse, test_get_config_value_by_key_valid_data_invalid_key)
 	ASSERT_STREQ((const char*)value, NULL);
 }
 
-TEST(test_confparse, test_config_key_in_list)
-{
-	bool ret = config_key_in_list((const uint8_t*)"abc", 10, (const uint8_t**)valid_match_set);
-	ASSERT_TRUE(ret);
-	ret = config_key_in_list((const uint8_t*)"efg", 10, (const uint8_t**)valid_match_set);
-	ASSERT_TRUE(ret);
-	ret = config_key_in_list((const uint8_t*)"xyz", 10, (const uint8_t**)valid_match_set);
-	ASSERT_TRUE(ret);
-	ret = config_key_in_list((const uint8_t*)"gfd", 10, (const uint8_t**)valid_match_set);
-	ASSERT_FALSE(ret);
-	ret = config_key_in_list((const uint8_t*)"ab", 10, (const uint8_t**)valid_match_set);
-	ASSERT_FALSE(ret);
-	ret = config_key_in_list((const uint8_t*)"zy", 10, (const uint8_t**)valid_match_set);
-	ASSERT_FALSE(ret);
-}
-
-TEST(test_confparse, test_string_match)
-{
-	bool ret = string_match("abc", (const uint8_t*)"abc");
-	ASSERT_TRUE(ret);
-	ret = string_match("abc", (const uint8_t*)"abcd");
-	ASSERT_FALSE(ret);
-	ret = string_match("abcd", (const uint8_t*)"abc");
-	ASSERT_FALSE(ret);
-	ret = string_match(NULL, (const uint8_t*)"abc");
-	ASSERT_FALSE(ret);
-	ret = string_match("abcd", NULL);
-	ASSERT_FALSE(ret);
-}
-
 /**
  * start with empty config file
  *
