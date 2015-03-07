@@ -36,20 +36,20 @@ TEST(test_strutils, strtolower_tc_test_return_value_and_function)
 
 TEST(test_strutils, adtoi_tc_test_return_value_and_function)
 {
-	ASSERT_EQ(adtoi('4'), 4);
-	ASSERT_EQ(adtoi('B'), 11);
-	ASSERT_EQ(adtoi('b'), 11);
-	ASSERT_EQ(adtoi('-'), -1);
-	ASSERT_EQ(adtoi('$'), -1);
+	ASSERT_EQ(adtoi('4'), (char)4);
+	ASSERT_EQ(adtoi('B'), (char)11);
+	ASSERT_EQ(adtoi('b'), (char)11);
+	ASSERT_EQ(adtoi('-'), (char)-1);
+	ASSERT_EQ(adtoi('$'), (char)-1);
 }
 
 TEST(test_strutils, ahtoi_tc_test_return_value_and_function)
 {
-	ASSERT_EQ(ahtoi((char*)"4"), 4);
-	ASSERT_EQ(ahtoi((char*)"AB"), 171);
-	ASSERT_EQ(ahtoi((char*)"ab"), 171);
-	ASSERT_EQ(ahtoi((char*)"-AB"), -1);
-	ASSERT_EQ(ahtoi((char*)"1234DEF"), 19090927);
+	ASSERT_EQ(ahtoi((char*)"4"), (int)4);
+	ASSERT_EQ(ahtoi((char*)"AB"), (int)171);
+	ASSERT_EQ(ahtoi((char*)"ab"), (int)171);
+	ASSERT_EQ(ahtoi((char*)"-AB"), (int)-1);
+	ASSERT_EQ(ahtoi((char*)"1234DEF"), (int)19090927);
 }
 
 TEST(test_strutils, test_string_in_list)

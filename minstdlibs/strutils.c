@@ -92,12 +92,12 @@ char* strtolower(char* s)
  */
 char adtoi(char d)
 {
-	d = tolower((int)d);
+	d = (char)tolower((int)d);
 	if (d >= '0' && d <= '9')
 		return d - '0';
 	if (d >= 'a' && d <= 'f')
 		return d - 'a' + 10;
-	return -1;
+	return (char)-1;
 }
 
 /**
