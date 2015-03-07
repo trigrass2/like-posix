@@ -6,7 +6,7 @@ TEST_DIR = .
 SRC_DIR = ..
 GTEST_DIR = /usr/lib
 CPPFLAGS = -I../
-CXXFLAGS = -g -Wall -Wextra -pthread -DUSE_NONSTANDARD_F_FUNCTIONS
+CXXFLAGS = -g -Wall -Wextra -pthread
 GTEST_LIBS = $(GTEST_DIR)/libgtest_main.a $(GTEST_DIR)/libgtest.a
 #GTEST_LIBS = -lgtest_main -lgtest 
 

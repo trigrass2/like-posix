@@ -5,6 +5,15 @@
 #include "gtest/gtest.h"
 #include "strutils.h"
 
+const char* valid_match_set[] = {
+        "abc",
+        "123",
+        "efg",
+        "456",
+        "xyz",
+        "987",
+        NULL
+};
 
 TEST(test_strutils, strtoupper_tc_test_return_value_and_function)
 {
@@ -43,31 +52,31 @@ TEST(test_strutils, ahtoi_tc_test_return_value_and_function)
 	ASSERT_EQ(ahtoi((char*)"1234DEF"), 19090927);
 }
 
-TEST(test_confparse, test_string_in_list)
+TEST(test_strutils, test_string_in_list)
 {
-    bool ret = string_in_list((const uint8_t*)"abc", 10, (const uint8_t**)valid_match_set);
-    ASSERT_TRUE(ret);
-    ret = string_in_list((const uint8_t*)"efg", 10, (const uint8_t**)valid_match_set);
-    ASSERT_TRUE(ret);
-    ret = string_in_list((const uint8_t*)"xyz", 10, (const uint8_t**)valid_match_set);
-    ASSERT_TRUE(ret);
-    ret = string_in_list((const uint8_t*)"gfd", 10, (const uint8_t**)valid_match_set);
-    ASSERT_FALSE(ret);
-    ret = string_in_list((const uint8_t*)"ab", 10, (const uint8_t**)valid_match_set);
-    ASSERT_FALSE(ret);
-    ret = string_in_list((const uint8_t*)"zy", 10, (const uint8_t**)valid_match_set);
-    ASSERT_FALSE(ret);
+    int ret = string_in_list("abc", sizeof("abc"), valid_match_set);
+    ASSERT_EQ(ret, 0);
+    ret = string_in_list("efg", sizeof("efg")-1, valid_match_set);
+    ASSERT_EQ(ret, 2);
+    ret = string_in_list("xyz", sizeof("xyz")-1, valid_match_set);
+    ASSERT_EQ(ret, 4);
+    ret = string_in_list("gfd", sizeof("gfd")-1, valid_match_set);
+    ASSERT_EQ(ret, -1);
+    ret = string_in_list("ab", 10, valid_match_set);
+    ASSERT_EQ(ret, -1);
+    ret = string_in_list("zy", 10, valid_match_set);
+    ASSERT_EQ(ret, -1);
 }
 
-TEST(test_confparse, test_string_match)
+TEST(test_strutils, test_string_match)
 {
-    bool ret = string_match("abc", (const uint8_t*)"abc");
+    bool ret = string_match("abc", "abc");
     ASSERT_TRUE(ret);
-    ret = string_match("abc", (const uint8_t*)"abcd");
+    ret = string_match("abc", "abcd");
     ASSERT_FALSE(ret);
-    ret = string_match("abcd", (const uint8_t*)"abc");
+    ret = string_match("abcd", "abc");
     ASSERT_FALSE(ret);
-    ret = string_match(NULL, (const uint8_t*)"abc");
+    ret = string_match(NULL, "abc");
     ASSERT_FALSE(ret);
     ret = string_match("abcd", NULL);
     ASSERT_FALSE(ret);
