@@ -42,23 +42,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-/**
- *	returns 0 if string "str" starts exactly with string "startswith"
- */
-#define startswith(str, starts_with)            (strncmp(str, starts_with, strlen(starts_with)))
-/**
- *  returns true if string "ref" matches string "to_compare"
- */
-#define string_match(ref, to_compare)           (to_compare && ref && (strcmp(ref, to_compare) == 0))
-/**
- *  returns true if string "ref" matches memory "to_compare"
- */
-#define memory_match(ref, to_compare, length)   (to_compare && ref && (memcmp(ref, to_compare, length) == 0))
-/**
- *  returns true if string "ref" matches memory "to_compare", up to the length ofthe referenence string.
- */
-#define string_n_match(ref, to_compare)         (to_compare && ref && (strncmp(ref, to_compare, sizeof(ref)-1) == 0))
-
 char* strtoupper(char* s);
 char* strtolower(char* s);
 int ahtoi(char* s);

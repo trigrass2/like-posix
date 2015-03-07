@@ -369,7 +369,7 @@ void unpack_url(char* url, http_request_t* request)
     if(url && *url)
     {
         // check for http://
-        if(string_n_match(HTTP_SCHEMA, url))
+        if(strcmp(HTTP_SCHEMA, url) == 0)
             url += sizeof(HTTP_SCHEMA)-1;
 
         // save remote host

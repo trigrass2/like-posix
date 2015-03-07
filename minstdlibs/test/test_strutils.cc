@@ -67,17 +67,3 @@ TEST(test_strutils, test_string_in_list)
     ret = string_in_list("zy", 10, valid_match_set);
     ASSERT_EQ(ret, -1);
 }
-
-TEST(test_strutils, test_string_match)
-{
-    bool ret = string_match("abc", "abc");
-    ASSERT_TRUE(ret);
-    ret = string_match("abc", "abcd");
-    ASSERT_FALSE(ret);
-    ret = string_match("abcd", "abc");
-    ASSERT_FALSE(ret);
-    ret = string_match(NULL, "abc");
-    ASSERT_FALSE(ret);
-    ret = string_match("abcd", NULL);
-    ASSERT_FALSE(ret);
-}

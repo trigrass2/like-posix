@@ -445,8 +445,7 @@ inline int __remove_entry(int file)
  */
 inline int __determine_mode(const char *name)
 {
-	int x = startswith(name, DEVICE_INTERFACE_DIRECTORY);
-	return x == 0 ? S_IFIFO : S_IFREG;
+	return strncmp(name, DEVICE_INTERFACE_DIRECTORY, sizeof(DEVICE_INTERFACE_DIRECTORY)-1) == 0 ? S_IFIFO : S_IFREG;
 }
 
 /**

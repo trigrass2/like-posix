@@ -116,7 +116,7 @@ void net_config(netconf_t* netconf, const char* resolv, const char* interface)
 
 	// check for configuration protocol
 	prot = (const char*)get_config_value_by_key(buffer, sizeof(buffer), (const uint8_t*)resolv, (const uint8_t*)"resolv");
-	if(string_match("dhcp", prot))
+	if(strcmp("dhcp", port) == 0)
 		netconf->resolv = NET_RESOLV_DHCP;
 	else
 		netconf->resolv = NET_RESOLV_STATIC;
