@@ -763,7 +763,7 @@ TEST(test_printf, test_printf_percent_lld)
 	int ret;
 
 	reset_fixture();
-	ret = printf("hello %lld", (long long int)12345);
+	ret = printf("hello %lld", 12345);
 	ASSERT_STREQ("hello 12345", get_buffer());
 	ASSERT_EQ(ret, 11);
 }
@@ -804,7 +804,7 @@ TEST(test_printf, test_printf_percent_lli)
 	int ret;
 
 	reset_fixture();
-	ret = printf("hello %lli", (long long int)12345);
+	ret = printf("hello %lli", 12345);
 	ASSERT_STREQ("hello 12345", get_buffer());
 	ASSERT_EQ(ret, 11);
 }
@@ -845,7 +845,7 @@ TEST(test_printf, test_printf_percent_llu)
 	int ret;
 
 	reset_fixture();
-	ret = printf("hello %llu", (long long unsigned int)12345);
+	ret = printf("hello %llu", 12345);
 	ASSERT_STREQ("hello 12345", get_buffer());
 	ASSERT_EQ(ret, 11);
 }
