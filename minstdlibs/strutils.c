@@ -113,14 +113,14 @@ char adtoi(char d)
 int ahtoi(char* s)
 {
 	int value = 0;
-	int temp;
+	char temp;
 	while(*s)
 	{
 		value *= 16;
-		temp = adtoi(*s);
-		if(temp == -1)
+		temp = (char)adtoi(*s);
+		if(temp == (char)-1)
 			return -1;
-		value += temp;
+		value += (int)temp;
 		s++;
 	}
 	return value;
