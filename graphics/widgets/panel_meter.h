@@ -39,14 +39,13 @@
 #define PANEL_METER_H_
 
 typedef struct {
-    int16_t length;
     const char* precision;
     const char* units;
     const font_t* units_font;
     touch_key_t touch_key;
 } panel_meter_t;
 
-void panel_meter_init(panel_meter_t* meter, char* buffer, int16_t length,
+void panel_meter_init(panel_meter_t* meter, char* buffer,
                         point_t position, point_t size, bool rounded,
                         char* precision, char* units, const font_t* font, const font_t* units_font);
 void panel_meter_enable_touch(panel_meter_t* meter, touch_callback_t callback, void* appdata);

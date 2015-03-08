@@ -40,23 +40,6 @@
 
 static void touch_key_on_key_stroke(touch_handler_t* handler);
 
-const touch_key_t touch_key_defaults = {
-    .alt_colour = 0x4E99,
-    .text = {
-        .colour = WHITE,
-        .font = &Ubuntu_32,
-        .justify = JUSTIFY_CENTRE,
-        .shape = {
-            .type = SQUARE,
-            .fill_colour = 0x3666,
-            .border_colour = 0x3666,
-            .fill = true,
-            .size = {60, 40},
-            .radius = 0
-        },
-    }
-};
-
 /**
  * initializes a touch key with default settings.
  * does not implicitly add the touch key to the touch panel handlers group.
@@ -107,11 +90,12 @@ touch_key_enable(&key, true);
  */
 void touch_key_init(touch_key_t* key, point_t location, point_t size, char* buffer, uint16_t radius)
 {
-    *key = touch_key_defaults;
+    text_init(&key->text, size, buffer, radius);
+    text_set_filled(&key->text, true);
+    text_set_justification(&key->text, JUSTIFY_CENTRE);
     key->location = location;
-    key->text.buffer = buffer;
-    key->text.shape.size = size;
-    key->text.shape.radius = radius;
+    key->alt_colour = DEFAULT_ALT_COLOUR;
+    touch_key_redraw(key);
 }
 
 /**
@@ -147,20 +131,17 @@ void touch_key_set_colour(touch_key_t* key, colour_t border, colour_t background
  */
 void touch_key_set_size(touch_key_t* key, point_t size)
 {
-    key->text.shape.size = size;
+    text_set_size(&key->text, size);
 }
 
-/**
- * enables/disables touch events on the key.
- */
-void touch_key_enable(touch_key_t* key, bool enable)
-{
-    key->handler.enabled = enable;
-}
-
-void touch_key_set_buffer(touch_key_t* key, char* buffer)
+void touch_key_set_buffer(touch_key_t* key, const char* buffer)
 {
     text_set_buffer(&key->text, buffer);
+}
+
+const char* touch_key_get_buffer(touch_key_t* key)
+{
+    return key->text.buffer;
 }
 
 void touch_key_redraw(touch_key_t* key)
@@ -185,22 +166,30 @@ void touch_key_draw_background(touch_key_t* key)
 
 void touch_key_set_fill(touch_key_t* key, bool fill)
 {
-    key->text.shape.fill = fill;
+    text_set_filled(&key->text, fill);
 }
 
 void touch_key_set_radius(touch_key_t* key, uint16_t radius)
 {
-    key->text.shape.radius = radius;
+    text_set_radius(&key->text, radius);
 }
 
 void touch_key_set_justification(touch_key_t* key, justify_t justify)
 {
-    key->text.justify = justify;
+    text_set_justification(&key->text, justify);
 }
 
 void touch_key_set_font(touch_key_t* key, const font_t* font)
 {
-    key->text.font = font;
+    text_set_font(&key->text, font);
+}
+
+/**
+ * enables/disables touch events on the key.
+ */
+void touch_key_enable(touch_key_t* key, bool enable)
+{
+    key->handler.enabled = enable;
 }
 
 void touch_key_set_callback(touch_key_t* key, touch_callback_t callback)

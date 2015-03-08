@@ -49,13 +49,11 @@ panel_meter_init(&panelmeter, buffer, sizeof(buffer), (point_t){100, 40}, (point
 // touch_key_set_colour(&panelmeter->touch_key, border, background, alt, text);
 \endcode
  */
-void panel_meter_init(panel_meter_t* meter, char* buffer, int16_t length,
+void panel_meter_init(panel_meter_t* meter, char* buffer,
                         point_t position, point_t size, bool rounded,
                         char* precision, char* units, const font_t* font, const font_t* units_font)
 {
     // draw background with units
-    meter->length = length;
-    memset(buffer, '\0', meter->length);
     meter->precision = precision;
     meter->units = units;
     meter->units_font = units_font;
@@ -102,26 +100,27 @@ void panel_meter_draw(panel_meter_t* meter)
  */
 void panel_meter_update(panel_meter_t* meter, float value)
 {
-    text_blank_text(&meter->touch_key.text, meter->touch_key.location);
-    snprintf((char*)meter->touch_key.text.buffer, meter->length-1, meter->precision, (double)value);
-    text_redraw_text(&meter->touch_key.text, meter->touch_key.location);
+    touch_key_blank_text(&meter->touch_key);
+    sprintf((char*)touch_key_get_buffer(&meter->touch_key), meter->precision, (double)value);
+    touch_key_redraw_text(&meter->touch_key);
 }
 
 void panel_meter_set_units(panel_meter_t* meter, const char* units)
 {
-    const char* buffer = meter->touch_key.text.buffer;
+    const char* buffer = touch_key_get_buffer(&meter->touch_key);
     const font_t* font = meter->touch_key.text.font;
-    text_set_justification(&meter->touch_key.text, JUSTIFY_BOTTOM|JUSTIFY_RIGHT);
-    text_set_buffer(&meter->touch_key.text, meter->units);
-    text_set_font(&meter->touch_key.text, meter->units_font);
-    text_blank_text(&meter->touch_key.text, meter->touch_key.location);
+
+    touch_key_set_justification(&meter->touch_key, JUSTIFY_BOTTOM|JUSTIFY_RIGHT);
+    touch_key_set_buffer(&meter->touch_key, meter->units);
+    touch_key_set_font(&meter->touch_key, meter->units_font);
+    touch_key_blank_text(&meter->touch_key);
     meter->units = units;
-    text_set_buffer(&meter->touch_key.text, meter->units);
-    text_redraw_text(&meter->touch_key.text, meter->touch_key.location);
+    touch_key_set_buffer(&meter->touch_key, meter->units);
+    touch_key_redraw_text(&meter->touch_key);
     // reset font / buffer for data text
-    text_set_buffer(&meter->touch_key.text, buffer);
-    text_set_font(&meter->touch_key.text, font);
-    text_set_justification(&meter->touch_key.text, JUSTIFY_LEFT);
+    touch_key_set_buffer(&meter->touch_key, buffer);
+    touch_key_set_font(&meter->touch_key, font);
+    touch_key_set_justification(&meter->touch_key, JUSTIFY_LEFT);
 }
 
 const char* panel_meter_get_units(panel_meter_t* meter)

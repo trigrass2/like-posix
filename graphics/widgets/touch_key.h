@@ -47,6 +47,7 @@ typedef struct {
     touch_handler_t handler;
 }touch_key_t;
 
+#define DEFAULT_ALT_COLOUR   0x4E99
 // define to enable debug
 // #define DEBUG_TOUCH_KEY_PRINTF
 
@@ -63,7 +64,8 @@ text_t* touch_key_get_text(touch_key_t* key);
 keypress_type_t touch_key_get_press_type(touch_key_t* key);
 bool touch_key_press_is(touch_key_t* key, keypress_type_t type);
 
-void touch_key_set_buffer(touch_key_t* key, char* buffer);
+void touch_key_set_buffer(touch_key_t* key, const char* buffer);
+const char* touch_key_get_buffer(touch_key_t* key);
 void touch_key_set_fill(touch_key_t* key, bool fill);
 void touch_key_set_radius(touch_key_t* key, uint16_t radius);
 void touch_key_set_justification(touch_key_t* key, justify_t justify);

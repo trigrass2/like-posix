@@ -52,7 +52,7 @@ const text_t text_defaults = {
  * does not implicitly draw the text box, use the text_draw()
  * function after first initializing, then configuring the textbox.
  */
-void text_init(text_t* text, point_t size, char* buffer, uint16_t radius)
+void text_init(text_t* text, point_t size, const char* buffer, uint16_t radius)
 {
     *text = text_defaults;
     text->buffer = buffer;
@@ -125,6 +125,14 @@ void text_set_justification(text_t* text, justify_t justification)
 }
 
 /**
+ * sets the intended background area size, does not redraw the textbox.
+ */
+void text_set_size(text_t* text, point_t size)
+{
+    text->shape.size = size;
+}
+
+/**
  * sets the intended text font, does not redraw the textbox.
  */
 void text_set_font(text_t* text, const font_t* font)
@@ -162,6 +170,14 @@ void text_set_border_colour(text_t* text, colour_t colour)
 void text_set_filled(text_t* text, bool filled)
 {
     text->shape.fill = filled;
+}
+
+/**
+ * sets the intended radius of the text background corners, does not redraw the textbox.
+ */
+void text_set_radius(text_t* text, int16_t radius)
+{
+    text->shape.radius = radius;
 }
 
 /**
