@@ -124,6 +124,7 @@ uint32_t stream_get_samplerate(stream_t* stream)
  */
 void stream_connection_init(stream_connection_t* interface, stream_callback_t process, const char* name, void* ctx)
 {
+    interface->enabled = false;
     interface->process = process;
     interface->name = name;
     interface->ctx = ctx;
