@@ -11,8 +11,8 @@ Includes support for multi tasking (freertos), networking (lwip), filesystem (ch
 
 Each folder in this repository holds a module or a category of modules. These are described below....
 
-Including in a project
-----------------------
+Including appleseed in a project
+---------------------------------
 
 This repository may sit anywhere releative to a particular project, but a nice way to do it is with git submodule.
 
