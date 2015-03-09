@@ -74,6 +74,8 @@ CFLAGS += -std=gnu99
 CFLAGS += -I ./
 CFLAGS += -ffunction-sections
 CFLAGS += -fdata-sections
+CFLAGS += -fno-builtin
+#CFLAGS += -flto
 CFLAGS += -Werror
 CFLAGS += -Wall
 CFLAGS += -Wextra
@@ -96,12 +98,14 @@ ifndef __cplusplus
 LINKER_FLAGS += -nostartfiles
 endif
 LINKER_FLAGS += --specs=nano.specs
-LINKER_FLAGS += -Xlinker -o$(OUTPUT_PREFIX).elf -Xlinker -M -Xlinker -Map=$(OUTPUT_PREFIX).map -Xlinker
+LINKER_FLAGS += -Xlinker -o$(OUTPUT_PREFIX).elf
+LINKER_FLAGS += -Xlinker -M
+LINKER_FLAGS += -Xlinker -Map=$(OUTPUT_PREFIX).map
 ## note, if debug is enabled use -no-gc-sections - binaries will be unoptimised, read enormous
-LINKER_FLAGS +=  -gc-sections
+LINKER_FLAGS += -Xlinker -gc-sections
 
 ## add any libraries here
-LIBS += -lm
+LIBS += -lm -lc -lnosys
 
 
 ####################################################################
