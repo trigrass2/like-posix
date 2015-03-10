@@ -146,6 +146,11 @@ uint32_t adc_stream_get_samplerate();
 void adc_stream_connect_service(stream_connection_t* interface, uint8_t stream_channel);
 
 
+void init_adc_samplerate_timer();
+void init_local_adc();
+void init_local_adc_dma();
+void init_local_adc_io();
+
 #endif // ADC_STREAM_H
 
 /**

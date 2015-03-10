@@ -82,12 +82,6 @@ void start()
 #endif
 
 
-void init_dac_samplerate_timer();
-void init_local_dac();
-void init_local_dac_dma();
-void init_local_dac_io();
-
-
 static uint16_t dac_stream_buffer[DAC_STREAM_CHANNEL_COUNT * DAC_STREAM_BUFFER_LENGTH];
 static stream_connection_t* dac_stream_connections[DAC_STREAM_MAX_CONNECTIONS];
 

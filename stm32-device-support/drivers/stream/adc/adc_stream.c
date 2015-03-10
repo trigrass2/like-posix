@@ -110,11 +110,6 @@ void start()
 #error "buffer ADC_STREAM_BUFFER_LENGTH must be a multiple of 2"
 #endif
 
-void init_adc_samplerate_timer();
-void init_local_adc();
-void init_local_adc_dma();
-void init_local_adc_io();
-
 
 static uint16_t adc_stream_buffer[ADC_STREAM_CHANNEL_COUNT * ADC_STREAM_BUFFER_LENGTH];
 static stream_connection_t* adc_stream_connections[ADC_STREAM_MAX_CONNECTIONS];
