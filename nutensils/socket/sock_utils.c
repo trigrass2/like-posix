@@ -55,6 +55,9 @@
  * @param   host may be an IP address or hostname.
  * @param   port is the port to open.
  * @param   type is the type of socket to open - generally SOCK_STREAM or SOCK_DGRAM.
+ * @param   when type is SOCK_DGRAM, servaddr is required. servaddr will be populated
+ *          by sock_connect, it need not be zeroed beforehand. for SOCK_STREAM connections,
+ *          set to NULL.
  * @retval  returns the socket file descriptor, or -1 on error.
  *
  *
@@ -62,7 +65,7 @@
 
  char buf[32];
 
- int fd = sock_connect("google.com", 80, SOCK_STREAM) != -1);
+ int fd = sock_connect("google.com", 80, SOCK_STREAM, NULL) != -1);
 
  if(fd != -1)
  {
@@ -73,8 +76,24 @@
  }
 
  \endcode
+
+ \code
+
+ char buf[32];
+ struct sockaddr_in servaddr;
+
+ int fd = sock_connect("google.com", 80, SOCK_DGRAM, &servaddr) != -1);
+
+ if(fd != -1)
+ {
+     sendto(fd, "hello", strlen("hello"), 0, (struct sockaddr*)&servaddr, sizeof(servaddr));
+     recvfrom(fd, buf, sizeof(buf), 0, NULL, NULL);
+ }
+
+ \endcode
  */
-int sock_connect(const char *host, int port, int type)
+
+int sock_connect(const char *host, int port, int type, struct sockaddr* servaddr)
 {
     logger_t log;
     char portbuf[16];
@@ -84,6 +103,15 @@ int sock_connect(const char *host, int port, int type)
     int res;
 
     log_init(&log, "sock_connect");
+
+    if(type == SOCK_DGRAM && !servaddr)
+    {
+        log_error(&log, "SOCK_DGRAM requires servaddr");
+        return -1;
+    }
+
+    if(servaddr)
+        bzero(servaddr, sizeof(struct sockaddr));
 
     // setup hints to help resolve our hostname
     memset(&hints, 0, sizeof(struct addrinfo));
@@ -109,8 +137,16 @@ int sock_connect(const char *host, int port, int type)
         if(fd < 0)
             continue;
 
-        if(connect(fd, addr_ptr->ai_addr, addr_ptr->ai_addrlen) >= 0)
+        if(addr_ptr->ai_socktype == SOCK_STREAM)
+        {
+            if(connect(fd, addr_ptr->ai_addr, addr_ptr->ai_addrlen) >= 0)
+                break;
+        }
+        else if(addr_ptr->ai_socktype == SOCK_DGRAM)
+        {
+            *servaddr = *addr_ptr->ai_addr;
             break;
+        }
 
         closesocket(fd);
     }

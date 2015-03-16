@@ -151,7 +151,7 @@ http_response_t* http_request(http_request_t* request, http_response_t* response
 
 	if(header)
 	{
-        fd = sock_connect(request->remote, request->port, SOCK_STREAM);
+        fd = sock_connect(request->remote, request->port, SOCK_STREAM, NULL);
 
         usleep(10000);
 
@@ -481,7 +481,7 @@ http_response_t* http_get_file(char* url, http_response_t* response, const char*
         return NULL;
     }
 
-    fd = sock_connect(request.remote, request.port, SOCK_STREAM);
+    fd = sock_connect(request.remote, request.port, SOCK_STREAM, NULL);
 
     if(fd == -1)
     {

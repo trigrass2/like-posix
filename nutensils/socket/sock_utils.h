@@ -69,7 +69,7 @@ typedef struct _sock_server_t {
 	int prio;
 }sock_server_t;
 
-int sock_connect(const char *host, int port, int type);
+int sock_connect(const char *host, int port, int type, struct sockaddr* servaddr);
 int sock_server(int port, int type, int conns, sock_server_t* servinfo,
 				sock_handle_incoming_fptr_t handle_incoming, sock_service_fptr_t service,
 				void* ctx, const char* name, int stacksize, int prio);
