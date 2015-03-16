@@ -200,6 +200,10 @@ void dac_stream_set_samplerate(uint32_t samplerate);
 uint32_t dac_stream_get_samplerate();
 void dac_stream_connect_service(stream_connection_t* interface, uint8_t stream_channel);
 
+void init_dac_samplerate_timer();
+void init_local_dac();
+void init_local_dac_dma();
+void init_local_dac_io();
 
 #endif // DAC_STREAM_H
 
