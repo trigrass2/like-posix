@@ -38,6 +38,8 @@
 void net_init(netconf_t* netconf);
 bool wait_for_address(netconf_t* netconf);
 
+bool net_is_up();
+
 const char* net_hostname();
 const char* net_lip();
 const char* net_mac();

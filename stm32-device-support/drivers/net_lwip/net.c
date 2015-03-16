@@ -279,6 +279,11 @@ void tcpip_init_done(void *arg)
 #endif
 }
 
+bool net_is_up()
+{
+    return netif_is_up(netif_list);
+}
+
 unsigned long net_ip_packets_sent()
 {
     return lwip_stats.ip.xmit;
