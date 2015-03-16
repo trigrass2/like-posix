@@ -1172,7 +1172,6 @@ int tcgetattr(int fildes, struct termios *termios_p)
 
 int tcsetattr(int fildes, int when, const struct termios *termios_p)
 {
-    (void)when;
     int ret = -1;
     if(termios_p == NULL || isatty(fildes) == 0)
         return ret;
@@ -1192,6 +1191,10 @@ int tcsetattr(int fildes, int when, const struct termios *termios_p)
         if(fte->device && fte->device->ioctl)
         {
             fte->device->termios = (struct termios *)termios_p;
+            if(when == TCSADRAIN)
+                tcdrain(fildes);
+            else if(when == TCSAFLUSH)
+                tcflush(fildes, TCIOFLUSH);
             ret = fte->device->ioctl(fte->device);
             fte->device->termios = NULL;
         }
