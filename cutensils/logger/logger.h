@@ -53,6 +53,13 @@
 #define USE_LOGGER	0
 #endif
 
+#ifndef USE_UDP_LOGGER
+ /**
+  * enable udp logging
+  */
+#define USE_UDP_LOGGER  0
+#endif
+
 #ifndef MAX_LOG_HANDLERS
  /**
   * the number of log handlers that are allowed at one time
@@ -108,6 +115,7 @@ typedef struct {
 #if USE_LOGGER
 void logger_init();
 void log_init(logger_t* logger, const char* name);
+int add_udp_log_handler(const char* host, int port);
 void log_add_handler(int file);
 void log_remove_handler(int file);
 
@@ -142,6 +150,7 @@ typedef  SemaphoreHandle_t logger_mutex_t;
 #define logger_init()
 #define log_init(l, n) {(void)l;(void)n;}
 #define log_add_handler(i, ...) {(void)i;}
+#define add_udp_log_handler(host, port){(void)host;(void)port;}
 #define log_remove_handler(i, ...) {(void)i;}
 #define log_level(l)        0
 #define log_timestamp(ts)    {(void)ts;}

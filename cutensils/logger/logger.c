@@ -38,7 +38,7 @@
  *
  *  - may be turned on/off with the macro USE_LOGGER
  *  - supports multiple handlers
- *  - glovbally filtered by level
+ *  - globally filtered by level
  *
  * @file logger.c
  * @{
@@ -50,6 +50,12 @@
 #include <unistd.h>
 #include "logger.h"
 
+#if USE_UDP_LOGGER
+#include <unistd.h>
+#include <stdbool.h>
+#include <sys/socket.h>
+#include "sock_utils.h"
+#endif
 
 static log_level_t _log_level = LOG_SYSLOG;
 static bool _log_coloured = true;
@@ -57,6 +63,12 @@ static bool _log_timestamp = true;
 static int handlers[MAX_LOG_HANDLERS];
 #if USE_MUTEX
 static logger_mutex_t _logger_write_mutex = NULL;
+#endif
+#if USE_UDP_LOGGER
+static struct sockaddr udp_handlers[MAX_LOG_HANDLERS];
+#define is_udp_handler(i)   ((*(struct sockaddr_in*)(udp_handlers+i)).sin_family == AF_INET)
+#else
+#define is_udp_handler(i)       0
 #endif
 
 /**
@@ -103,7 +115,13 @@ static const char* tabs = "\t\t\t\t\t";
 void logger_init()
 {
     for(int i = 0; i < MAX_LOG_HANDLERS; i++)
+    {
         handlers[i] = -1;
+#if USE_UDP_LOGGER
+        bzero(&udp_handlers[i], sizeof(udp_handlers[i]));
+#endif
+    }
+
     log_init(&_syslog, "root logger");
 }
 
@@ -149,6 +167,36 @@ void log_add_handler(int file)
 	}
 }
 
+#if USE_UDP_LOGGER
+
+/**
+ * adds a udp socket log handler.
+ *
+ * Never call this function if the network interface has not been initialized!
+ *
+ * @param   host is the remote host to send to.
+ * @param   port is UDP port to send on.
+ * @retval  returns the socket file descriptor, or -1 on error.
+ */
+int add_udp_log_handler(const char* host, int port)
+{
+#if USE_MUTEX
+    // create mutex once, at the time the first handler is added.
+    if(_logger_write_mutex == NULL)
+        _logger_write_mutex = create_mutex();
+#endif
+    for(int i = 0; i < MAX_LOG_HANDLERS; i++)
+    {
+        if(handlers[i] == -1)
+        {
+            handlers[i] = sock_connect(host, port, SOCK_DGRAM, &udp_handlers[i]);
+            return handlers[i];
+        }
+    }
+    return -1;
+}
+#endif
+
 /**
  * removes a file number as a log handler.
  *
@@ -159,7 +207,12 @@ void log_remove_handler(int file)
 	for(int i = 0; i < MAX_LOG_HANDLERS; i++)
 	{
 		if(handlers[i] == file)
+		{
 			handlers[i] = -1;
+#if USE_UDP_LOGGER
+			bzero(&udp_handlers[i], sizeof(udp_handlers[i]));
+#endif
+        }
 	}
 }
 
@@ -238,20 +291,37 @@ static inline void write_log_record(logger_t* logger, log_level_t level, char* m
 		        write(handlers[i], ts_buf, tslength);
 #endif
 
-            write(handlers[i], logger->name, strlen(logger->name));
-            if(logger->pad > 0)
-                write(handlers[i], tabs, logger->pad);
-            write(handlers[i], levelstr[level], strlen(levelstr[level]));
-            if(_log_coloured)
-                write(handlers[i], colourstart[level], strlen(colourstart[level]));
-            write(handlers[i], log_buf, length);
-            if(_log_coloured)
-                write(handlers[i], colourstop, sizeof(colourstop)-1);
-            write(handlers[i], "\n", 1);
+		    if(!is_udp_handler(i))
+		    {
+                write(handlers[i], logger->name, strlen(logger->name));
+                if(logger->pad > 0)
+                    write(handlers[i], tabs, logger->pad);
+                write(handlers[i], levelstr[level], strlen(levelstr[level]));
+                if(_log_coloured)
+                    write(handlers[i], colourstart[level], strlen(colourstart[level]));
+                write(handlers[i], log_buf, length);
+                if(_log_coloured)
+                    write(handlers[i], colourstop, sizeof(colourstop)-1);
+                write(handlers[i], "\n", 1);
 
-			if(isatty(handlers[i]) == 0)
-				fsync(handlers[i]);
-
+                if(isatty(handlers[i]) == 0)
+                    fsync(handlers[i]);
+		    }
+#if USE_UDP_LOGGER
+		    else
+		    {
+		        sendto(handlers[i], logger->name, strlen(logger->name), 0, &udp_handlers[i], sizeof(struct sockaddr));
+                if(logger->pad > 0)
+                    sendto(handlers[i], tabs, logger->pad, 0, &udp_handlers[i], sizeof(struct sockaddr));
+                sendto(handlers[i], levelstr[level], strlen(levelstr[level]), 0, &udp_handlers[i], sizeof(struct sockaddr));
+                if(_log_coloured)
+                    sendto(handlers[i], colourstart[level], strlen(colourstart[level]), 0, &udp_handlers[i], sizeof(struct sockaddr));
+                sendto(handlers[i], log_buf, length, 0, &udp_handlers[i], sizeof(struct sockaddr));
+                if(_log_coloured)
+                    sendto(handlers[i], colourstop, sizeof(colourstop)-1, 0, &udp_handlers[i], sizeof(struct sockaddr));
+                sendto(handlers[i], "\n", 1, 0, &udp_handlers[i], sizeof(struct sockaddr));
+		    }
+#endif
 		}
 	}
 

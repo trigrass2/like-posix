@@ -75,6 +75,7 @@ USE_CONFPARSE ?= 0
 # set to 1 to enable, set to 0 to disable
 # depends on USE_LARGE_SYSCALLS set to 1, if files/devices are to be written
 USE_LOGGER ?= 0
+USE_UDP_LOGGER ?= 0
 USE_LOGGER_TIMESTAMP ?= 1
 
 ## to use many of the facilities, posix style IO is required.
