@@ -23,6 +23,8 @@ OUTDIR ?= bin
 
 OUTPUT_PREFIX = $(OUTDIR)/$(PROJECT_NAME)
 
+VERSION_FILENAME = $(OUTDIR)$(PROJECT_NAME)-version
+
 ## Toolchain definition.
 CC=arm-none-eabi-gcc
 OBJCOPY=arm-none-eabi-objcopy
@@ -182,8 +184,8 @@ size:
 	@if [ -f  $(OUTPUT_PREFIX).elf ]; then echo; echo "Size:"; $(ELFSIZE); echo; fi
 	
 proj_version:
-	@echo Project Name: $(PROJECT_NAME) > $(PROJECT_NAME)-version
-	@echo Project Version: $(PROJECT_VERSION) >> $(PROJECT_NAME)-version
-	@echo Date: $(DATE) >> $(PROJECT_NAME)-version
-	@echo Board: $(BOARD) >> $(PROJECT_NAME)-version
-	@cat $(PROJECT_NAME)-version
+	@echo Project Name: $(PROJECT_NAME) > $(VERSION_FILENAME)
+	@echo Project Version: $(PROJECT_VERSION) >> $(VERSION_FILENAME)
+	@echo Date: $(DATE) >> $(VERSION_FILENAME)
+	@echo Board: $(BOARD) >> $(VERSION_FILENAME)
+	@cat $(VERSION_FILENAME)
