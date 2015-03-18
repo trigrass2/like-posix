@@ -23,7 +23,7 @@ OUTDIR ?= bin
 
 OUTPUT_PREFIX = $(OUTDIR)/$(PROJECT_NAME)
 
-VERSION_FILENAME = $(OUTDIR)$(PROJECT_NAME)-version
+VERSION_FILENAME = $(OUTDIR)/$(PROJECT_NAME)-version
 
 ## Toolchain definition.
 CC=arm-none-eabi-gcc
