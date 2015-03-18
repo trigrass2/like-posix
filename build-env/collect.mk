@@ -118,7 +118,7 @@ ALLSRCBASE = $(notdir $(basename $(SOURCE))) $(notdir $(basename $(ASOURCE)))
 OBJS = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(ALLSRCBASE)))
 
 all: begin gccversion buildlinkerscript $(OUTPUT_PREFIX).bin log size proj_version end
-
+	
 # binary file
 $(OUTPUT_PREFIX).bin : $(OUTPUT_PREFIX).elf Makefile
 	$(OBJCOPY) $(OUTPUT_PREFIX).elf -O binary $(OUTPUT_PREFIX).bin
@@ -182,7 +182,8 @@ size:
 	@if [ -f  $(OUTPUT_PREFIX).elf ]; then echo; echo "Size:"; $(ELFSIZE); echo; fi
 	
 proj_version:
-	@echo Project Name: $(PROJECT_NAME)
-	@echo Project Version: $(PROJECT_VERSION)
-	@echo Date: $(DATE)
-	@echo Board: $(BOARD)
+	@echo Project Name: $(PROJECT_NAME) > $(PROJECT_NAME)-version
+	@echo Project Version: $(PROJECT_VERSION) >> $(PROJECT_NAME)-version
+	@echo Date: $(DATE) >> $(PROJECT_NAME)-version
+	@echo Board: $(BOARD) >> $(PROJECT_NAME)-version
+	@cat $(PROJECT_NAME)-version
