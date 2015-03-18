@@ -286,13 +286,12 @@ static inline void write_log_record(logger_t* logger, log_level_t level, char* m
 	{
 		if(handlers[i] != -1)
 		{
-#if USE_LOGGER_TIMESTAMP
-		    if(_log_timestamp)
-		        write(handlers[i], ts_buf, tslength);
-#endif
-
 		    if(!is_udp_handler(i))
 		    {
+#if USE_LOGGER_TIMESTAMP
+            if(_log_timestamp)
+                write(handlers[i], ts_buf, tslength);
+#endif
                 write(handlers[i], logger->name, strlen(logger->name));
                 if(logger->pad > 0)
                     write(handlers[i], tabs, logger->pad);
@@ -310,6 +309,10 @@ static inline void write_log_record(logger_t* logger, log_level_t level, char* m
 #if USE_UDP_LOGGER
 		    else
 		    {
+#if USE_LOGGER_TIMESTAMP
+                if(_log_timestamp)
+                    sendto(handlers[i], ts_buf, tslength, 0, &udp_handlers[i], sizeof(struct sockaddr));
+#endif
 		        sendto(handlers[i], logger->name, strlen(logger->name), 0, &udp_handlers[i], sizeof(struct sockaddr));
                 if(logger->pad > 0)
                     sendto(handlers[i], tabs, logger->pad, 0, &udp_handlers[i], sizeof(struct sockaddr));
