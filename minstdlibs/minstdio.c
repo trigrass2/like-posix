@@ -541,6 +541,11 @@ size_t fread(void *data, size_t size, size_t count, FILE *stream)
 	return _read((intptr_t)stream, (char*)data, size*count);
 }
 
+int fflush(FILE* stream)
+{
+    return fsync((intptr_t)stream);
+}
+
 
 
 
