@@ -109,6 +109,7 @@ void delay(volatile uint32_t count)
   */
 void soft_reset()
 {
+    clear_resetflags();
     NVIC_SystemReset();
 }
 
