@@ -250,8 +250,9 @@ DRESULT disk_ioctl(BYTE drv, BYTE ctrl, void *buff)
  */
 DWORD get_fattime(void)
 {
-    time_t t;
     DWORD ftime = 0;
+#if USE_FREERTOS // 18 march '15 at present using without freertos support is causing a hardfault
+    time_t t;
     time(&t);
     struct tm* lt = localtime(&t);
     ftime = ((lt->tm_year - 80) << 25) |
@@ -260,7 +261,7 @@ DWORD get_fattime(void)
     ((lt->tm_hour) << 11) |
     ((lt->tm_min) << 5) |
     (lt->tm_sec/2);
-
+#endif
     return ftime;
 }
 
