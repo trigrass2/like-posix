@@ -60,6 +60,10 @@ ifeq ($(USE_THREADED_SERVER), 0)
 $(error USE_SHELL is set. shell requires USE_THREADED_SERVER set to 1)
 endif
 
+ifeq ($(USE_HTTP_UTILS), 0)
+$(error USE_SHELL is set. shell requires USE_HTTP_UTILS set to 1)
+endif
+
 SOURCE += $(NUTENSILS_DIR)/shell/shell.c
 SOURCE += $(NUTENSILS_DIR)/shell/shell_command.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell
