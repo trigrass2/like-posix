@@ -94,7 +94,7 @@ DSTATUS disk_initialize(BYTE drv)      /* Physical drive number (0) */
     return Status;
 }
 
-DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
+DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, UINT count)
 {
     DRESULT res = RES_ERROR;
     SD_Error err = SD_OK;
@@ -133,7 +133,7 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
 }
 
 #if _FS_READONLY == 0
-DRESULT disk_write (BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
+DRESULT disk_write (BYTE drv, const BYTE *buff, DWORD sector, UINT count)
 {
     DRESULT res = RES_ERROR;
     SD_Error err = SD_OK;
@@ -225,9 +225,9 @@ DRESULT disk_ioctl(BYTE drv, BYTE ctrl, void *buff)
         if(*(BYTE*)buff == 1)
             SD_PowerON();
       break;
-      case CTRL_ERASE_SECTOR:
-          SD_Erase(*(((DWORD*)buff)), *(((DWORD*)buff)+1));
-      break;
+//      case CTRL_ERASE_SECTOR:
+//          SD_Erase(*(((DWORD*)buff)), *(((DWORD*)buff)+1));
+//      break;
       default:
          res = RES_PARERR;
       break;
