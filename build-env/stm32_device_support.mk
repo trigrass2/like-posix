@@ -153,6 +153,14 @@ SOURCE += $(DRIVERSDIR)/stream/dac/dac_stream.c
 CFLAGS += -I$(DRIVERSDIR)/stream/dac
 endif
 
+## ADC through DAC streaming driver
+ifeq ($(USE_DRIVER_DAC_STREAM), 1)
+ifeq ($(USE_DRIVER_ADC_STREAM), 1)
+SOURCE += $(DRIVERSDIR)/stream/adc_thru_dac/adc_thru_dac.c
+CFLAGS += -I$(DRIVERSDIR)/stream/adc_thru_dac
+endif
+endif
+
 ## I2S streaming driver
 CFLAGS += -DUSE_DRIVER_I2S_STREAM=$(USE_DRIVER_I2S_STREAM)
 ifeq ($(USE_DRIVER_I2S_STREAM), 1)

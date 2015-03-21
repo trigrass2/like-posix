@@ -181,6 +181,28 @@ void stream_connect_service(stream_connection_t* interface, stream_t* stream, ui
 }
 
 /**
+ * @brief   removes an stream service interface from the service register.
+ *
+ * @param   interface is a pointer to the interface to remove.
+ * @param   stream is the stream to remove from.
+ */
+void stream_disconnect_service(stream_connection_t* interface, stream_t* stream)
+{
+    uint8_t i;
+
+    // check that it is not already registered
+    for(i = 0; i < stream->maxconns; i++)
+    {
+        // check already registerd
+        if(interface == stream->connections[i])
+        {
+            log_debug(&stream->log, "service %s unregistered", interface->name);
+            stream->connections[i] = NULL;
+        }
+    }
+}
+
+/**
  * handler for stream processing in main loop.
  */
 void stream_processing_task(stream_t* stream)

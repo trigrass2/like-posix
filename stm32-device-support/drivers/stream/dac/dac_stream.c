@@ -85,7 +85,7 @@ void start()
 static uint16_t dac_stream_buffer[DAC_STREAM_CHANNEL_COUNT * DAC_STREAM_BUFFER_LENGTH];
 static stream_connection_t* dac_stream_connections[DAC_STREAM_MAX_CONNECTIONS];
 
-static stream_t dac_stream;
+stream_t dac_stream;
 
 void dac_stream_init()
 {

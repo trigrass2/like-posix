@@ -114,7 +114,7 @@ void start()
 static uint16_t adc_stream_buffer[ADC_STREAM_CHANNEL_COUNT * ADC_STREAM_BUFFER_LENGTH];
 static stream_connection_t* adc_stream_connections[ADC_STREAM_MAX_CONNECTIONS];
 
-static stream_t adc_stream;
+stream_t adc_stream;
 
 void adc_stream_init()
 {
@@ -310,6 +310,7 @@ void init_local_adc()
             .ADC_DataAlign = ADC_STREAM_ALIGNMENT,
             .ADC_NbrOfChannel = ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS
     };
+
     // init master
     ADC_Init(ADC_STREAM_MASTER_ADC, &adc_init);
     // init slave, is triggered by master ADC start conversion event

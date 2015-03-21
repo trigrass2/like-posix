@@ -30,25 +30,29 @@
  *
  */
 
-#ifndef STREAM_COMMON_H_
-#define STREAM_COMMON_H_
+/**
+ * @addtogroup adc_thru_dac
+ *
+ * @file adc_thru_dac.h
+ * @{
+ */
 
-#include "stream_defs.h"
-void init_stream(stream_t* stream, const char* name, uint32_t samplerate,
-                uint16_t maxconns, uint16_t* stream_buffer, stream_connection_t** connections,
-                uint16_t buffer_length, uint8_t channel_count, uint8_t task_prio, uint16_t task_stack, uint16_t full_scale_amplitude, uint32_t resolution);
-void stream_set_samplerate(stream_t* stream, TIM_TypeDef* samplerate_timer, uint32_t timer_clockrate, uint32_t samplerate);
-uint32_t stream_get_samplerate(stream_t* stream);
+#ifndef ADC_THRU_DAC_H
+#define ADC_THRU_DAC_H
 
-void stream_connection_init(stream_connection_t* interface, stream_callback_t process, const char* name, void* ctx);
+#include <stdint.h>
+#include "stream_common.h"
 
-void stream_connect_service(stream_connection_t* interface, stream_t* stream, uint8_t stream_channel);
-void stream_disconnect_service(stream_connection_t* interface, stream_t* stream);
+void adc_thru_dac_stream_init();
+void adc_thru_dac_stream_start();
+void adc_thru_dac_stream_stop();
+void adc_thru_dac_stream_set_samplerate(uint32_t samplerate);
+uint32_t adc_thru_dac_stream_get_samplerate();
+void adc_thru_dac_stream_connect_service(stream_connection_t* interface, uint8_t stream_channel);
 
-void stream_connection_enable(stream_connection_t* interface, bool enable);
-bool stream_connection_enabled(stream_connection_t* interface);
 
-uint32_t stream_get_resolution(stream_connection_t* stream);
-uint32_t stream_get_full_scale_amplitude_mv(stream_connection_t* stream);
+#endif // ADC_THRU_DAC_H
 
-#endif /* STREAM_COMMON_H_ */
+/**
+ * @}
+ */
