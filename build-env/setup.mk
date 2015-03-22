@@ -63,6 +63,9 @@ OPT ?= 2
 # set to 1 to enable freertos
 USE_FREERTOS ?= 0
 
+## JSON parser library - bitbucket.org/zserge/jsmn
+USE_JSMN ?= 0
+
 ## there are some small alternatives to the standard libraries
 # set to 1 to enable those (may reduce code size by several 10's of kb)
 USE_MINSTDLIBS ?= 0
@@ -138,26 +141,30 @@ USE_DRIVER_PWM ?= 0
 
 
 
-## specify location of the project: https://github.com/drmetal/stm32-build-env
+## specify location of the build-env
 BUILD_ENV_DIR ?= $(STM32DEVSUPPORTDIR)/build-env
-## specify location of the project: https://github.com/drmetal/stm32-device-support
+## specify location of stm32-device-support
 DEVICE_SUPPORT_DIR ?= $(STM32DEVSUPPORTDIR)/stm32-device-support
-## specify location of the project: https://github.com/drmetal/cutensils
+## specify location of cutensils
 CUTENSILS_DIR ?= $(STM32DEVSUPPORTDIR)/cutensils
-## specify location of the project: https://github.com/drmetal/nutensils
+## specify location of nutensils
 NUTENSILS_DIR ?= $(STM32DEVSUPPORTDIR)/nutensils
-## specify location of the project: https://github.com/drmetal/FatFs
+## specify location of FatFs
 FATFS_DIR ?= $(STM32DEVSUPPORTDIR)/FatFs
-## specify location of the project: https://github.com/drmetal/like-posix
+## specify location of like-posix
 LIKEPOSIX_DIR ?= $(STM32DEVSUPPORTDIR)/like-posix
-## specify location of the project: https://github.com/drmetal/freertos
+## specify location of freertos
 FREERTOS_DIR ?= $(STM32DEVSUPPORTDIR)/freertos
-## specify location of the project: https://github.com/drmetal/LwIP
+## specify location of LwIP
 LWIP_DIR ?= $(STM32DEVSUPPORTDIR)/LwIP
-## specify location of the project: https://github.com/drmetal/minstdlibs
+## specify location of minstdlibs
 MINSTDLIBSDIR ?= $(STM32DEVSUPPORTDIR)/minstdlibs
-## specify location of the project: https://github.com/drmetal/graphics
+## specify location of graphics
 GRAPHICSDIR ?= $(STM32DEVSUPPORTDIR)/graphics
+## specify location of jsmn
+JSMNDIR ?= $(STM32DEVSUPPORTDIR)/jsmn
+## specify location of jsmn_extensions
+JSMN_EXTENSIONS_DIR ?= $(STM32DEVSUPPORTDIR)/jsmn_extensions
 
 ## relocate application
 # set appropriately if there is a bootloader in the low flash pages
