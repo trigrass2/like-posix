@@ -2,21 +2,71 @@
 <html>
 <head>
 
-<title>like posix! http demo</title>
+<!-- external resources -->
 <link href="http://fonts.googleapis.com/css?family=Istok+Web" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Droid+Sans' rel='stylesheet' type='text/css'>
+<link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
 
+<!-- internal resources -->
+<link rel="stylesheet" type="text/css" href="style.css">
+<script src="controls.js"></script>
+<script src="update.js"></script>
+
+<!-- javascript -->
+<script>
+
+$(document).ready(function(){
+	set_green_led_color("online_led", "green");
+	get_info();
+    start_update("status", on_status_update, 1000, on_status_update_error);
+});
+
+$(document).unload(function(){
+    stop_update();
+});
+
+function get_info() {
+	var item = $("#infotable");
+	var html = "";
+	$.get("info", function (data) {
+		$.each(data, function (key, value) {
+			console.log(key + " " + value);
+			html += '<tr><td>' + key + '</td><td>' + value + '</td></tr>';
+		});
+	});
+
+	item.html(html);
+}
+
+function on_status_update(status)
+{
+	if(status.online == 1) {
+		set_green_led_color("online_led", "green");
+	}
+	if(status.online == 0) {
+		set_green_led_color("online_led", "gray");
+	}
+}
+
+function on_status_update_error()
+{
+	set_green_led_color("online_led", "gray");
+}
+
+</script>
 </head>
 
-<body>
-    <div class="leftnav" id="sidebar">
-    Sidebar here....
-    </div>
-    <table>
-        <td width="80"><img src="Amoeba_by_NekoChrono_256.png" style="float:left" class="title_image"></td>
-        <td id="page_title" class="title_text">Demooo</td>
-    </table>    
-    <div class="content" id="body_content">
-    Need some Content Here....
-    </div>
+<body class="center">
+
+<h1>Appleseed HTTP demo</h1>
+<h2> Welcome to the Appleseed HTTP Demo </h2>
+   
+<p>
+  Online <i class="fa fa-circle" title="online led indicator" id="online_led"></i>
+  <table id="infotable">
+  </table>
+</p>
+   
 </body>
 </html>

@@ -1,36 +1,23 @@
-
-.leftnav
-{
-position: fixed;
-width: 175px;
-height: 100%;
-border-right: 1px solid #e3e3e3;
-margin-right: 25px;
-margin-right: 25px;
-padding-bottom: 20px;
-background-color: #ffffff;
+p {
+    font-family: 'Droid Sans', sans-serif;
+    color: #323232;
 }
 
-.title_text
-{
-left: 350px;
-top: 10px;
-position: fixed;
-font: 300 48px/1.2 'Istok Web', Verdana, Helvetica, sans-serif;
-color: dimgray;
+h1 {
+    font: 300 48px/1.2 'Istok Web', Verdana, Helvetica, sans-serif;
+    color: #33CC33;
+    padding:20px;
 }
 
-.title_image
-{
-left: 225px;
-top: 10px;
-position: fixed;
+h2 {
+    font: 100 20px/1.2 'Istok Web', Verdana, Helvetica, sans-serif;
+    color: #323232;
 }
 
-.content
-{
-background-color: #ffffff;
-position: absolute;
-left: 225px;
-top: 100px;
+
+.center {
+    margin-left:auto;
+    margin-right:auto;
+    width: 800px;
+    font-family: 'Droid Sans', sans-serif;
 }
