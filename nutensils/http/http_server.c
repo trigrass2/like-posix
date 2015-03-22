@@ -147,7 +147,11 @@ void http_server_connection(sock_conn_t* conn)
         do
         {
         	if(recv(conn->connfd, &httpconn->scratch[httpconn->length], 1, 0) < 1)
-        		return;
+        	{
+        	    free(httpconn);
+        	    log_error(&httpserver->log, "aborting");
+        	    return;
+        	}
             httpconn->length++;
         }
         while(httpconn->scratch[httpconn->length-1] != HTTP_EOL_CHAR);
