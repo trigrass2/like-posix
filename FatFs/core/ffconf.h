@@ -228,7 +228,7 @@
 #if _FS_READONLY
 #define _FS_LOCK   0  /* 0:Disable or >=1:Enable */
 #else
-#define _FS_LOCK   10  /* 0:Disable or >=1:Enable */
+#define _FS_LOCK   0  /* 0:Disable or >=1:Enable */
 #endif
 /* The _FS_LOCK option switches file lock feature to control duplicated file open
 /  and illegal operation to open objects. This option must be 0 when _FS_READONLY
