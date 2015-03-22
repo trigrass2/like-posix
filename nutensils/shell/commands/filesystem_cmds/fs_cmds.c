@@ -88,7 +88,6 @@ int sh_ls(int fdes, const char** args, unsigned char nargs)
             }
 
             dir = opendir(buffer);
-            free(buffer);
 
             if(dir)
             {
@@ -144,6 +143,8 @@ int sh_ls(int fdes, const char** args, unsigned char nargs)
                 closedir(dir);
             }
         }
+
+        free(buffer);
     }
     return SHELL_CMD_EXIT;
 }
