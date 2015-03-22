@@ -861,6 +861,185 @@ nc <ipaddress> 22
 
 ```
 
+jsmn extensions
+---------------
+
+provides a JSON object/array accessor API supporting keying/indexing and iteration.
+
+Some examples.....
+
+```c
+
+void test_json_iterate_key_value_pairs()
+{
+    char test1[] = "{\"key1\":\"value1\",\"key2\":\"123\",\"nested\":\"hello\"}";
+    jsmntok_t tokens[100];
+    json_t json;
+    jsmntok_t* object;
+
+
+    jsmnerr_t e = json_init(&json, tokens, 100, test1, strlen(test1));
+
+    if(e <= 0)
+    {
+        printf("parse error, e=%d\n", e);
+        return;
+    }
+
+    // gets the outer object
+    object = json_get_current_item(&json);
+
+    // iterate keys
+    for(json_reset_iterator(&json, object); json_iterator(&json);)
+    {
+        printf("%s:%s\n", json_string_value(&json), json_token_string_value(&json, json_iterator_get_object_value(&json)));
+        
+        if(json_token_value_match(&json, json_iterator_get_object_value(&json), "value1"))
+            printf("matched value: %s\n", "value1");
+        if(json_token_value_match(&json, json_iterator_get_object_value(&json), "123"))
+            printf("matched value: %s\n", "123");
+        if(json_token_value_match(&json, json_iterator_get_object_value(&json), "hello"))
+            printf("matched value: %s\n", "hello");
+    }
+}
+
+void test_json_object()
+{
+    char test1[] = "{\"key1\":\"value1\",\"key2\":\"123\",\"nested\":{\"key3\":\"value2\",\"key4\":\"999\"}}";
+    jsmntok_t tokens[100];
+    json_t json;
+    jsmntok_t* object;
+
+
+    jsmnerr_t e = json_init(&json, tokens, 100, test1, strlen(test1));
+
+    if(e <= 0)
+    {
+        printf("parse error, e=%d\n", e);
+        return;
+    }
+
+    // gets the outer object
+    object = json_get_current_item(&json);
+
+    // get values by key
+    if(json_get_value_by_key(&json, object, "key1"))
+        printf("key 'key1' value: %s\n", json_string_value(&json));
+    if(json_get_value_by_key(&json, object, "key2"))
+        printf("key 'key2' value: %s\n", json_string_value(&json));
+    if(json_get_value_by_key(&json, object, "key3"))
+        printf("key 'key3' value (shouldnt be seeing this!): %s\n", json_string_value(&json));
+    if(json_get_value_by_key(&json, object, "key4"))
+        printf("key 'key4' value (shouldnt be seeing this!): %s\n", json_string_value(&json));
+
+    // iterate keys
+    json_reset_iterator(&json, object);
+    while(json_iterator(&json))
+        printf("key string: %s\n", json_string_value(&json));
+
+    // iterate values
+    json_reset_iterator(&json, object);
+    while(json_object_value_iterator(&json))
+       printf("value string: %s\n", json_string_value(&json));
+
+    // gets the nested object
+    object = json_get_value_by_key(&json, tokens, "nested");
+
+    // get values by key
+    if(json_get_value_by_key(&json, object, "key1"))
+        printf("key 'key1' value (shouldnt be seeing this!): %s\n", json_string_value(&json));
+    if(json_get_value_by_key(&json, object, "key2"))
+        printf("key 'key2' value (shouldnt be seeing this!): %s\n", json_string_value(&json));
+    if(json_get_value_by_key(&json, object, "key3"))
+        printf("key 'key3' value: %s\n", json_string_value(&json));
+    if(json_get_value_by_key(&json, object, "key4"))
+        printf("key 'key4' value: %s\n", json_string_value(&json));
+
+    // iterate keys
+    json_reset_iterator(&json, object);
+    while(json_iterator(&json))
+       printf("key string: %s\n", json_string_value(&json));
+
+    // iterate values
+    json_reset_iterator(&json, object);
+    while(json_object_value_iterator(&json))
+       printf("value string: %s\n", json_string_value(&json));
+}
+
+void test_json_object_of_arrays()
+{
+    jsmntok_t tokens[100];
+    json_t json;
+    char test1[] = "{\"key1\":[1,2,3.4], \"key2\":[99.9,458643875,123], \"key3\":[\"whats\", \"up\", \"doc\"], \"key4\":[\"XyZ\", 156.987, [1], {\"1\", 1}, 21]}}";
+    jsmntok_t* object;
+    jsmntok_t* array;
+    int i;
+
+    jsmnerr_t e = json_init(&json, tokens, 100, test1, strlen(test1));
+
+    if(e <= 0)
+    {
+        printf("parse error, e=%d\n", e);
+        return;
+    }
+
+    // gets the outer object
+    object = json_get_current_item(&json);
+
+    if(json_get_value_by_key(&json, object, "key1"))
+    {
+        array = json_get_current_item(&json);
+
+        json_reset_iterator(&json, array);
+        while(json_iterator(&json))
+            printf("integer item value: %d\n", json_integer_value(&json));
+    }
+    else
+        printf("object key %s invalid\n", "key1");
+
+
+    if(json_get_value_by_key(&json, object, "key2"))
+    {
+        array = json_get_current_item(&json);
+
+        json_reset_iterator(&json, array);
+        while(json_iterator(&json))
+            printf("float item value: %f\n", json_float_value(&json));
+    }
+    else
+        printf("object key %s invalid\n", "key2");
+
+    if(json_get_value_by_key(&json, object, "key3"))
+    {
+        array = json_get_current_item(&json);
+
+        json_reset_iterator(&json, array);
+        while(json_iterator(&json))
+            printf("string item value: %s\n", json_string_value(&json));
+    }
+    else
+        printf("object key %s invalid\n", "key3");
+
+    // test array access by index
+    array = json_get_value_by_key(&json, object, "key4");
+    // intentionally overrun array bounds
+    for(i = -2; i < 6; i++)
+    {
+        if(json_get_item_by_index(&json, array, i))
+        {
+            printf("index %d value: %d, %f, %s\n",
+                    i,
+                    json_integer_value(&json),
+                    json_float_value(&json),
+                    json_string_value(&json));
+        }
+        else
+            printf("array index %d invalid\n", i);
+    }
+}
+
+```
+
 Third Party
 ===========
 
@@ -884,6 +1063,7 @@ obtained from: http://elm-chan.org/fsw/ff/00index_e.html
  - appleseed additions rely upon the cutensils module 
  - appleseed additions rely upon the stm32-device-support module, for sdcard.h and sdcard driver implementation(s)
  
+currently at V0.11
 
 FreeRTOS
 --------
@@ -892,5 +1072,16 @@ obtained from:
 
 http://www.freertos.org
 
-currently at V8.0.0
+currently at V8.0.0:rc2
+
+JSMN
+----
+
+obtained from:
+
+bitbucket.org/zserge/jsmn
+
+can be used in conjunction with my JSON API **jsmn_extensions**
+
+
 

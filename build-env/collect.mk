@@ -55,6 +55,7 @@ include $(BUILD_ENV_DIR)/like_posix.mk
 include $(BUILD_ENV_DIR)/fatfs.mk
 include $(BUILD_ENV_DIR)/programming.mk
 include $(BUILD_ENV_DIR)/graphics.mk
+include $(BUILD_ENV_DIR)/jsmn.mk
 
 ## definitions
 CFLAGS += -D CLEVER_DEFAULT_INTERRUPT_HANDLER=$(CLEVER_DEFAULT_INTERRUPT_HANDLER)

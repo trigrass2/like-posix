@@ -63,7 +63,7 @@ OPT ?= 2
 # set to 1 to enable freertos
 USE_FREERTOS ?= 0
 
-## JSON parser library - bitbucket.org/zserge/jsmn
+## JSON parser library
 USE_JSMN ?= 0
 
 ## there are some small alternatives to the standard libraries
