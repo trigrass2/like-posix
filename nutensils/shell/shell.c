@@ -408,6 +408,8 @@ void put_prompt(shell_instance_t* sh, const char* promptstr, const char* argstr,
 
     if(path != NULL)
     {
+        // added this as FatFs 0.11 no longer reports drive prefix on f_getcwd()
+       write(sh->fdes, "0:", 2);
        write(sh->fdes, path, strlen(path));
        free(path);
     }
