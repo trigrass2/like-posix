@@ -128,7 +128,11 @@ char* ftoa(char *dst, float num, float prescision)
 	else if(isinf(num))
 		strcpy(dst, "inf");
 	else if(num == 0.0)
-		strcpy(dst, "0");
+        strcpy(dst, "0");
+	else if(num < 0 && -num <= prescision)
+        strcpy(dst, "0");
+    else if(num > 0 && num <= prescision)
+        strcpy(dst, "0");
 	else
 	{
 		int digit, m, m1 = 0;
