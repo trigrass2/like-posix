@@ -158,6 +158,7 @@ typedef struct {
 	filtab_entry_t* tab[FILE_TABLE_LENGTH];		///< the file table
 	dev_ioctl_t* devtab[DEVICE_TABLE_LENGTH];	///< the device table
 	SemaphoreHandle_t lock;                     ///< file table lock.
+	int hwm;                                    ///< file table high water mark
 }_filtab_t;
 
 /**
@@ -408,6 +409,8 @@ inline int __insert_entry(filtab_entry_t* fte)
 		{
 			filtab.tab[file] = fte;
 			filtab.count++;
+			if(filtab.hwm < filtab.count)
+			    filtab.hwm = filtab.count;
 			return file + FILE_TABLE_OFFSET;
 		}
 	}
@@ -526,6 +529,22 @@ dev_ioctl_t* install_device(char* name,
         log_error(NULL, "failed to open device %s", name);
 
 	return ret;
+}
+
+/**
+ * @retval  the number of files open right now.
+ */
+int file_table_open_files()
+{
+   return filtab.count;
+}
+
+/**
+ * @retval  the highest number of files opened since boot.
+ */
+int file_table_hwm()
+{
+    return filtab.hwm;
 }
 
 /**
@@ -768,14 +787,19 @@ int fsync(int file)
  */
 char* getcwd(char* buffer, size_t size)
 {
+    bool alloc = false;
     if(buffer == NULL)
+    {
+        alloc = true;
         buffer = malloc(size);
+    }
 
     if(buffer)
     {
         if(f_getcwd((TCHAR*)buffer, (UINT)size) != FR_OK)
         {
-            free(buffer);
+            if(alloc)
+                free(buffer);
             buffer = NULL;
         }
     }
@@ -1377,7 +1401,10 @@ int socket(int namespace, int style, int protocol)
     file = lwip_socket(namespace, style, protocol);
 
     if(file == -1)
+    {
+        vPortFree(ftn);
         return file;
+    }
 
     // hack socket file descriptor on as the device
     ftn->device = (dev_ioctl_t*)file;

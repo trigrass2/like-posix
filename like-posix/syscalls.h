@@ -112,6 +112,8 @@ dev_ioctl_t* install_device(char* name,
                             dev_ioctl_fn_t open_dev,
 							dev_ioctl_fn_t close_dev,
 							dev_ioctl_fn_t ioctl);
+int file_table_open_files();
+int file_table_hwm();
 
 #endif
 

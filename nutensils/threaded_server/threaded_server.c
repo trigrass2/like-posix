@@ -134,7 +134,7 @@ void run_spawned(sock_conn_t* conn)
 	if(conn)
 	{
 		conn->service(conn);
-	    log_syslog(NULL, "stopping");
+	    log_debug(NULL, "closing connection with %s", inet_ntoa(conn->cliaddr.sin_addr));
 		closesocket(conn->connfd);
 		free(conn);
 	}

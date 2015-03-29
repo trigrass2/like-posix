@@ -52,6 +52,7 @@ typedef struct
 typedef struct _shell_instance_t{
 	char input_buffer[SHELL_CMD_BUFFER_SIZE];		///< input_buffer is a memory space that stores user input, and is @ref CMD_BUFFER_SIZE in size
 	char history[SHELL_HISTORY_LENGTH][SHELL_CMD_BUFFER_SIZE];	///< history is a memory space that stores previous user input, and is @ref CMD_BUFFER_SIZE in size
+	char cwd[SHELL_CWD_LENGTH_MAX];
 	uint16_t cursor_index;							///< cursor_index is the index of the cursor.
 	uint16_t input_index;							///< input_index is the index of the end of the chacters in the command buffer.
 	int8_t history_index;							///< points to the last item in history
@@ -147,6 +148,7 @@ void shell_instance_thread(sock_conn_t* conn)
 
 	if(sh)
 	{
+	    sh->cwd[0] = '\0';
 		sh->exitflag = false;
 		sh->input_index = 0;
 		sh->cursor_index = 0;
@@ -183,16 +185,16 @@ void prompt(shell_instance_t* sh)
 			if(data == 0x1B) // ESC
 			{
 				data = 0;
-				read(sh->fdes, &data, 1);
+				recv(sh->fdes, &data, 1, 0);
 				if(data == 0x5B)	// ANSI escaped sequences, ascii '['
 				{
 					data = 0;
-					read(sh->fdes, &data, 1);
+					recv(sh->fdes, &data, 1, 0);
 
 					if(data == 0x33) // ascii '3'
 					{
 						data = 0;
-						read(sh->fdes, &data, 1);
+						recv(sh->fdes, &data, 1, 0);
 						if(data == 0x7E) // DELETE, ascii '~'
 						{
 							if(sh->cursor_index < sh->input_index)
@@ -212,7 +214,7 @@ void prompt(shell_instance_t* sh)
 								// put cursor back where it should be
 								for(i = sh->input_index; i > sh->cursor_index; i--)
 								{
-									write(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
+									send(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1, 0);
 								}
 							}
 						}
@@ -236,7 +238,7 @@ void prompt(shell_instance_t* sh)
 						if(sh->cursor_index > 0)
 						{
 							sh->cursor_index--;
-							write(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
+							send(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1, 0);
 						}
 					}
 					else if(data == 0x43) // RIGHT
@@ -244,19 +246,19 @@ void prompt(shell_instance_t* sh)
 						if(sh->cursor_index < sh->input_index)
 						{
 							sh->cursor_index++;
-							write(sh->fdes, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1);
+							send(sh->fdes, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1, 0);
 						}
 					}
 				}
 				else if(data == 0x4F)	// HOME, END
 				{
 					data = 0;
-					read(sh->fdes, &data, 1);
+					recv(sh->fdes, &data, 1, 0);
 					if(data == 0x48) // HOME
 					{
 						while(sh->cursor_index > 0)
 						{
-							write(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
+							send(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1, 0);
 							sh->cursor_index--;
 						}
 					}
@@ -264,7 +266,7 @@ void prompt(shell_instance_t* sh)
 					{
 						while(sh->cursor_index < sh->input_index)
 						{
-							write(sh->fdes, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1);
+							send(sh->fdes, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1, 0);
 							sh->cursor_index++;
 						}
 					}
@@ -280,7 +282,7 @@ void prompt(shell_instance_t* sh)
 				{
 					// use args[1] as args[0] points to the command
 				    code = shell_cmd_exec(sh->current_command.cmd, sh->fdes, sh->current_command.args + 1, sh->current_command.nargs);
-					shell_builtins(sh, code, sh->current_command.cmd);
+				    shell_builtins(sh, code, sh->current_command.cmd);
 				}
 
 				sh->input_index = 0;
@@ -307,7 +309,7 @@ void prompt(shell_instance_t* sh)
 					// put cursor back where it should be
 					for(i = sh->input_index; i > sh->cursor_index; i--)
 					{
-						write(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
+						send(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1, 0);
 					}
 				}
 			}
@@ -342,12 +344,12 @@ void prompt(shell_instance_t* sh)
 						put_prompt(sh, SHELL_PROMPT, NULL, true);
 					}
 
-					write(sh->fdes, &sh->input_buffer[sh->cursor_index-1], strlen((const char*)&sh->input_buffer[sh->cursor_index-1]));
+					send(sh->fdes, &sh->input_buffer[sh->cursor_index-1], strlen((const char*)&sh->input_buffer[sh->cursor_index-1]), 0);
 
 					// put cursor back where it should be
 					for(i = sh->input_index; i > sh->cursor_index; i--)
 					{
-						write(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
+						send(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1, 0);
 					}
 				}
 			}
@@ -399,25 +401,17 @@ void clear_prompt(shell_instance_t* sh)
  */
 void put_prompt(shell_instance_t* sh, const char* promptstr, const char* argstr, bool newline)
 {
-    char* path;
-	write(sh->fdes, "\r", 1);
+	send(sh->fdes, "\r", 1, 0);
 	if(newline)
-		write(sh->fdes, "\n", 1);
+		send(sh->fdes, "\n", 1, 0);
 
-	path = getcwd(NULL, SHELL_CWD_LENGTH_MAX);
-
-    if(path != NULL)
-    {
-        // added this as FatFs 0.11 no longer reports drive prefix on f_getcwd()
-       write(sh->fdes, "0:", 2);
-       write(sh->fdes, path, strlen(path));
-       free(path);
-    }
+	send(sh->fdes, "0:", 2, 0);
+	send(sh->fdes, sh->cwd, strlen(sh->cwd), 0);
 
 	if(promptstr)
-		write(sh->fdes, promptstr, strlen((const char*)promptstr));
+		send(sh->fdes, promptstr, strlen((const char*)promptstr), 0);
 	if(argstr)
-		write(sh->fdes, argstr, strlen((const char*)argstr));
+		send(sh->fdes, argstr, strlen((const char*)argstr), 0);
 }
 
 /**
@@ -509,7 +503,7 @@ void parse_input(shell_instance_t* sh, current_command_t* cmd)
 		// return command if one was found
 		if(head && head->name)
 		{
-			write(sh->fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1);
+			send(sh->fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1, 0);
 			// reduce number of arguments by one as first arg is just the command
 			cmd->nargs--;
 			cmd->cmd = head;
@@ -517,8 +511,8 @@ void parse_input(shell_instance_t* sh, current_command_t* cmd)
 		else if(cmd->args[0] != NULL)
 		{
 			// print error message if the buffer had some content but no valid command
-			write(sh->fdes, SHELL_NO_SUCH_COMMAND, sizeof(SHELL_NO_SUCH_COMMAND)-1);
-			write(sh->fdes, cmd->args[0], strlen((const char*)cmd->args[0]));
+			send(sh->fdes, SHELL_NO_SUCH_COMMAND, sizeof(SHELL_NO_SUCH_COMMAND)-1, 0);
+			send(sh->fdes, cmd->args[0], strlen((const char*)cmd->args[0]), 0);
 		}
 	}
 }
@@ -535,13 +529,16 @@ void shell_builtins(shell_instance_t* sh, int code, shell_cmd_t* cmd)
 		case SHELL_CMD_KILL:
 			sh->exitflag = true;
 		break;
+        case SHELL_CMD_CHDIR:
+            getcwd(sh->cwd, SHELL_CWD_LENGTH_MAX);
+        break;
 		case SHELL_CMD_PRINT_CMDS:
 			head = sh->head_cmd;
-			write(sh->fdes, SHELL_HELP_STR, sizeof(SHELL_HELP_STR)-1);
+			send(sh->fdes, SHELL_HELP_STR, sizeof(SHELL_HELP_STR)-1, 0);
 			while(head)
 			{
-				write(sh->fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1);
-				write(sh->fdes, head->name, strlen((const char*)head->name));
+				send(sh->fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1, 0);
+				send(sh->fdes, head->name, strlen((const char*)head->name), 0);
 				head = head->next;
 			}
 		break;

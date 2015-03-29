@@ -85,24 +85,24 @@ int sh_wget(int fdes, const char** args, unsigned char nargs)
                 unlink(file);
 
                 if(!http_get_file(url, &resp, file, buffer, 128))
-                    write(fdes, GET_ERROR, sizeof(GET_ERROR)-1);
+                    send(fdes, GET_ERROR, sizeof(GET_ERROR)-1, 0);
                 status = resp.status;
 
                 // fail if we didnt get the 200 OK. using the buffer here may overwrite the http header info.
                 if(status != 200)
                 {
                     sprintf(buffer, HTTP_STATUS_ERROR, status);
-                    write(fdes, buffer, strlen(buffer));
+                    send(fdes, buffer, strlen(buffer), 0);
                 }
             }
         }
         else
-            write(fdes, URL_ERROR, sizeof(URL_ERROR)-1);
+            send(fdes, URL_ERROR, sizeof(URL_ERROR)-1, 0);
 
         free(buffer);
     }
     else
-        write(fdes, MEMORY_ERROR, sizeof(MEMORY_ERROR)-1);
+        send(fdes, MEMORY_ERROR, sizeof(MEMORY_ERROR)-1, 0);
 
     return SHELL_CMD_EXIT;
 }
@@ -118,7 +118,7 @@ int sh_netstat(int fdes, const char** args, unsigned char nargs)
     lwip_sock_stat_t stats[MEMP_NUM_NETCONN];
     lwip_sock_stat(stats, MEMP_NUM_NETCONN);
 
-    write(fdes, NETSTAT_HEADER, sizeof(NETSTAT_HEADER)-1);
+    send(fdes, NETSTAT_HEADER, sizeof(NETSTAT_HEADER)-1, 0);
 
     for(i = 0; i < MEMP_NUM_NETCONN-1; i++)
     {
@@ -128,7 +128,7 @@ int sh_netstat(int fdes, const char** args, unsigned char nargs)
             length = sprintf(buffer, "%s\t%d.%d.%d.%d:%d\t", stats[i].type, ip[0],ip[1],ip[2],ip[3], stats[i].lport);
         else
             length = sprintf(buffer, "%s\t%d.%d.%d.%d:%d\t\t", stats[i].type, ip[0],ip[1],ip[2],ip[3], stats[i].lport);
-        write(fdes, buffer, length);
+        send(fdes, buffer, length, 0);
 
         ip = (const char*)&(stats[i].rip.addr);
         if(stats[i].rip.addr)
@@ -136,7 +136,7 @@ int sh_netstat(int fdes, const char** args, unsigned char nargs)
         else
             length = sprintf(buffer, "%d.%d.%d.%d:%d\t\t%s"SHELL_NEWLINE, ip[0],ip[1],ip[2],ip[3], stats[i].rport, stats[i].state);
 
-        write(fdes, buffer, length);
+        send(fdes, buffer, length, 0);
     }
 
     return SHELL_CMD_EXIT;
@@ -179,12 +179,12 @@ int sh_ifconfig(int fdes, const char** args, unsigned char nargs)
                 net_ip_errors(),
                 net_ip_packets_dropped(),
                 net_ip_packets_sent());
-        write(fdes, buffer, length);
+        send(fdes, buffer, length, 0);
 
         free(buffer);
     }
     else
-        write(fdes, MEMORY_ERROR, sizeof(MEMORY_ERROR)-1);
+        send(fdes, MEMORY_ERROR, sizeof(MEMORY_ERROR)-1, 0);
 
     return SHELL_CMD_EXIT;
 }

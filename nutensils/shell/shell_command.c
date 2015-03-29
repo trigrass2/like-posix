@@ -30,7 +30,6 @@
  *
  */
 
-#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -151,13 +150,13 @@ void cmd_usage(shell_cmd_t* cmd, int fdes)
 {
 	if(cmd->usage)
 	{
-	    write(fdes, cmd->name, strlen(cmd->name));
-        write(fdes, SHELL_USAGE_STR, sizeof(SHELL_USAGE_STR)-1);
-        write(fdes, cmd->usage, strlen(cmd->usage));
+	    send(fdes, cmd->name, strlen(cmd->name), 0);
+        send(fdes, SHELL_USAGE_STR, sizeof(SHELL_USAGE_STR)-1, 0);
+        send(fdes, cmd->usage, strlen(cmd->usage), 0);
 	}
 	else
 	{
-        write(fdes, SHELL_NO_HELP_STR, sizeof(SHELL_NO_HELP_STR)-1);
-        write(fdes, cmd->name, strlen(cmd->name));
+        send(fdes, SHELL_NO_HELP_STR, sizeof(SHELL_NO_HELP_STR)-1, 0);
+        send(fdes, cmd->name, strlen(cmd->name), 0);
 	}
 }

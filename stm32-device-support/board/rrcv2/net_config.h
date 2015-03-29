@@ -33,15 +33,15 @@
 #ifndef NET_CONF_H_
 #define NET_CONF_H_
 
-#define NET_TASK_PRIORITY		1
-#define NET_TASK_STACK        	128
+#define NET_TASK_PRIORITY       2
+#define NET_TASK_STACK          64
 
 /**
  * Ethernet driver buffer size and count - defaults are set in stm32_eth.h
  */
-#define ETH_RXBUFNB        4                   // 4 Rx buffers
-#define ETH_TXBUFNB        2                   // 2 Tx buffers
-#define MAX_ETH_PAYLOAD     1500
+#define ETH_RXBUFNB        4                   // Rx buffers
+#define ETH_TXBUFNB        8                   // Tx buffers
+#define MAX_ETH_PAYLOAD     600
 
 #define NET_LINK_LED			LED2
 

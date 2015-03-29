@@ -227,12 +227,8 @@ void sock_server_thread(void* parameters)
 
         if(newconn.connfd != -1)
         {
-            log_syslog(&servinfo->log, "%s accepted conn with %d.%d.%d.%d",
-                                    servinfo->name,
-                                    ((char*)&newconn.cliaddr.sin_addr)[0],
-                                    ((char*)&newconn.cliaddr.sin_addr)[1],
-                                    ((char*)&newconn.cliaddr.sin_addr)[2],
-                                    ((char*)&newconn.cliaddr.sin_addr)[3]);
+            log_debug(&servinfo->log, "%s accepted conn with %s",
+                                    servinfo->name, inet_ntoa(newconn.cliaddr.sin_addr));
             handled = false;
             conn = NULL;
 

@@ -44,7 +44,7 @@
 #include "sock_utils.h"
 
 #define THREADED_SERVER_PRIORITY		1
-#define THREADED_SERVER_STACK_SIZE		128
+#define THREADED_SERVER_STACK_SIZE		70
 
 int start_threaded_server(sock_server_t* servinfo, const char* config, sock_service_fptr_t threadfunc, void* data, int stacksize, int prio);
 void stop_threaded_server(sock_server_t* servinfo);

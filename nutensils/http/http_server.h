@@ -52,6 +52,9 @@
 #define HTTP_URL_LEN                64
 #define HTTP_SCRATCH_LEN            256
 
+#define HTTP_SERVER_STACK_SIZE      325
+#define HTTP_SERVER_TASK_PRIO       1
+
 typedef struct {
 	char fsroot[HTTP_FS_ROOT_LENGTH];
 	sock_server_t server;

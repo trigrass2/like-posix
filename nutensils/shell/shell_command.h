@@ -47,6 +47,7 @@ typedef enum {
 	SHELL_CMD_PRINT_USAGE = -4,     ///< print usage string
 	SHELL_CMD_IO_ERROR = -5,        ///< IO error
     SHELL_CMD_MEM_ERROR = -6,       ///< memory error
+    SHELL_CMD_CHDIR = -7,           ///< change shell cwd
 }shell_cmd_special_returns_t;
 
 typedef struct _shell_cmd_t shell_cmd_t;
