@@ -301,9 +301,8 @@ typedef struct {
     SD_Error sdio_xfer_error;
     bool sdio_xfer_multi_block;
     uint8_t card_type;
-    uint8_t rca;
-    uint32_t csd_table[4];
-    uint32_t cid_table[4];
+    uint32_t rca;				///< holds the card RCA shifted up by 16 bits. used by the driver only. the true RCA is stored in SD_CardInfo sdcardinfo.RCA
+    bool ccc_erase;
 }sdio_state_t;
 
 volatile sdio_state_t sdio_state = {
@@ -312,11 +311,12 @@ volatile sdio_state_t sdio_state = {
     .sdio_xfer_multi_block = false,
     .card_type = SDIO_UNKNOWN_CARD_TYPE,
     .rca = 0,
+	.ccc_erase = false
 };
 
-SD_Error SD_InitializeCards(void);
+SD_Error SD_InitializeCards(SD_CardInfo* cardinfo);
 SD_Error SD_SetBusOperation(uint32_t width, uint32_t clockdiv);
-SD_Error SD_SelectDeselect(uint32_t addr);
+SD_Error SD_SelectDeselect();
 SD_Error SD_StopTransfer(void);
 
 
@@ -327,6 +327,7 @@ static void SD_LowLevel_DMA_TxConfig(uint32_t *BufferSRC, uint32_t BufferSize);
 static void SD_LowLevel_DMA_RxConfig(uint32_t *BufferDST, uint32_t BufferSize);
 static void SD_NVIC_Configuration(void);
 
+static SD_Error SD_GetCardInfo(SD_CardInfo *cardinfo, uint32_t* csd_table, uint32_t* cid_table);
 static SD_Error CmdResp1Error(uint8_t cmd);
 static SD_Error CmdResp7Error(void);
 static SD_Error CmdResp3Error(void);
@@ -427,19 +428,13 @@ SD_Error SD_Init(SD_CardInfo* sdcardinfo)
     if(sderr != SD_OK)
         return sderr;
 
-    sderr = SD_InitializeCards();
-
-    if(sderr != SD_OK)
-        return sderr;
-
-    // Read CSD/CID MSD registers
-    sderr = SD_GetCardInfo(sdcardinfo);
+    sderr = SD_InitializeCards(sdcardinfo);
 
     if(sderr != SD_OK)
         return sderr;
 
     // select card
-    sderr = SD_SelectDeselect((uint32_t) (sdcardinfo->RCA << 16));
+    sderr = SD_SelectDeselect();
 
     if(sderr != SD_OK)
         return sderr;
@@ -758,7 +753,7 @@ SD_Error SD_QueryStatus(SDCardState* cardstatus)
 {
     SD_Error sderr;
 
-    sdio_send_cmd((uint32_t)sdio_state.rca << 16, SD_CMD_SEND_STATUS, SDIO_Response_Short);
+    sdio_send_cmd(sdio_state.rca, SD_CMD_SEND_STATUS, SDIO_Response_Short);
     sderr = CmdResp1Error(SD_CMD_SEND_STATUS);
 
     if(sderr == SD_OK)
@@ -872,10 +867,12 @@ SD_Error SD_PowerOFF(void)
   *
   * @retval SD_Error: SD Card Error code.
   */
-SD_Error SD_InitializeCards(void)
+SD_Error SD_InitializeCards(SD_CardInfo* sdcardinfo)
 {
     SD_Error sderr = SD_OK;
     uint16_t rca = 0x01;
+    uint32_t cid_table[4] = {0, 0, 0, 0};
+    uint32_t csd_table[4] = {0, 0, 0, 0};
 
     if(SDIO_GetPowerState() == SDIO_PowerState_OFF)
         return SD_REQUEST_NOT_APPLICABLE;
@@ -891,10 +888,10 @@ SD_Error SD_InitializeCards(void)
         if(SD_OK != sderr)
             return sderr;
 
-        sdio_state.cid_table[0] = SDIO_GetResponse(SDIO_RESP1);
-        sdio_state.cid_table[1] = SDIO_GetResponse(SDIO_RESP2);
-        sdio_state.cid_table[2] = SDIO_GetResponse(SDIO_RESP3);
-        sdio_state.cid_table[3] = SDIO_GetResponse(SDIO_RESP4);
+        cid_table[0] = SDIO_GetResponse(SDIO_RESP1);
+        cid_table[1] = SDIO_GetResponse(SDIO_RESP2);
+        cid_table[2] = SDIO_GetResponse(SDIO_RESP3);
+        cid_table[3] = SDIO_GetResponse(SDIO_RESP4);
     }
     if( (SDIO_STD_CAPACITY_SD_CARD_V1_1 == sdio_state.card_type) ||
         (SDIO_STD_CAPACITY_SD_CARD_V2_0 == sdio_state.card_type) ||
@@ -915,7 +912,7 @@ SD_Error SD_InitializeCards(void)
 
     if(SDIO_SECURE_DIGITAL_IO_CARD != sdio_state.card_type)
     {
-        sdio_state.rca = rca;
+        sdio_state.rca = rca << 16;
 
         /*!< Send CMD9 SEND_CSD with argument as card's RCA */
         sdio_send_cmd((uint32_t)(rca << 16), SD_CMD_SEND_CSD, SDIO_Response_Long);
@@ -926,11 +923,17 @@ SD_Error SD_InitializeCards(void)
         if(SD_OK != sderr)
             return sderr;
 
-        sdio_state.csd_table[0] = SDIO_GetResponse(SDIO_RESP1);
-        sdio_state.csd_table[1] = SDIO_GetResponse(SDIO_RESP2);
-        sdio_state.csd_table[2] = SDIO_GetResponse(SDIO_RESP3);
-        sdio_state.csd_table[3] = SDIO_GetResponse(SDIO_RESP4);
+        csd_table[0] = SDIO_GetResponse(SDIO_RESP1);
+        csd_table[1] = SDIO_GetResponse(SDIO_RESP2);
+        csd_table[2] = SDIO_GetResponse(SDIO_RESP3);
+        csd_table[3] = SDIO_GetResponse(SDIO_RESP4);
+
+        if(SD_OK != sderr)
+            return sderr;
     }
+
+    // Interpret CSD/CID MSD registers
+    sderr = SD_GetCardInfo(sdcardinfo, csd_table, cid_table);
 
     return sderr;
 }
@@ -941,43 +944,43 @@ SD_Error SD_InitializeCards(void)
   *         information.
   * @retval SD_Error: SD Card Error code.
   */
-SD_Error SD_GetCardInfo(SD_CardInfo *cardinfo)
+SD_Error SD_GetCardInfo(SD_CardInfo *cardinfo, uint32_t* csd_table, uint32_t* cid_table)
 {
     SD_Error sderr = SD_OK;
     uint8_t tmp = 0;
 
     cardinfo->CardType = (uint8_t)sdio_state.card_type;
-    cardinfo->RCA = (uint16_t)sdio_state.rca;
+    cardinfo->RCA = (uint16_t)(sdio_state.rca>>16);
 
     /*!< Byte 0 */
-    tmp = (uint8_t)((sdio_state.csd_table[0] & 0xFF000000) >> 24);
+    tmp = (uint8_t)((csd_table[0] & 0xFF000000) >> 24);
     cardinfo->SD_csd.CSDStruct = (tmp & 0xC0) >> 6;
     cardinfo->SD_csd.SysSpecVersion = (tmp & 0x3C) >> 2;
     cardinfo->SD_csd.Reserved1 = tmp & 0x03;
 
     /*!< Byte 1 */
-    tmp = (uint8_t)((sdio_state.csd_table[0] & 0x00FF0000) >> 16);
+    tmp = (uint8_t)((csd_table[0] & 0x00FF0000) >> 16);
     cardinfo->SD_csd.TAAC = tmp;
 
     /*!< Byte 2 */
-    tmp = (uint8_t)((sdio_state.csd_table[0] & 0x0000FF00) >> 8);
+    tmp = (uint8_t)((csd_table[0] & 0x0000FF00) >> 8);
     cardinfo->SD_csd.NSAC = tmp;
 
     /*!< Byte 3 */
-    tmp = (uint8_t)(sdio_state.csd_table[0] & 0x000000FF);
+    tmp = (uint8_t)(csd_table[0] & 0x000000FF);
     cardinfo->SD_csd.MaxBusClkFrec = tmp;
 
     /*!< Byte 4 */
-    tmp = (uint8_t)((sdio_state.csd_table[1] & 0xFF000000) >> 24);
+    tmp = (uint8_t)((csd_table[1] & 0xFF000000) >> 24);
     cardinfo->SD_csd.CardComdClasses = tmp << 4;
 
     /*!< Byte 5 */
-    tmp = (uint8_t)((sdio_state.csd_table[1] & 0x00FF0000) >> 16);
+    tmp = (uint8_t)((csd_table[1] & 0x00FF0000) >> 16);
     cardinfo->SD_csd.CardComdClasses |= (tmp & 0xF0) >> 4;
     cardinfo->SD_csd.RdBlockLen = tmp & 0x0F;
 
     /*!< Byte 6 */
-    tmp = (uint8_t)((sdio_state.csd_table[1] & 0x0000FF00) >> 8);
+    tmp = (uint8_t)((csd_table[1] & 0x0000FF00) >> 8);
     cardinfo->SD_csd.PartBlockRead = (tmp & 0x80) >> 7;
     cardinfo->SD_csd.WrBlockMisalign = (tmp & 0x40) >> 6;
     cardinfo->SD_csd.RdBlockMisalign = (tmp & 0x20) >> 5;
@@ -989,23 +992,23 @@ SD_Error SD_GetCardInfo(SD_CardInfo *cardinfo)
         cardinfo->SD_csd.DeviceSize = (tmp & 0x03) << 10;
 
         /*!< Byte 7 */
-        tmp = (uint8_t)(sdio_state.csd_table[1] & 0x000000FF);
+        tmp = (uint8_t)(csd_table[1] & 0x000000FF);
         cardinfo->SD_csd.DeviceSize |= (tmp) << 2;
 
         /*!< Byte 8 */
-        tmp = (uint8_t)((sdio_state.csd_table[2] & 0xFF000000) >> 24);
+        tmp = (uint8_t)((csd_table[2] & 0xFF000000) >> 24);
         cardinfo->SD_csd.DeviceSize |= (tmp & 0xC0) >> 6;
 
         cardinfo->SD_csd.MaxRdCurrentVDDMin = (tmp & 0x38) >> 3;
         cardinfo->SD_csd.MaxRdCurrentVDDMax = (tmp & 0x07);
 
         /*!< Byte 9 */
-        tmp = (uint8_t)((sdio_state.csd_table[2] & 0x00FF0000) >> 16);
+        tmp = (uint8_t)((csd_table[2] & 0x00FF0000) >> 16);
         cardinfo->SD_csd.MaxWrCurrentVDDMin = (tmp & 0xE0) >> 5;
         cardinfo->SD_csd.MaxWrCurrentVDDMax = (tmp & 0x1C) >> 2;
         cardinfo->SD_csd.DeviceSizeMul = (tmp & 0x03) << 1;
         /*!< Byte 10 */
-        tmp = (uint8_t)((sdio_state.csd_table[2] & 0x0000FF00) >> 8);
+        tmp = (uint8_t)((csd_table[2] & 0x0000FF00) >> 8);
         cardinfo->SD_csd.DeviceSizeMul |= (tmp & 0x80) >> 7;
 
         // card capacity in blocks
@@ -1025,21 +1028,21 @@ SD_Error SD_GetCardInfo(SD_CardInfo *cardinfo)
     else if(sdio_state.card_type == SDIO_HIGH_CAPACITY_SD_CARD)
     {
         /*!< Byte 7 */
-        tmp = (uint8_t)(sdio_state.csd_table[1] & 0x000000FF);
+        tmp = (uint8_t)(csd_table[1] & 0x000000FF);
         cardinfo->SD_csd.DeviceSize = (tmp & 0x3F) << 16;
 
         /*!< Byte 8 */
-        tmp = (uint8_t)((sdio_state.csd_table[2] & 0xFF000000) >> 24);
+        tmp = (uint8_t)((csd_table[2] & 0xFF000000) >> 24);
 
         cardinfo->SD_csd.DeviceSize |= (tmp << 8);
 
         /*!< Byte 9 */
-        tmp = (uint8_t)((sdio_state.csd_table[2] & 0x00FF0000) >> 16);
+        tmp = (uint8_t)((csd_table[2] & 0x00FF0000) >> 16);
 
         cardinfo->SD_csd.DeviceSize |= (tmp);
 
         /*!< Byte 10 */
-        tmp = (uint8_t)((sdio_state.csd_table[2] & 0x0000FF00) >> 8);
+        tmp = (uint8_t)((csd_table[2] & 0x0000FF00) >> 8);
 
         // card capacity in blocks
         cardinfo->CardCapacity = (cardinfo->SD_csd.DeviceSize + 1) * 1024;
@@ -1050,26 +1053,26 @@ SD_Error SD_GetCardInfo(SD_CardInfo *cardinfo)
     cardinfo->SD_csd.EraseGrMul = (tmp & 0x3F) << 1;
 
     /*!< Byte 11 */
-    tmp = (uint8_t)(sdio_state.csd_table[2] & 0x000000FF);
+    tmp = (uint8_t)(csd_table[2] & 0x000000FF);
     cardinfo->SD_csd.EraseGrMul |= (tmp & 0x80) >> 7;
     cardinfo->SD_csd.WrProtectGrSize = (tmp & 0x7F);
 
     /*!< Byte 12 */
-    tmp = (uint8_t)((sdio_state.csd_table[3] & 0xFF000000) >> 24);
+    tmp = (uint8_t)((csd_table[3] & 0xFF000000) >> 24);
     cardinfo->SD_csd.WrProtectGrEnable = (tmp & 0x80) >> 7;
     cardinfo->SD_csd.ManDeflECC = (tmp & 0x60) >> 5;
     cardinfo->SD_csd.WrSpeedFact = (tmp & 0x1C) >> 2;
     cardinfo->SD_csd.MaxWrBlockLen = (tmp & 0x03) << 2;
 
     /*!< Byte 13 */
-    tmp = (uint8_t)((sdio_state.csd_table[3] & 0x00FF0000) >> 16);
+    tmp = (uint8_t)((csd_table[3] & 0x00FF0000) >> 16);
     cardinfo->SD_csd.MaxWrBlockLen |= (tmp & 0xC0) >> 6;
     cardinfo->SD_csd.WriteBlockPaPartial = (tmp & 0x20) >> 5;
     cardinfo->SD_csd.Reserved3 = 0;
     cardinfo->SD_csd.ContentProtectAppli = (tmp & 0x01);
 
     /*!< Byte 14 */
-    tmp = (uint8_t)((sdio_state.csd_table[3] & 0x0000FF00) >> 8);
+    tmp = (uint8_t)((csd_table[3] & 0x0000FF00) >> 8);
     cardinfo->SD_csd.FileFormatGrouop = (tmp & 0x80) >> 7;
     cardinfo->SD_csd.CopyFlag = (tmp & 0x40) >> 6;
     cardinfo->SD_csd.PermWrProtect = (tmp & 0x20) >> 5;
@@ -1078,76 +1081,79 @@ SD_Error SD_GetCardInfo(SD_CardInfo *cardinfo)
     cardinfo->SD_csd.ECC = (tmp & 0x03);
 
     /*!< Byte 15 */
-    tmp = (uint8_t)(sdio_state.csd_table[3] & 0x000000FF);
+    tmp = (uint8_t)(csd_table[3] & 0x000000FF);
     cardinfo->SD_csd.CSD_CRC = (tmp & 0xFE) >> 1;
     cardinfo->SD_csd.Reserved4 = 1;
 
 
     /*!< Byte 0 */
-    tmp = (uint8_t)((sdio_state.cid_table[0] & 0xFF000000) >> 24);
+    tmp = (uint8_t)((cid_table[0] & 0xFF000000) >> 24);
     cardinfo->SD_cid.ManufacturerID = tmp;
 
     /*!< Byte 1 */
-    tmp = (uint8_t)((sdio_state.cid_table[0] & 0x00FF0000) >> 16);
+    tmp = (uint8_t)((cid_table[0] & 0x00FF0000) >> 16);
     cardinfo->SD_cid.OEM_AppliID = tmp << 8;
 
     /*!< Byte 2 */
-    tmp = (uint8_t)((sdio_state.cid_table[0] & 0x000000FF00) >> 8);
+    tmp = (uint8_t)((cid_table[0] & 0x000000FF00) >> 8);
     cardinfo->SD_cid.OEM_AppliID |= tmp;
 
     /*!< Byte 3 */
-    tmp = (uint8_t)(sdio_state.cid_table[0] & 0x000000FF);
+    tmp = (uint8_t)(cid_table[0] & 0x000000FF);
     cardinfo->SD_cid.ProdName1 = tmp << 24;
 
     /*!< Byte 4 */
-    tmp = (uint8_t)((sdio_state.cid_table[1] & 0xFF000000) >> 24);
+    tmp = (uint8_t)((cid_table[1] & 0xFF000000) >> 24);
     cardinfo->SD_cid.ProdName1 |= tmp << 16;
 
     /*!< Byte 5 */
-    tmp = (uint8_t)((sdio_state.cid_table[1] & 0x00FF0000) >> 16);
+    tmp = (uint8_t)((cid_table[1] & 0x00FF0000) >> 16);
     cardinfo->SD_cid.ProdName1 |= tmp << 8;
 
     /*!< Byte 6 */
-    tmp = (uint8_t)((sdio_state.cid_table[1] & 0x0000FF00) >> 8);
+    tmp = (uint8_t)((cid_table[1] & 0x0000FF00) >> 8);
     cardinfo->SD_cid.ProdName1 |= tmp;
 
     /*!< Byte 7 */
-    tmp = (uint8_t)(sdio_state.cid_table[1] & 0x000000FF);
+    tmp = (uint8_t)(cid_table[1] & 0x000000FF);
     cardinfo->SD_cid.ProdName2 = tmp;
 
     /*!< Byte 8 */
-    tmp = (uint8_t)((sdio_state.cid_table[2] & 0xFF000000) >> 24);
+    tmp = (uint8_t)((cid_table[2] & 0xFF000000) >> 24);
     cardinfo->SD_cid.ProdRev = tmp;
 
     /*!< Byte 9 */
-    tmp = (uint8_t)((sdio_state.cid_table[2] & 0x00FF0000) >> 16);
+    tmp = (uint8_t)((cid_table[2] & 0x00FF0000) >> 16);
     cardinfo->SD_cid.ProdSN = tmp << 24;
 
     /*!< Byte 10 */
-    tmp = (uint8_t)((sdio_state.cid_table[2] & 0x0000FF00) >> 8);
+    tmp = (uint8_t)((cid_table[2] & 0x0000FF00) >> 8);
     cardinfo->SD_cid.ProdSN |= tmp << 16;
 
     /*!< Byte 11 */
-    tmp = (uint8_t)(sdio_state.cid_table[2] & 0x000000FF);
+    tmp = (uint8_t)(cid_table[2] & 0x000000FF);
     cardinfo->SD_cid.ProdSN |= tmp << 8;
 
     /*!< Byte 12 */
-    tmp = (uint8_t)((sdio_state.cid_table[3] & 0xFF000000) >> 24);
+    tmp = (uint8_t)((cid_table[3] & 0xFF000000) >> 24);
     cardinfo->SD_cid.ProdSN |= tmp;
 
     /*!< Byte 13 */
-    tmp = (uint8_t)((sdio_state.cid_table[3] & 0x00FF0000) >> 16);
+    tmp = (uint8_t)((cid_table[3] & 0x00FF0000) >> 16);
     cardinfo->SD_cid.Reserved1 |= (tmp & 0xF0) >> 4;
     cardinfo->SD_cid.ManufactDate = (tmp & 0x0F) << 8;
 
     /*!< Byte 14 */
-    tmp = (uint8_t)((sdio_state.cid_table[3] & 0x0000FF00) >> 8);
+    tmp = (uint8_t)((cid_table[3] & 0x0000FF00) >> 8);
     cardinfo->SD_cid.ManufactDate |= tmp;
 
     /*!< Byte 15 */
-    tmp = (uint8_t)(sdio_state.cid_table[3] & 0x000000FF);
+    tmp = (uint8_t)(cid_table[3] & 0x000000FF);
     cardinfo->SD_cid.CID_CRC = (tmp & 0xFE) >> 1;
     cardinfo->SD_cid.Reserved2 = 1;
+
+    // card command class 'erase' supported
+    sdio_state.ccc_erase = ((csd_table[1] >> 20) & SD_CCCC_ERASE) != 0;
 
     return sderr;
 }
@@ -1189,10 +1195,10 @@ SD_Error SD_SetBusOperation(uint32_t width, uint32_t clockdiv)
   * @param  addr: Address of the Card to be selected.
   * @retval SD_Error: SD Card Error code.
   */
-SD_Error SD_SelectDeselect(uint32_t addr)
+SD_Error SD_SelectDeselect()
 {
     SD_Error sderr = SD_OK;
-    sdio_send_cmd(addr, SD_CMD_SEL_DESEL_CARD, SDIO_Response_Short);
+    sdio_send_cmd(sdio_state.rca, SD_CMD_SEL_DESEL_CARD, SDIO_Response_Short);
     sderr = CmdResp1Error(SD_CMD_SEL_DESEL_CARD);
     log_edebug(&sdlog, "cmd%d: %s", SD_CMD_SEL_DESEL_CARD, sderrstr[sderr]);
     return sderr;
@@ -1367,7 +1373,7 @@ SD_Error SD_WriteMultiBlocks(const uint8_t *writebuff, uint32_t sector, uint32_t
         sector *= SD_SECTOR_SIZE;
 
     /*!< To improve performance */
-    sdio_send_cmd((uint32_t) (sdio_state.rca << 16), SD_CMD_APP_CMD, SDIO_Response_Short);
+    sdio_send_cmd(sdio_state.rca, SD_CMD_APP_CMD, SDIO_Response_Short);
     sderr = CmdResp1Error(SD_CMD_APP_CMD);
 
     if(sderr != SD_OK)
@@ -1482,7 +1488,7 @@ SD_Error SD_Erase(uint32_t startaddr, uint32_t endaddr)
     uint8_t cardstate = 0;
 
     /*!< Check if the card coomnd class supports erase command */
-    if(((sdio_state.csd_table[1] >> 20) & SD_CCCC_ERASE) == 0)
+    if(!sdio_state.ccc_erase)
     {
         sderr = SD_REQUEST_NOT_APPLICABLE;
         return sderr;
@@ -1859,7 +1865,7 @@ static SD_Error SDEnWideBus(FunctionalState NewState)
     if(NewState == ENABLE)
     {
         /*!< Send CMD55 APP_CMD with argument as card's RCA.*/
-        sdio_send_cmd((uint32_t) sdio_state.rca << 16, SD_CMD_APP_CMD, SDIO_Response_Short);
+        sdio_send_cmd(sdio_state.rca, SD_CMD_APP_CMD, SDIO_Response_Short);
         sderr = CmdResp1Error(SD_CMD_APP_CMD);
 
         if(sderr != SD_OK)
@@ -1873,7 +1879,7 @@ static SD_Error SDEnWideBus(FunctionalState NewState)
     else
     {
         /*!< Send CMD55 APP_CMD with argument as card's RCA.*/
-        sdio_send_cmd((uint32_t) sdio_state.rca << 16, SD_CMD_APP_CMD, SDIO_Response_Short);
+        sdio_send_cmd(sdio_state.rca, SD_CMD_APP_CMD, SDIO_Response_Short);
         sderr = CmdResp1Error(SD_CMD_APP_CMD);
 
         if(sderr != SD_OK)
@@ -1900,7 +1906,7 @@ static SD_Error IsCardProgramming(uint8_t *pstatus)
     __IO uint32_t respR1 = 0;
     __IO uint32_t status = 0;
 
-    sdio_send_cmd((uint32_t) sdio_state.rca << 16, SD_CMD_SEND_STATUS, SDIO_Response_Short);
+    sdio_send_cmd(sdio_state.rca, SD_CMD_SEND_STATUS, SDIO_Response_Short);
 
     status = SDIO->STA;
     while (!(status & (SDIO_FLAG_CCRCFAIL | SDIO_FLAG_CMDREND | SDIO_FLAG_CTIMEOUT))){

@@ -64,7 +64,6 @@ SD_Error SD_PowerON(void);
 SD_Error SD_PowerOFF(void);
 SD_Error SD_Init(SD_CardInfo* sdcardinfo);
 void SD_DeInit(void);
-SD_Error SD_GetCardInfo(SD_CardInfo *cardinfo);
 SD_Error SD_WaitIOOperation(sdio_wait_on_io_t io_flag);
 SD_Error SD_QueryStatus(SDCardState* cardstatus);
 SD_Error SD_ReadBlock(uint8_t *readbuff, uint32_t sector);
