@@ -41,8 +41,8 @@
  * - supports DMA mode only
  * - does use interrupts, but only to set flags used for polled checking at this time
  * - supports 512 byte blocksize only
- * - SDC V1, MMC card support untested
- * - SDC V2.x, SDHC tested
+ * - SDC MMC card support untested
+ * - SDC V1, V2.x, SDHC tested
  * - loosely emulates the original API by ST, with some modifications
  *
  * @file
@@ -297,7 +297,11 @@ uint8_t SD_WPDetect(void)
 #define SD_HALFFIFOBYTES                ((uint32_t)0x00000020)
 
 typedef struct {
+#if USE_THREAD_AWARE_SDCARD_DRIVER
+    QueueHandle_t dma_xfer_end;
+#else
     bool dma_xfer_end;
+#endif
     SD_Error sdio_xfer_error;
     bool sdio_xfer_multi_block;
     uint8_t card_type;
@@ -306,7 +310,11 @@ typedef struct {
 }sdio_state_t;
 
 volatile sdio_state_t sdio_state = {
+#if USE_THREAD_AWARE_SDCARD_DRIVER
+    .dma_xfer_end = NULL,
+#else
     .dma_xfer_end = false,
+#endif
     .sdio_xfer_error = SD_ACTIVE,
     .sdio_xfer_multi_block = false,
     .card_type = SDIO_UNKNOWN_CARD_TYPE,
@@ -420,6 +428,11 @@ SD_Error SD_Init(SD_CardInfo* sdcardinfo)
     SD_Error sderr;
 
     log_init(&sdlog, "sdio");
+
+#if USE_THREAD_AWARE_SDCARD_DRIVER
+    sdio_state.dma_xfer_end = xQueueCreate(2, 1);
+    assert_true(sdio_state.dma_xfer_end);
+#endif
 
     SD_NVIC_Configuration();
     SD_IO_Init();
@@ -562,11 +575,27 @@ static void SD_LowLevel_DMA_RxConfig(uint32_t *BufferDST, uint32_t BufferSize)
     DMA_Cmd(DMA2_Channel4, ENABLE);
 }
 
+// void SD_SDIO_DMA_IRQHANDLER(void)
+// {
+//     if(DMA_GetITStatus(DMA2_IT_TC4) == SET)
+//     {
+//         sdio_state.dma_xfer_end = true;
+//         DMA_ClearITPendingBit(DMA2_IT_TC4);
+//     }
+// }
+
 void SD_SDIO_DMA_IRQHANDLER(void)
 {
     if(DMA_GetITStatus(DMA2_IT_TC4) == SET)
     {
+#if USE_THREAD_AWARE_SDCARD_DRIVER
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        uint8_t dummy;
+        xQueueSendFromISR(sdio_state.dma_xfer_end, (const void*)&dummy, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+#else
         sdio_state.dma_xfer_end = true;
+#endif
         DMA_ClearITPendingBit(DMA2_IT_TC4);
     }
 }
@@ -707,15 +736,30 @@ void SD_LowLevel_DMA_RxConfig(uint32_t *BufferDST, uint32_t BufferSize)
     DMA_Cmd(SD_SDIO_DMA_STREAM, ENABLE);
 }
 
+//void SD_SDIO_DMA_IRQHANDLER(void)
+//{
+//    if(DMA2->LISR & SD_SDIO_DMA_FLAG_TCIF)
+//    {
+//        sdio_state.dma_xfer_end = true;
+//        DMA_ClearFlag(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_FLAG_TCIF|SD_SDIO_DMA_FLAG_FEIF);
+//    }
+//}
+
 void SD_SDIO_DMA_IRQHANDLER(void)
 {
     if(DMA2->LISR & SD_SDIO_DMA_FLAG_TCIF)
     {
+#if USE_THREAD_AWARE_SDCARD_DRIVER
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        uint8_t dummy;
+        xQueueSendFromISR(sdio_state.dma_xfer_end, (const void*)&dummy, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+#else
         sdio_state.dma_xfer_end = true;
+#endif
         DMA_ClearFlag(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_FLAG_TCIF|SD_SDIO_DMA_FLAG_FEIF);
     }
 }
-
 #endif
 
 /**
@@ -1413,8 +1457,17 @@ SD_Error SD_WriteMultiBlocks(const uint8_t *writebuff, uint32_t sector, uint32_t
 SD_Error SD_WaitIOOperation(sdio_wait_on_io_t io_flag)
 {
     SD_Error sderr = SD_OK;
-    uint32_t timeout;
 
+#if USE_THREAD_AWARE_SDCARD_DRIVER
+    (void)io_flag;
+    uint8_t dummy;
+    // wait for DMA end
+    xQueueReceive(sdio_state.dma_xfer_end, &dummy, 5000/portTICK_PERIOD_MS);
+    // wait for SDIO end
+    xQueueReceive(sdio_state.dma_xfer_end, &dummy, 5000/portTICK_PERIOD_MS);
+    sderr = sdio_state.sdio_xfer_error;
+#else
+    uint32_t timeout;
     timeout = gettime_ms() + SDIO_WAITTIMEOUT;
 
     while (!sdio_state.dma_xfer_end &&
@@ -1435,11 +1488,10 @@ SD_Error SD_WaitIOOperation(sdio_wait_on_io_t io_flag)
     if((gettime_ms() >= timeout) && (sderr == SD_OK))
         sderr = SD_DATA_TIMEOUT;
 
+    sderr = sdio_state.sdio_xfer_error;
+#endif
 
     SDIO_ClearFlag(SDIO_STATIC_FLAGS);
-
-    if(sdio_state.sdio_xfer_error != SD_OK)
-        return sdio_state.sdio_xfer_error;
 
     return sderr;
 }
@@ -1605,6 +1657,13 @@ void SDIO_IRQHandler(void)
     SDIO_ITConfig(SDIO_IT_DCRCFAIL | SDIO_IT_DTIMEOUT | SDIO_IT_DATAEND |
                 SDIO_IT_TXFIFOHE | SDIO_IT_RXFIFOHF | SDIO_IT_TXUNDERR |
                 SDIO_IT_RXOVERR | SDIO_IT_STBITERR, DISABLE);
+
+#if USE_THREAD_AWARE_SDCARD_DRIVER
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    uint8_t dummy;
+    xQueueSendFromISR(sdio_state.dma_xfer_end, (const void*)&dummy, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+#endif
 }
 
 /**
