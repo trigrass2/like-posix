@@ -84,10 +84,10 @@ void i2s_stream_init()
 
     init_stream(&i2s_tx_stream, "i2s_tx_stream", I2S_STREAM_DEFAULT_SAMPLERATE,
             I2S_STREAM_MAX_CONNECTIONS, i2s_tx_stream_buffer, i2s_tx_stream_connections,
-            I2S_STREAM_BUFFER_LENGTH, I2S_STREAM_CHANNEL_COUNT, 3, 128, I2S_FULL_SCALE_AMPLITUDE_MV, resolution);
+            I2S_STREAM_BUFFER_LENGTH, I2S_STREAM_CHANNEL_COUNT, 3, 128, I2S_DAC_FULL_SCALE_AMPLITUDE_MV, resolution);
     init_stream(&i2s_rx_stream, "i2s_rx_stream", I2S_STREAM_DEFAULT_SAMPLERATE,
             I2S_STREAM_MAX_CONNECTIONS, i2s_rx_stream_buffer, i2s_rx_stream_connections,
-            I2S_STREAM_BUFFER_LENGTH, I2S_STREAM_CHANNEL_COUNT, 3, 128, I2S_FULL_SCALE_AMPLITUDE_MV, resolution);
+            I2S_STREAM_BUFFER_LENGTH, I2S_STREAM_CHANNEL_COUNT, 3, 128, I2S_ADC_FULL_SCALE_AMPLITUDE_MV, resolution);
 
     init_local_i2s_io();
     init_local_i2s();
