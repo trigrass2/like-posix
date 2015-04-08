@@ -52,7 +52,7 @@ endif
 ifeq ($(BOARD),  rrcv2)
 HSE_VALUE = 25000000
 FAMILY = STM32F4
-DEVICE = stm32f407ve
+DEVICE = stm32f407vg
 ifeq ($(USE_DRIVER_LWIP_NET), 1)
 USE_DRIVER_MII_RMII_PHY = 1
 endif
