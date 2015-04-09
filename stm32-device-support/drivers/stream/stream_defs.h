@@ -62,7 +62,9 @@ typedef struct {
     stream_connection_t** connections;      ///< private to stream driver, register of service interfaces.
     uint32_t samplerate;                    ///< private to stream driver, holds a cached value of the last set samplerate.
     logger_t log;                           ///< private to stream driver, logger.
+#if USE_FREERTOS
     SemaphoreHandle_t ready;                ///< private to stream driver, semaphore used to unblock connection(s) on data ready.
+#endif
     uint16_t maxconns;                      ///< the number of connections possible on this stream
     uint8_t channels;                       ///< the number of channels supported by this stream
     uint16_t length;                        ///< stream buffer length, in samples

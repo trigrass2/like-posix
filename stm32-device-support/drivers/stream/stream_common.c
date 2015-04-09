@@ -38,9 +38,9 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
+static void stream_processing_task(stream_t* stream);
 #endif
 
-static void stream_processing_task(stream_t* stream);
 
 /**
  * this file contains common stream control code, the funtions are
@@ -63,7 +63,6 @@ void init_stream(stream_t* stream, const char* name, uint32_t samplerate,
     stream->channels = channel_count;
     stream->maxconns = maxconns;
     stream->length = buffer_length;
-    stream->ready = NULL;
     stream->full_scale_amplitude = full_scale_amplitude;
     stream->resolution = resolution;
 
@@ -79,6 +78,9 @@ void init_stream(stream_t* stream, const char* name, uint32_t samplerate,
             stream,
             tskIDLE_PRIORITY + task_prio,
             NULL) == pdPASS);
+#else
+    (void)task_prio;
+    (void)task_stack;
 #endif
 }
 
@@ -202,6 +204,7 @@ void stream_disconnect_service(stream_connection_t* interface, stream_t* stream)
     }
 }
 
+#if USE_FREERTOS
 /**
  * handler for stream processing in main loop.
  */
@@ -231,6 +234,7 @@ void stream_processing_task(stream_t* stream)
         }
     }
 }
+#endif
 
 void stream_connection_enable(stream_connection_t* interface, bool enable)
 {

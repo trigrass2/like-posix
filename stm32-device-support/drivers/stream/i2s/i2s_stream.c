@@ -115,47 +115,59 @@ stream_t* get_i2s_rx_stream()
 
 void I2S_STREAM_TX_INTERRUPT_HANDLER()
 {
-    static BaseType_t xHigherPriorityTaskWoken;
+#if USE_FREERTOS
+    static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     xHigherPriorityTaskWoken = pdFALSE;
+#endif
 
     if(DMA_GetITStatus(I2S_STREAM_TX_DMA_STREAM, I2S_STREAM_TX_DMA_TC) == SET)
     {
         // transfer complete
         i2s_tx_stream.buffer = i2s_tx_stream._buffer + ((i2s_tx_stream.length / 2) * i2s_tx_stream.channels);
-        xSemaphoreGiveFromISR(i2s_tx_stream.ready, &xHigherPriorityTaskWoken);
         DMA_ClearITPendingBit(I2S_STREAM_TX_DMA_STREAM, I2S_STREAM_TX_DMA_TC);
+#if USE_FREERTOS
+        xSemaphoreGiveFromISR(i2s_tx_stream.ready, &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+#endif
     }
     if(DMA_GetITStatus(I2S_STREAM_TX_DMA_STREAM, I2S_STREAM_TX_DMA_HT) == SET)
     {
         // half transfer complete
         i2s_tx_stream.buffer = i2s_tx_stream._buffer;
-        xSemaphoreGiveFromISR(i2s_tx_stream.ready, &xHigherPriorityTaskWoken);
         DMA_ClearITPendingBit(I2S_STREAM_TX_DMA_STREAM, I2S_STREAM_TX_DMA_HT);
+#if USE_FREERTOS
+        xSemaphoreGiveFromISR(i2s_tx_stream.ready, &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+#endif
     }
 }
 
 void I2S_STREAM_RX_INTERRUPT_HANDLER()
 {
+#if USE_FREERTOS
     static BaseType_t xHigherPriorityTaskWoken;
     xHigherPriorityTaskWoken = pdFALSE;
+#endif
 
     if(DMA_GetITStatus(I2S_STREAM_RX_DMA_STREAM, I2S_STREAM_RX_DMA_TC) == SET)
     {
         // transfer complete
         i2s_rx_stream.buffer = i2s_rx_stream._buffer + ((i2s_rx_stream.length / 2) * i2s_rx_stream.channels);
-        xSemaphoreGiveFromISR(i2s_rx_stream.ready, &xHigherPriorityTaskWoken);
         DMA_ClearITPendingBit(I2S_STREAM_RX_DMA_STREAM, I2S_STREAM_RX_DMA_TC);
+#if USE_FREERTOS
+        xSemaphoreGiveFromISR(i2s_rx_stream.ready, &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+#endif
     }
     if(DMA_GetITStatus(I2S_STREAM_RX_DMA_STREAM, I2S_STREAM_RX_DMA_HT) == SET)
     {
         // half transfer complete
         i2s_rx_stream.buffer = i2s_rx_stream._buffer;
-        xSemaphoreGiveFromISR(i2s_rx_stream.ready, &xHigherPriorityTaskWoken);
         DMA_ClearITPendingBit(I2S_STREAM_RX_DMA_STREAM, I2S_STREAM_RX_DMA_HT);
+#if USE_FREERTOS
+        xSemaphoreGiveFromISR(i2s_rx_stream.ready, &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+#endif
     }
 }
 
