@@ -67,7 +67,7 @@ typedef struct _shell_instance_t{
 static void prompt(shell_instance_t* sh);
 static void historic_prompt(shell_instance_t* sh);
 static void clear_prompt(shell_instance_t* sh);
-static void put_prompt(shell_instance_t* sh, const char* promptstr, const char* argstr, bool newline);
+static void put_prompt(shell_instance_t* sh, const char* argstr, bool newline);
 static void parse_input(shell_instance_t* sh, current_command_t* cmd);
 static void shell_builtins(shell_instance_t* sh, int code, shell_cmd_t* cmd);
 static void shell_instance_thread(sock_conn_t* conn);
@@ -206,10 +206,10 @@ void prompt(shell_instance_t* sh)
 
 								sh->input_buffer[sh->input_index] = ' ';
 								sh->input_buffer[sh->input_index+1] = '\0';
-								put_prompt(sh, SHELL_PROMPT, sh->input_buffer, false);
+								put_prompt(sh, sh->input_buffer, false);
 								// re print prompt
 								sh->input_buffer[sh->input_index] = '\0';
-								put_prompt(sh, SHELL_PROMPT, sh->input_buffer, false);
+								put_prompt(sh, sh->input_buffer, false);
 
 								// put cursor back where it should be
 								for(i = sh->input_index; i > sh->cursor_index; i--)
@@ -287,7 +287,7 @@ void prompt(shell_instance_t* sh)
 
 				sh->input_index = 0;
 				sh->cursor_index = 0;
-				put_prompt(sh, SHELL_PROMPT, NULL, true);
+				put_prompt(sh, NULL, true);
 			}
 			else if(data == 0x7F) // BACKSPACE
 			{
@@ -301,10 +301,10 @@ void prompt(shell_instance_t* sh)
 
 					sh->input_buffer[sh->input_index] = ' ';
 					sh->input_buffer[sh->input_index+1] = '\0';
-					put_prompt(sh, SHELL_PROMPT, sh->input_buffer, false);
+					put_prompt(sh, sh->input_buffer, false);
 					// re print prompt
 					sh->input_buffer[sh->input_index] = '\0';
-					put_prompt(sh, SHELL_PROMPT, sh->input_buffer, false);
+					put_prompt(sh, sh->input_buffer, false);
 
 					// put cursor back where it should be
 					for(i = sh->input_index; i > sh->cursor_index; i--)
@@ -341,7 +341,7 @@ void prompt(shell_instance_t* sh)
 
 					if(sh->input_index == 0)
 					{
-						put_prompt(sh, SHELL_PROMPT, NULL, true);
+						put_prompt(sh, NULL, true);
 					}
 
 					send(sh->fdes, &sh->input_buffer[sh->cursor_index-1], strlen((const char*)&sh->input_buffer[sh->cursor_index-1]), 0);
@@ -369,7 +369,7 @@ void historic_prompt(shell_instance_t* sh)
 			clear_prompt(sh);
 			strncpy((char*)sh->input_buffer, (const char*)sh->history[sh->history_index], sizeof(sh->input_buffer)-1);
 			sh->input_index = sh->cursor_index = strlen((const char*)sh->input_buffer);
-			put_prompt(sh, SHELL_PROMPT, sh->input_buffer, false);
+			put_prompt(sh, sh->input_buffer, false);
 		}
 	}
 	else
@@ -377,7 +377,7 @@ void historic_prompt(shell_instance_t* sh)
 		clear_prompt(sh);
 		sh->input_index = sh->cursor_index = 0;
 		sh->input_buffer[sh->input_index] = '\0';
-		put_prompt(sh, SHELL_PROMPT, NULL, false);
+		put_prompt(sh, NULL, false);
 	}
 }
 
@@ -393,23 +393,29 @@ void clear_prompt(shell_instance_t* sh)
 		sh->input_index++;
 	}
 	sh->input_index = 0;
-	put_prompt(sh, SHELL_PROMPT, sh->input_buffer, false);
+	put_prompt(sh, sh->input_buffer, false);
 }
 
 /**
  * prints the prompt string.
  */
-void put_prompt(shell_instance_t* sh, const char* promptstr, const char* argstr, bool newline)
+void put_prompt(shell_instance_t* sh, const char* argstr, bool newline)
 {
+	int len = strlen(sh->cwd);
+
 	send(sh->fdes, "\r", 1, 0);
 	if(newline)
 		send(sh->fdes, "\n", 1, 0);
 
-	send(sh->fdes, "0:", 2, 0);
-	send(sh->fdes, sh->cwd, strlen(sh->cwd), 0);
+	if(len > 0)
+	{
+		send(sh->fdes, SHELL_DRIVE, sizeof(SHELL_DRIVE)-1, 0);
+		send(sh->fdes, sh->cwd, len, 0);
+		send(sh->fdes, SHELL_PROMPT, sizeof(SHELL_PROMPT)-1, 0);
+	}
+	else
+		send(sh->fdes, SHELL_ROOT_PROMPT, sizeof(SHELL_ROOT_PROMPT)-1, 0);
 
-	if(promptstr)
-		send(sh->fdes, promptstr, strlen((const char*)promptstr), 0);
 	if(argstr)
 		send(sh->fdes, argstr, strlen((const char*)argstr), 0);
 }

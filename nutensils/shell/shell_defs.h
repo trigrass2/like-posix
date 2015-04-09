@@ -36,7 +36,10 @@
 /**
  * SHELL_NEWLINE_PROMPT is the string that is printed a prompt.
  */
+#define SHELL_DRIVE             "0:"
+#define SHELL_ROOT              "/"
 #define SHELL_PROMPT            "# "
+#define SHELL_ROOT_PROMPT       SHELL_DRIVE SHELL_ROOT SHELL_PROMPT
 
 #define SHELL_UPARROW			"\x1B\x5B\x41"
 #define SHELL_DOWNARROW			"\x1B\x5B\x42"
