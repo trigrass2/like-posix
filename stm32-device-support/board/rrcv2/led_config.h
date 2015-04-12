@@ -40,6 +40,7 @@
 #define LED2 	1      /* Green */
 #define LED3    2      /* Red */
 
+#define DISK_ACTIVITY_LED LED3
 #define ERROR_LED       LED3
 #define BOOT_LED        LED2
 #define ACTIVITY_LED    LED1

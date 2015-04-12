@@ -70,6 +70,16 @@
 #error sdcard driver building in an invalid mode...
 #endif
 
+#if USE_DRIVER_LEDS
+#include "leds.h"
+#pragma message "SDCARD driver building with activity LED support"
+#ifndef DISK_ACTIVITY_LED
+#pragma message "warning: DISK_ACTIVITY_LED not defined for this board - set in led_config.h"
+#endif
+#else
+#pragma message "SDCARD driver building without activity LED support"
+#endif
+
 #if USE_LOGGER
 const char* sderrstr[] = {
      "null code error",
@@ -1286,6 +1296,9 @@ SD_Error SD_ReadBlock(uint8_t *readbuff, uint32_t sector)
     if(sderr != SD_OK)
         return sderr;
 
+#ifdef DISK_ACTIVITY_LED
+    set_led(DISK_ACTIVITY_LED);
+#endif
     SDIO_ITConfig(SDIO_IT_DCRCFAIL | SDIO_IT_DTIMEOUT | SDIO_IT_DATAEND | SDIO_IT_RXOVERR | SDIO_IT_STBITERR, ENABLE);
     SDIO_DMACmd(ENABLE);
     SD_LowLevel_DMA_RxConfig((uint32_t *)readbuff, SD_SECTOR_SIZE);
@@ -1334,6 +1347,9 @@ SD_Error SD_ReadMultiBlocks(uint8_t *readbuff, uint32_t sector, uint32_t NumberO
     if(sderr != SD_OK)
         return sderr;
 
+#ifdef DISK_ACTIVITY_LED
+    set_led(DISK_ACTIVITY_LED);
+#endif
     SDIO_ITConfig(SDIO_IT_DCRCFAIL | SDIO_IT_DTIMEOUT | SDIO_IT_DATAEND | SDIO_IT_RXOVERR | SDIO_IT_STBITERR, ENABLE);
     SDIO_DMACmd(ENABLE);
     SD_LowLevel_DMA_RxConfig((uint32_t *)readbuff, length);
@@ -1374,6 +1390,10 @@ SD_Error SD_WriteBlock(const uint8_t *writebuff, uint32_t sector)
 
     if(sderr != SD_OK)
         return sderr;
+
+#ifdef DISK_ACTIVITY_LED
+    set_led(DISK_ACTIVITY_LED);
+#endif
 
     sdio_init_data(SD_SECTOR_SIZE, SDIO_TransferDir_ToCard);
 
@@ -1437,6 +1457,10 @@ SD_Error SD_WriteMultiBlocks(const uint8_t *writebuff, uint32_t sector, uint32_t
     if(SD_OK != sderr)
         return sderr;
 
+#ifdef DISK_ACTIVITY_LED
+    set_led(DISK_ACTIVITY_LED);
+#endif
+
     sdio_init_data(length, SDIO_TransferDir_ToCard);
 
     SDIO_ITConfig(SDIO_IT_DCRCFAIL | SDIO_IT_DTIMEOUT | SDIO_IT_DATAEND | SDIO_IT_RXOVERR | SDIO_IT_STBITERR, ENABLE);
@@ -1492,6 +1516,10 @@ SD_Error SD_WaitIOOperation(sdio_wait_on_io_t io_flag)
 #endif
 
     SDIO_ClearFlag(SDIO_STATIC_FLAGS);
+
+#ifdef DISK_ACTIVITY_LED
+    clear_led(DISK_ACTIVITY_LED);
+#endif
 
     return sderr;
 }
