@@ -265,7 +265,7 @@ int sh_cp(int fdes, const char** args, unsigned char nargs)
     FILE* f1;
     FILE* f2;
     const char* path = arg_by_index(0, args, nargs);
-    const char* newpath = arg_by_index(0, args, nargs);
+    const char* newpath = arg_by_index(1, args, nargs);
     char buffer[64];
     int length;
 
