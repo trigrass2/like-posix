@@ -40,7 +40,7 @@
 #define I2S_USE_DATA_STD        I2S_Standard_LSB
 #define I2S_USE_CPOL            I2S_CPOL_Low
 
-#define I2S_ADC_FULL_SCALE_AMPLITUDE_MV  4000
+#define I2S_ADC_FULL_SCALE_AMPLITUDE_MV  4500
 #define I2S_DAC_FULL_SCALE_AMPLITUDE_MV  2000
 // nuber of channels is related to data format and standard selected, based on the codec device used.
 #define I2S_STREAM_CHANNEL_COUNT 2
