@@ -148,6 +148,8 @@ typedef struct {
 	int flags;				///< the the mode under which the device was opened
 	FIL file;				///< regular file, or device interface file
 	unsigned int size;		///< size, used only for queues
+	SemaphoreHandle_t lock; ///< file table lock, mutex
+	int rwcount;			///< read/write counter
 }filtab_entry_t;
 
 /**
@@ -170,6 +172,9 @@ typedef struct {
 
 #define lock_filtab()                   1//(xSemaphoreTake(filtab.lock, 2000/portTICK_RATE_MS) == pdTRUE)
 #define unlock_filtab()                 //xSemaphoreGive(filtab.lock)
+
+#define lock_file(file)                   (xSemaphoreTake(file->lock, 2000/portTICK_RATE_MS) == pdTRUE)
+#define unlock_file(file)                 xSemaphoreGive(file->lock)
 
 #undef errno
 extern int errno;
@@ -208,17 +213,50 @@ void init_likeposix()
  * @retval 	the file table entry for a given file descriptor,
  * 			or NULL if the file descriptor was not valid, or the file was not open.
  */
-inline filtab_entry_t* __get_entry(int file)
+inline filtab_entry_t* __get_entry(int file, bool rw)
 {
+	filtab_entry_t* fte;
 	if(!filtab.count || (filtab.count > FILE_TABLE_LENGTH))
 		return NULL;
 
 	file -= FILE_TABLE_OFFSET;
 	if(file >= 0)
 	{
-		return  filtab.tab[file];
+		fte = filtab.tab[file];
+		if(fte != NULL)
+		{
+			if(rw)
+			{
+				if(fte->rwcount || lock_file(fte))
+				{
+					fte->rwcount++;
+					return  fte;
+				}
+			}
+			else
+			{
+				if(!fte->rwcount && lock_file(fte))
+				{
+					return  fte;
+				}
+			}
+		}
 	}
 	return NULL;
+}
+
+/**
+ * @param	file is a file pointer to an open device file.
+ * @retval 	the file table entry for a given file descriptor,
+ * 			or NULL if the file descriptor was not valid, or the file was not open.
+ */
+inline void __return_entry(filtab_entry_t* fte)
+{
+	if(fte->rwcount)
+		fte->rwcount--;
+
+	if(!fte->rwcount)
+		unlock_file(fte);
 }
 
 /**
@@ -246,8 +284,16 @@ inline void __delete_filtab_item(filtab_entry_t* fte)
         int fd = (int)fte->device;
         if(fd != -1)
             lwip_close(fd);
+		if(fte->lock)
+		{
+			fte->rwlock = xSemaphoreCreateCounting();
+		}
     }
 #endif
+
+    if(fte->lock != NULL)
+    	 vSemaphoreDelete(fte->lock);
+
 	// #3 delete file table node
 	vPortFree(fte);
 }
@@ -291,6 +337,7 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 		fte->device = NULL;
 		fte->flags = flags+1;
 		fte->size = length;
+		fte->lock = NULL;
 
 		/**********************************
 		 * create file
@@ -380,6 +427,11 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 		}
 
 		if(file == 0)
+		{
+			fte->lock = xSemaphoreCreateMutex();
+		}
+
+		if(fte->lock)
 		{
 			// on success ...
 			*fdes = fte;
@@ -590,18 +642,23 @@ int _open(const char *name, int flags, int mode)
                 __delete_filtab_item(fte);
             else
             {
-                // actions to do if everything went right...
+            	fte = __get_entry(file, false);
+            	if(fte)
+            	{
+					// actions to do if everything went right...
 
-                if((fte->mode == S_IFIFO) && fte->device)
-                {
-                    // call device open
-                    if(fte->device->open)
-                        fte->device->open(fte->device);
-                    // enable reading
-                    if((fte->flags & FREAD) && fte->device->read_enable)
-                        fte->device->read_enable(fte->device);
-                    // writing is enabled in _write()...
-                }
+					if((fte->mode == S_IFIFO) && fte->device)
+					{
+						// call device open
+						if(fte->device->open)
+							fte->device->open(fte->device);
+						// enable reading
+						if((fte->flags & FREAD) && fte->device->read_enable)
+							fte->device->read_enable(fte->device);
+						// writing is enabled in _write()...
+					}
+					__return_entry(fte);
+            	}
             }
         }
         unlock_filtab();
@@ -621,7 +678,7 @@ int _close(int file)
 	int res = EOF;
     if(lock_filtab())
     {
-        filtab_entry_t* fte = __get_entry(file);
+        filtab_entry_t* fte = __get_entry(file, false);
         if(fte)
         {
             // disable device IO first
@@ -632,6 +689,7 @@ int _close(int file)
             }
             // then remove the file table entry
             res = __remove_entry(file);
+            __return_entry(fte);
             // then delete all the file structures
             __delete_filtab_item(fte);
         }
@@ -661,35 +719,39 @@ int _write(int file, char *buffer, unsigned int count)
 	}
 	else if(lock_filtab())
 	{
-		filtab_entry_t* fte = __get_entry(file);
+		filtab_entry_t* fte = __get_entry(file, true);
 
-		if(fte && (fte->flags & FWRITE))
+		if(fte)
 		{
-			if(fte->mode == S_IFREG)
+			if(fte->flags & FWRITE)
 			{
-				if(f_write(&fte->file, (void*)buffer, (UINT)count, (UINT*)&n) != FR_OK)
-				    n = EOF;
-			}
-			else if((fte->mode == S_IFIFO) && fte->device)
-			{
-                timeout = fte->device->timeout;
-
-				for(n = 0; n < (int)count; n++)
+				if(fte->mode == S_IFREG)
 				{
-					if(xQueueSend(fte->device->pipe.write, buffer++, timeout) != pdTRUE)
-						break;
-                    timeout = 0;
+					if(f_write(&fte->file, (void*)buffer, (UINT)count, (UINT*)&n) != FR_OK)
+						n = EOF;
 				}
-				// enable the physical device to write
-				if(fte->device->write_enable)
-					fte->device->write_enable(fte->device);
+				else if((fte->mode == S_IFIFO) && fte->device)
+				{
+					timeout = fte->device->timeout;
+
+					for(n = 0; n < (int)count; n++)
+					{
+						if(xQueueSend(fte->device->pipe.write, buffer++, timeout) != pdTRUE)
+							break;
+						timeout = 0;
+					}
+					// enable the physical device to write
+					if(fte->device->write_enable)
+						fte->device->write_enable(fte->device);
+				}
+	#if ENABLE_LIKEPOSIX_SOCKETS
+				else if(fte->mode == S_IFSOCK)
+				{
+					n = lwip_write((int)fte->device, buffer, count);
+				}
+	#endif
 			}
-#if ENABLE_LIKEPOSIX_SOCKETS
-            else if(fte->mode == S_IFSOCK)
-            {
-                n = lwip_write((int)fte->device, buffer, count);
-            }
-#endif
+            __return_entry(fte);
 		}
 		unlock_filtab();
 	}
@@ -718,31 +780,35 @@ int _read(int file, char *buffer, int count)
 	}
 	else if(lock_filtab())
 	{
-		filtab_entry_t* fte = __get_entry(file);
+		filtab_entry_t* fte = __get_entry(file, true);
 
-		if(fte && (fte->flags & FREAD))
+		if(fte)
 		{
-			if(fte->mode == S_IFREG)
+			if(fte->flags & FREAD)
 			{
-				f_read(&fte->file, (void*)buffer, (UINT)count, (UINT*)&n);
-			}
-			else if((fte->mode == S_IFIFO) && fte->device)
-			{
-			    timeout = fte->device->timeout;
-
-				for(n = 0; n < count; n++)
+				if(fte->mode == S_IFREG)
 				{
-					if(xQueueReceive(fte->device->pipe.read, buffer++, timeout) != pdTRUE)
-						break;
-					timeout = 0;
+					f_read(&fte->file, (void*)buffer, (UINT)count, (UINT*)&n);
 				}
+				else if((fte->mode == S_IFIFO) && fte->device)
+				{
+					timeout = fte->device->timeout;
+
+					for(n = 0; n < count; n++)
+					{
+						if(xQueueReceive(fte->device->pipe.read, buffer++, timeout) != pdTRUE)
+							break;
+						timeout = 0;
+					}
+				}
+	#if ENABLE_LIKEPOSIX_SOCKETS
+				else if(fte->mode == S_IFSOCK)
+				{
+					n = lwip_read((int)fte->device, buffer, count);
+				}
+	#endif
 			}
-#if ENABLE_LIKEPOSIX_SOCKETS
-            else if(fte->mode == S_IFSOCK)
-            {
-                n = lwip_read((int)fte->device, buffer, count);
-            }
-#endif
+			__return_entry(fte);
 		}
         unlock_filtab();
 	}
@@ -764,7 +830,7 @@ int fsync(int file)
 	}
 	else if(lock_filtab())
 	{
-		filtab_entry_t* fte = __get_entry(file);
+		filtab_entry_t* fte = __get_entry(file, true);
 
 		if(fte)
 		{
@@ -773,6 +839,7 @@ int fsync(int file)
 				f_sync(&fte->file);
 				res = 0;
 			}
+			__return_entry(fte);
 		}
         unlock_filtab();
 	}
@@ -907,7 +974,7 @@ int _fstat(int file, struct stat *st)
 	}
 	else if(lock_filtab())
 	{
-		filtab_entry_t* fte = __get_entry(file);
+		filtab_entry_t* fte = __get_entry(file, true);
 
 		if(fte)
 		{
@@ -926,6 +993,7 @@ int _fstat(int file, struct stat *st)
 				st->st_mode = fte->mode;
 
 			res = 0;
+			__return_entry(fte);
 		}
 		unlock_filtab();
 	}
@@ -939,12 +1007,13 @@ long int _ftell(int file)
 
 	if(lock_filtab())
 	{
-        filtab_entry_t* fte = __get_entry(file);
+        filtab_entry_t* fte = __get_entry(file, true);
 
         if(fte)
         {
             if(fte->mode == S_IFREG)
                 res = f_tell(&fte->file);
+            __return_entry(fte);
         }
         unlock_filtab();
 	}
@@ -988,9 +1057,13 @@ int _isatty(int file)
 		res = 1;
 	else if(lock_filtab())
 	{
-		filtab_entry_t* fte = __get_entry(file);
-		if(fte && (fte->mode == S_IFIFO))
-			res = 1;
+		filtab_entry_t* fte = __get_entry(file, true);
+		if(fte)
+		{
+			if(fte->mode == S_IFIFO)
+				res = 1;
+			__return_entry(fte);
+		}
 
 		unlock_filtab();
 	}
@@ -1009,7 +1082,7 @@ int _lseek(int file, int offset, int whence)
 	int res = EOF;
     if(lock_filtab())
     {
-        filtab_entry_t* fte = __get_entry(file);
+        filtab_entry_t* fte = __get_entry(file, true);
 
         if(fte)
         {
@@ -1023,6 +1096,7 @@ int _lseek(int file, int offset, int whence)
                 if(f_lseek(&fte->file, offset) == FR_OK)
                     res = 0;
             }
+            __return_entry(fte);
         }
         unlock_filtab();
     }
@@ -1180,13 +1254,17 @@ int tcgetattr(int fildes, struct termios *termios_p)
     }
     else if(lock_filtab())
     {
-        filtab_entry_t* fte = __get_entry(fildes);
+        filtab_entry_t* fte = __get_entry(fildes, true);
 
-        if(fte->device && fte->device->ioctl)
+        if(fte)
         {
-            fte->device->termios = termios_p;
-            ret = fte->device->ioctl(fte->device);
-            fte->device->termios = NULL;
+			if(fte->device && fte->device->ioctl)
+			{
+				fte->device->termios = termios_p;
+				ret = fte->device->ioctl(fte->device);
+				fte->device->termios = NULL;
+			}
+			__return_entry(fte);
         }
         unlock_filtab();
     }
@@ -1210,17 +1288,20 @@ int tcsetattr(int fildes, int when, const struct termios *termios_p)
     }
     else if(lock_filtab())
     {
-        filtab_entry_t* fte = __get_entry(fildes);
-
-        if(fte->device && fte->device->ioctl)
+        filtab_entry_t* fte = __get_entry(fildes, true);
+        if(fte)
         {
-            fte->device->termios = (struct termios *)termios_p;
-            if(when == TCSADRAIN)
-                tcdrain(fildes);
-            else if(when == TCSAFLUSH)
-                tcflush(fildes, TCIOFLUSH);
-            ret = fte->device->ioctl(fte->device);
-            fte->device->termios = NULL;
+			if(fte->device && fte->device->ioctl)
+			{
+				fte->device->termios = (struct termios *)termios_p;
+				if(when == TCSADRAIN)
+					tcdrain(fildes);
+				else if(when == TCSAFLUSH)
+					tcflush(fildes, TCIOFLUSH);
+				ret = fte->device->ioctl(fte->device);
+				fte->device->termios = NULL;
+			}
+			__return_entry(fte);
         }
         unlock_filtab();
     }
@@ -1263,7 +1344,7 @@ int tcdrain(int file)
     }
     else if(lock_filtab())
     {
-        filtab_entry_t* fte = __get_entry(file);
+        filtab_entry_t* fte = __get_entry(file, true);
 
         if(fte)
         {
@@ -1276,6 +1357,7 @@ int tcdrain(int file)
                 if(get_hw_time_ms() < timeout)
                     res = 0;
             }
+            __return_entry(fte);
         }
         unlock_filtab();
     }
@@ -1300,7 +1382,7 @@ int tcflow(int file, int flags)
     }
     else if(lock_filtab())
     {
-        filtab_entry_t* fte = __get_entry(file);
+        filtab_entry_t* fte = __get_entry(file, true);
 
         if(fte)
         {
@@ -1309,6 +1391,7 @@ int tcflow(int file, int flags)
                 (void)flags;
                 res = EOF;
             }
+            __return_entry(fte);
         }
         unlock_filtab();
     }
@@ -1329,7 +1412,7 @@ int tcflush(int file, int flags)
     }
     else if(lock_filtab())
     {
-        filtab_entry_t* fte = __get_entry(file);
+        filtab_entry_t* fte = __get_entry(file, true);
 
         if(fte)
         {
@@ -1354,6 +1437,7 @@ int tcflush(int file, int flags)
                     res = 0;
                 }
             }
+            __return_entry(fte);
         }
         unlock_filtab();
     }
@@ -1367,9 +1451,13 @@ int tcflush(int file, int flags)
  */
 #define SOCKET_WRAPPER(lwip_function, sockfd, ...)                  \
     int res = EOF; if(lock_filtab()){                               \
-    filtab_entry_t* fte = __get_entry(sockfd);                      \
-    if(fte && (fte->mode == S_IFSOCK))                               \
-        res = lwip_function((int)fte->device, __VA_ARGS__);         \
+    filtab_entry_t* fte = __get_entry(sockfd, true);               \
+    if(fte) {														\
+    	if(fte->mode == S_IFSOCK) {                                 \
+    		res = lwip_function((int)fte->device, __VA_ARGS__);     \
+    	}															\
+		__return_entry(fte);										\
+    }																\
     unlock_filtab();                                                \
 } return res;
 
@@ -1433,10 +1521,14 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *length_ptr)
 
 //    if(lock_filtab())
 //    {
-        filtab_entry_t* fte = __get_entry(sockfd);
+        filtab_entry_t* fte = __get_entry(sockfd, true);
         sockfd = EOF;
-        if(fte && (fte->mode == S_IFSOCK))
-            sockfd = lwip_accept((int)fte->device, addr, length_ptr);
+        if(fte)
+        {
+        	if(fte->mode == S_IFSOCK)
+        		sockfd = lwip_accept((int)fte->device, addr, length_ptr);
+        	__return_entry(fte);
+        }
 //        unlock_filtab();
 //    }
 
