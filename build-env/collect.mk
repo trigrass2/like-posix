@@ -78,6 +78,7 @@ CFLAGS += -I ./
 CFLAGS += -ffunction-sections
 CFLAGS += -fdata-sections
 CFLAGS += -fno-builtin
+CFLAGS += -fverbose-asm
 #CFLAGS += -flto
 CFLAGS += -Werror
 CFLAGS += -Wall
