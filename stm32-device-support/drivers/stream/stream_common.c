@@ -227,9 +227,11 @@ void stream_processing_task(stream_t* stream)
         {
             for(connection = 0; connection < stream->maxconns; connection++)
             {
+            	//GPIO_SetBits(GPIOB, GPIO_Pin_14);
                 interface = stream->connections[connection];
                 if(interface && interface->enabled && (interface->stream_channel == channel))
                     interface->process(stream->buffer + channel, stream->length/2, stream->channels, interface);
+            	//GPIO_ResetBits(GPIOB, GPIO_Pin_14);
             }
         }
     }
@@ -267,4 +269,14 @@ uint32_t stream_get_resolution(stream_connection_t* interface)
 uint32_t stream_get_full_scale_amplitude_mv(stream_connection_t* interface)
 {
     return interface->stream->full_scale_amplitude;
+}
+
+uint32_t stream_get_length(stream_connection_t* interface)
+{
+	return interface->stream->length / 2;
+}
+
+uint32_t stream_get_channel_count(stream_connection_t* interface)
+{
+	return interface->stream->channels;
 }

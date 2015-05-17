@@ -48,7 +48,9 @@ void stream_disconnect_service(stream_connection_t* interface, stream_t* stream)
 void stream_connection_enable(stream_connection_t* interface, bool enable);
 bool stream_connection_enabled(stream_connection_t* interface);
 
-uint32_t stream_get_resolution(stream_connection_t* stream);
-uint32_t stream_get_full_scale_amplitude_mv(stream_connection_t* stream);
+uint32_t stream_get_resolution(stream_connection_t* interface);
+uint32_t stream_get_full_scale_amplitude_mv(stream_connection_t* interface);
+uint32_t stream_get_length(stream_connection_t* interface);
+uint32_t stream_get_channel_count(stream_connection_t* interface);
 
 #endif /* STREAM_COMMON_H_ */
