@@ -328,6 +328,8 @@ void http_server_connection(sock_conn_t* conn)
 				httpconn->content_length -= httpconn->length;
 			}
 		}
+		// # TODO - this is here because the filesystem seems to have a problem with fclose being called too quickly after fwrite!!
+
 	}
 	// GET file response
 	else if(httpconn->file && httpconn->req_type == (char*)HTTP_GET)
@@ -343,7 +345,12 @@ void http_server_connection(sock_conn_t* conn)
 	}
 
 	if(httpconn->file)
-		fclose(httpconn->file);
+	{
+		volatile uint8_t count = 20;
+		while(count-- && (fclose(httpconn->file) == -1)){
+			usleep(10000);
+		}
+	}
 
     log_debug(&httpserver->log, "done");
 
