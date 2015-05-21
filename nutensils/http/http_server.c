@@ -346,10 +346,7 @@ void http_server_connection(sock_conn_t* conn)
 
 	if(httpconn->file)
 	{
-		volatile uint8_t count = 20;
-		while(count-- && (fclose(httpconn->file) == -1)){
-			usleep(10000);
-		}
+		fclose(httpconn->file);
 	}
 
     log_debug(&httpserver->log, "done");

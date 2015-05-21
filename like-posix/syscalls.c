@@ -116,7 +116,6 @@
 
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <dirent.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -129,6 +128,7 @@
 #include "cutensils.h"
 #include "strutils.h"
 #include "systime.h"
+#include "dirent.h"
 
 /**
  *  definition of block structure, copied from heap2 allocator
@@ -235,7 +235,8 @@ inline filtab_entry_t* __get_entry(int file, bool rw)
 			}
 			else
 			{
-				if(!fte->rwcount && lock_file(fte))
+				if(lock_file(fte))
+//				if(!fte->rwcount && lock_file(fte))
 				{
 					return  fte;
 				}
