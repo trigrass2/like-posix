@@ -235,8 +235,7 @@ inline filtab_entry_t* __get_entry(int file, bool rw)
 			}
 			else
 			{
-				if(lock_file(fte))
-//				if(!fte->rwcount && lock_file(fte))
+				if(!fte->rwcount && lock_file(fte))
 				{
 					return  fte;
 				}
