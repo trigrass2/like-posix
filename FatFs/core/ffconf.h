@@ -231,6 +231,7 @@
 #endif
 #else
 #ifndef _FS_LOCK
+#warning "compiling without filesystem locking"
 #define _FS_LOCK   0  /* 0:Disable or >=1:Enable */
 #endif
 #endif
