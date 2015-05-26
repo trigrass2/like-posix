@@ -148,8 +148,8 @@ typedef struct {
 	int flags;				///< the the mode under which the device was opened
 	FIL file;				///< regular file, or device interface file
 	unsigned int size;		///< size, used only for queues
-	SemaphoreHandle_t lock; ///< file table lock, mutex
-	int rwcount;			///< read/write counter
+	SemaphoreHandle_t read_lock; 	///< file read lock, mutex
+	SemaphoreHandle_t write_lock; 	///< file write lock, mutex
 }filtab_entry_t;
 
 /**
@@ -170,11 +170,9 @@ typedef struct {
 
 #define DEFAULT_DEVICE_TIMEOUT          1000
 
-#define lock_filtab()                   1//(xSemaphoreTake(filtab.lock, 2000/portTICK_RATE_MS) == pdTRUE)
-#define unlock_filtab()                 //xSemaphoreGive(filtab.lock)
+#define lock_filtab()                   (xSemaphoreTake(filtab.lock, 2000/portTICK_RATE_MS) == pdTRUE)
+#define unlock_filtab()                 xSemaphoreGive(filtab.lock)
 
-#define lock_file(file)                   (xSemaphoreTake(file->lock, 2000/portTICK_RATE_MS) == pdTRUE)
-#define unlock_file(file)                 xSemaphoreGive(file->lock)
 
 #undef errno
 extern int errno;
@@ -208,59 +206,29 @@ void init_likeposix()
     }
 }
 
+
 /**
- * @param	file is a file pointer to an open device file.
+ * get the file table entry for the specified file descriptor.
+ *
+ * @param	file is a file pointer to a device file.
  * @retval 	the file table entry for a given file descriptor,
- * 			or NULL if the file descriptor was not valid, or the file was not open.
+ * 			or NULL if the file descriptor was not valid, or the file table entry was NULL (file is not open).
  */
-inline filtab_entry_t* __get_entry(int file, bool rw)
+inline filtab_entry_t* __get_entry(int file)
 {
-	filtab_entry_t* fte;
-	if(!filtab.count || (filtab.count > FILE_TABLE_LENGTH))
+	file -= FILE_TABLE_OFFSET;
+
+	if(!filtab.count || file < 0 || (file > FILE_TABLE_LENGTH))
 		return NULL;
 
-	file -= FILE_TABLE_OFFSET;
-	if(file >= 0)
-	{
-		fte = filtab.tab[file];
-		if(fte != NULL)
-		{
-			if(rw)
-			{
-				if(fte->rwcount || lock_file(fte))
-				{
-					fte->rwcount++;
-					return  fte;
-				}
-			}
-			else
-			{
-				if(!fte->rwcount && lock_file(fte))
-				{
-					return  fte;
-				}
-			}
-		}
-	}
-	return NULL;
+	return filtab.tab[file];
 }
 
 /**
- * @param	file is a file pointer to an open device file.
- * @retval 	the file table entry for a given file descriptor,
- * 			or NULL if the file descriptor was not valid, or the file was not open.
- */
-inline void __return_entry(filtab_entry_t* fte)
-{
-	if(fte->rwcount)
-		fte->rwcount--;
-
-	if(!fte->rwcount)
-		unlock_file(fte);
-}
-
-/**
- * deletes the structures of a file table entry...
+ * deletes the structures of a file table entry.
+ * does not remove the entry from the file table.
+ *
+ * @param fte is a pointer to the file table entry to delete.
  */
 inline void __delete_filtab_item(filtab_entry_t* fte)
 {
@@ -286,13 +254,16 @@ inline void __delete_filtab_item(filtab_entry_t* fte)
             lwip_close(fd);
 		if(fte->lock)
 		{
+			// TODO - wtf??
 			fte->rwlock = xSemaphoreCreateCounting();
 		}
     }
 #endif
 
-    if(fte->lock != NULL)
-    	 vSemaphoreDelete(fte->lock);
+    if(fte->read_lock != NULL)
+    	 vSemaphoreDelete(fte->read_lock);
+    if(fte->write_lock != NULL)
+    	 vSemaphoreDelete(fte->write_lock);
 
 	// #3 delete file table node
 	vPortFree(fte);
@@ -325,7 +296,7 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 	if(!name)
 		return EOF;
 
-	int file = EOF;
+	int success = EOF;
 	BYTE ff_flags = 0;
 
 	// create new file table node
@@ -337,7 +308,8 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 		fte->device = NULL;
 		fte->flags = flags+1;
 		fte->size = length;
-		fte->lock = NULL;
+		fte->read_lock = NULL;
+		fte->write_lock = NULL;
 
 		/**********************************
 		 * create file
@@ -372,7 +344,7 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 		{
 			if(fte->mode == S_IFREG)
 			{
-				file = 0;
+				success = 0;
 				if(fte->flags&O_APPEND)
 					f_lseek(&fte->file, f_size(&fte->file));
 			}
@@ -421,69 +393,58 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 					}
 
 					if(read_q && write_q)
-						file = 0;
+						success = 0;
 				}
 			}
 		}
 
-		if(file == 0)
+		if(success == 0)
 		{
-			fte->lock = xSemaphoreCreateMutex();
+			fte->read_lock = xSemaphoreCreateMutex();
+			fte->write_lock = xSemaphoreCreateMutex();
+
+			if(fte->read_lock && fte->write_lock)
+				*fdes = fte;
+			else
+				success = EOF;
 		}
 
-		if(fte->lock)
-		{
-			// on success ...
-			*fdes = fte;
-		}
-		else
-		{
-			// on error...
+		if(success != 0)
 			__delete_filtab_item(fte);
-		}
 	}
 
-	return file;
+	return success;
 }
 
 /**
  * put a file table entry into file table.
+ * NOTE: locks the file table. may not be called within a function that locks the file table.
  *
  * @param 	fte is a pointer to a file table entry, which NEEDS to have been pre initialized.
- * @retval 	the file number if successful, or -1 on error.
+ * @retval 	the file descriptor if successful, or -1 on error.
  */
 inline int __insert_entry(filtab_entry_t* fte)
 {
-	int file;
-	for(file = 0; file < FILE_TABLE_LENGTH; file++)
+	int ret = EOF;
+	if(lock_filtab())
 	{
-		if(filtab.tab[file] == NULL)
+		int file;
+		for(file = 0; file < FILE_TABLE_LENGTH; file++)
 		{
-			filtab.tab[file] = fte;
-			filtab.count++;
-			if(filtab.hwm < filtab.count)
-			    filtab.hwm = filtab.count;
-			return file + FILE_TABLE_OFFSET;
+			if(filtab.tab[file] == NULL)
+			{
+				filtab.tab[file] = fte;
+				filtab.count++;
+				if(filtab.hwm < filtab.count)
+					filtab.hwm = filtab.count;
+				ret = file + FILE_TABLE_OFFSET;
+				break;
+			}
 		}
+		unlock_filtab();
 	}
 
-	return EOF;
-}
-
-/**
- * remove a file table entry from the file table.
- *
- * @param	file is a file pointer to a device file.
- * @retval  0 if successful, or -1 on error.
- */
-inline int __remove_entry(int file)
-{
-	if(!filtab.count || (filtab.count > FILE_TABLE_LENGTH))
-		return EOF;
-
-	filtab.tab[file-FILE_TABLE_OFFSET] = NULL;
-	filtab.count--;
-	return 0;
+	return ret;
 }
 
 /**
@@ -619,49 +580,37 @@ int file_table_hwm()
  */
 int _open(const char *name, int flags, int mode)
 {
-    int file = EOF;
-
 	if(filtab.count > FILE_TABLE_LENGTH)
 		return EOF;
 
 	filtab_entry_t* fte = NULL;
 	int length = mode;
+	int file = EOF;
 
-	if(lock_filtab())
+	// if we got 0 here it means a file table entry was made successfully
+	if(__create_filtab_item(&fte, name, flags, __determine_mode(name), length) == 0)
 	{
-        file = __create_filtab_item(&fte, name, flags, __determine_mode(name), length);
+		if((fte->mode == S_IFIFO) && fte->device)
+		{
+			// call device open
+			if(fte->device->open)
+				fte->device->open(fte->device);
+			// enable reading
+			if((fte->flags & FREAD) && fte->device->read_enable)
+				fte->device->read_enable(fte->device);
+			// writing is enabled in _write()...
+		}
 
-        // if we got 0 here it means a file or a queue was made successfully
-        // now need to add the file stat struct to the descriptor table
-        if(file == 0)
-        {
-            // add file to table
-            file = __insert_entry(fte);
-            // add failed, delete
-            if(file == EOF)
-                __delete_filtab_item(fte);
-            else
-            {
-            	fte = __get_entry(file, false);
-            	if(fte)
-            	{
-					// actions to do if everything went right...
+		// add file to table
+		file = __insert_entry(fte);
 
-					if((fte->mode == S_IFIFO) && fte->device)
-					{
-						// call device open
-						if(fte->device->open)
-							fte->device->open(fte->device);
-						// enable reading
-						if((fte->flags & FREAD) && fte->device->read_enable)
-							fte->device->read_enable(fte->device);
-						// writing is enabled in _write()...
-					}
-					__return_entry(fte);
-            	}
-            }
-        }
-        unlock_filtab();
+		// add failed, close and delete
+		if(file == EOF)
+		{
+			if((fte->mode == S_IFIFO) && fte->device && fte->device->close)
+				fte->device->close(fte->device);
+			__delete_filtab_item(fte);
+		}
 	}
 
 	return file;
@@ -676,26 +625,72 @@ int _open(const char *name, int flags, int mode)
 int _close(int file)
 {
 	int res = EOF;
-    if(lock_filtab())
-    {
-        filtab_entry_t* fte = __get_entry(file, false);
-        if(fte)
-        {
-            // disable device IO first
-            if((fte->mode == S_IFIFO) && fte->device && (fte->device->close))
-            {
-                // call device close
-                fte->device->close(fte->device);
-            }
-            // then remove the file table entry
-            res = __remove_entry(file);
-            __return_entry(fte);
-            // then delete all the file structures
-            __delete_filtab_item(fte);
-        }
-        unlock_filtab();
-    }
+
+	if(file == STDOUT_FILENO || file == STDERR_FILENO || file == (intptr_t)stdout || file == (intptr_t)stderr)
+	{
+
+	}
+	else if(lock_filtab())
+	{
+		filtab_entry_t* fte = __get_entry(file);
+
+		if(fte)
+		{
+			if(fte->flags & FWRITE)
+				assert_true(xSemaphoreTake(fte->write_lock, 5000/portTICK_RATE_MS) == pdTRUE);
+
+			if(fte->flags & FREAD)
+				assert_true(xSemaphoreTake(fte->read_lock, 5000/portTICK_RATE_MS) == pdTRUE);
+
+			// disable device IO first
+			if((fte->mode == S_IFIFO) && fte->device && fte->device->close)
+			{
+				// call device close
+				fte->device->close(fte->device);
+			}
+			// then remove the file table entry
+			filtab.tab[file-FILE_TABLE_OFFSET] = NULL;
+			filtab.count--;
+
+			xSemaphoreGive(fte->write_lock);
+			xSemaphoreGive(fte->read_lock);
+
+			// then delete all the file structures
+			__delete_filtab_item(fte);
+			res = 0;
+		}
+		unlock_filtab();
+	}
+
 	return res;
+}
+
+static inline filtab_entry_t* __lock(int file, bool read, bool write)
+{
+	if(lock_filtab())
+	{
+		filtab_entry_t* fte = __get_entry(file);
+		if(fte)
+		{
+			if(write && (fte->flags & FWRITE))
+				assert_true(xSemaphoreTake(fte->write_lock, 5000/portTICK_RATE_MS) == pdTRUE);
+
+			if(read && (fte->flags & FREAD))
+				assert_true(xSemaphoreTake(fte->read_lock, 5000/portTICK_RATE_MS) == pdTRUE);
+		}
+		unlock_filtab();
+
+		return fte;
+	}
+	return NULL;
+}
+
+static inline void __unlock(filtab_entry_t* fte, bool read, bool write)
+{
+	if(write && (fte->flags & FWRITE))
+		xSemaphoreGive(fte->write_lock);
+	if(read && (fte->flags & FREAD))
+		xSemaphoreGive(fte->read_lock);
 }
 
 /**
@@ -717,9 +712,9 @@ int _write(int file, char *buffer, unsigned int count)
 		for(n = 0; n < (int)count; n++)
 			phy_putc(*buffer++);
 	}
-	else if(lock_filtab())
+	else
 	{
-		filtab_entry_t* fte = __get_entry(file, true);
+		filtab_entry_t* fte = __lock(file, false, true);
 
 		if(fte)
 		{
@@ -751,9 +746,8 @@ int _write(int file, char *buffer, unsigned int count)
 				}
 	#endif
 			}
-            __return_entry(fte);
+			__unlock(fte, false, true);
 		}
-		unlock_filtab();
 	}
 
 	return n;
@@ -778,9 +772,9 @@ int _read(int file, char *buffer, int count)
 		for(n = 0; n < count; n++)
 			*buffer++ = phy_getc();
 	}
-	else if(lock_filtab())
+	else
 	{
-		filtab_entry_t* fte = __get_entry(file, true);
+		filtab_entry_t* fte = __lock(file, true, false);
 
 		if(fte)
 		{
@@ -808,9 +802,8 @@ int _read(int file, char *buffer, int count)
 				}
 	#endif
 			}
-			__return_entry(fte);
+			__unlock(fte, true, false);
 		}
-        unlock_filtab();
 	}
 
 	return n;
@@ -828,9 +821,9 @@ int fsync(int file)
 	{
 		res = 0;
 	}
-	else if(lock_filtab())
+	else
 	{
-		filtab_entry_t* fte = __get_entry(file, true);
+		filtab_entry_t* fte = __lock(file, false, true);
 
 		if(fte)
 		{
@@ -839,9 +832,8 @@ int fsync(int file)
 				f_sync(&fte->file);
 				res = 0;
 			}
-			__return_entry(fte);
+			__unlock(fte, false, true);
 		}
-        unlock_filtab();
 	}
 
 	return res;
@@ -972,9 +964,9 @@ int _fstat(int file, struct stat *st)
 		}
 		res = 0;
 	}
-	else if(lock_filtab())
+	else
 	{
-		filtab_entry_t* fte = __get_entry(file, true);
+		filtab_entry_t* fte = __lock(file, false, true);
 
 		if(fte)
 		{
@@ -993,9 +985,8 @@ int _fstat(int file, struct stat *st)
 				st->st_mode = fte->mode;
 
 			res = 0;
-			__return_entry(fte);
+			__unlock(fte, false, true);
 		}
-		unlock_filtab();
 	}
 
 	return res;
@@ -1005,17 +996,13 @@ long int _ftell(int file)
 {
 	int res = EOF;
 
-	if(lock_filtab())
-	{
-        filtab_entry_t* fte = __get_entry(file, true);
+	filtab_entry_t* fte = __lock(file, false, true);
 
-        if(fte)
-        {
-            if(fte->mode == S_IFREG)
-                res = f_tell(&fte->file);
-            __return_entry(fte);
-        }
-        unlock_filtab();
+	if(fte)
+	{
+		if(fte->mode == S_IFREG)
+			res = f_tell(&fte->file);
+		__unlock(fte, false, true);
 	}
 
 	return res;
@@ -1055,17 +1042,16 @@ int _isatty(int file)
 			file == (intptr_t)stderr ||
 			file == (intptr_t)stdin)
 		res = 1;
-	else if(lock_filtab())
+	else
 	{
-		filtab_entry_t* fte = __get_entry(file, true);
+		filtab_entry_t* fte = __lock(file, false, true);
+
 		if(fte)
 		{
 			if(fte->mode == S_IFIFO)
 				res = 1;
-			__return_entry(fte);
+			__unlock(fte, false, true);
 		}
-
-		unlock_filtab();
 	}
 	return res;
 }
@@ -1080,26 +1066,24 @@ int _isatty(int file)
 int _lseek(int file, int offset, int whence)
 {
 	int res = EOF;
-    if(lock_filtab())
-    {
-        filtab_entry_t* fte = __get_entry(file, true);
 
-        if(fte)
-        {
-            if(fte->mode == S_IFREG)
-            {
-                if(whence == SEEK_CUR)
-                    offset = f_tell(&fte->file) + offset;
-                else if(whence == SEEK_END)
-                    offset = f_size(&fte->file) - offset;
+	filtab_entry_t* fte = __lock(file, true, true);
 
-                if(f_lseek(&fte->file, offset) == FR_OK)
-                    res = 0;
-            }
-            __return_entry(fte);
-        }
-        unlock_filtab();
-    }
+	if(fte)
+	{
+		if(fte->mode == S_IFREG)
+		{
+			if(whence == SEEK_CUR)
+				offset = f_tell(&fte->file) + offset;
+			else if(whence == SEEK_END)
+				offset = f_size(&fte->file) - offset;
+
+			if(f_lseek(&fte->file, offset) == FR_OK)
+				res = 0;
+		}
+		__unlock(fte, true, true);
+	}
+
 	return res;
 }
 
@@ -1234,81 +1218,6 @@ _VOID _free_r(struct _reent *re, _PTR ptr) {
 	vPortFree(ptr);
 }
 
-int tcgetattr(int fildes, struct termios *termios_p)
-{
-    int ret = -1;
-    if(termios_p == NULL || isatty(fildes) == 0)
-        return ret;
-
-    memset(termios_p, 0, sizeof(struct termios));
-
-    if(fildes == STDOUT_FILENO || fildes == STDERR_FILENO || fildes == (intptr_t)stdout || fildes == (intptr_t)stderr)
-    {
-        termios_p->c_cflag = B115200|CS8;
-        ret = 0;
-    }
-    else if(fildes == STDIN_FILENO || fildes == (intptr_t)stdin)
-    {
-        termios_p->c_cflag = B115200|CS8;
-        ret = 0;
-    }
-    else if(lock_filtab())
-    {
-        filtab_entry_t* fte = __get_entry(fildes, true);
-
-        if(fte)
-        {
-			if(fte->device && fte->device->ioctl)
-			{
-				fte->device->termios = termios_p;
-				ret = fte->device->ioctl(fte->device);
-				fte->device->termios = NULL;
-			}
-			__return_entry(fte);
-        }
-        unlock_filtab();
-    }
-
-    return ret;
-}
-
-int tcsetattr(int fildes, int when, const struct termios *termios_p)
-{
-    int ret = -1;
-    if(termios_p == NULL || isatty(fildes) == 0)
-        return ret;
-
-    if(fildes == STDOUT_FILENO || fildes == STDERR_FILENO || fildes == (intptr_t)stdout || fildes == (intptr_t)stderr)
-    {
-
-    }
-    else if(fildes == STDIN_FILENO || fildes == (intptr_t)stdin)
-    {
-
-    }
-    else if(lock_filtab())
-    {
-        filtab_entry_t* fte = __get_entry(fildes, true);
-        if(fte)
-        {
-			if(fte->device && fte->device->ioctl)
-			{
-				fte->device->termios = (struct termios *)termios_p;
-				if(when == TCSADRAIN)
-					tcdrain(fildes);
-				else if(when == TCSAFLUSH)
-					tcflush(fildes, TCIOFLUSH);
-				ret = fte->device->ioctl(fte->device);
-				fte->device->termios = NULL;
-			}
-			__return_entry(fte);
-        }
-        unlock_filtab();
-    }
-
-    return ret;
-}
-
 speed_t cfgetispeed(const struct termios* termios)
 {
     return termios->c_ispeed;
@@ -1329,9 +1238,127 @@ int cfsetospeed(struct termios* termios, speed_t ospeed)
     return 0;
 }
 
-int tcdrain(int file)
+int _tcflush(filtab_entry_t* fte, int flags)
+{
+    int res = EOF;
+	if(fte->mode == S_IFIFO)
+	{
+		if(flags == TCIFLUSH)
+		{
+			xQueueReset(fte->device->pipe.read);
+			res = 0;
+		}
+
+		else if(flags == TCOFLUSH)
+		{
+			xQueueReset(fte->device->pipe.write);
+			res = 0;
+		}
+
+		else if(flags == TCIOFLUSH)
+		{
+			xQueueReset(fte->device->pipe.write);
+			xQueueReset(fte->device->pipe.read);
+			res = 0;
+		}
+	}
+    return res;
+}
+
+int _tcdrain(filtab_entry_t* fte)
 {
     unsigned long timeout;
+    int res = EOF;
+
+	if(fte->mode == S_IFIFO)
+	{
+		timeout = get_hw_time_ms() + fte->device->timeout;
+		while(uxQueueMessagesWaiting(fte->device->pipe.write) > 0 && get_hw_time_ms() < timeout)
+			portYIELD();
+
+		if(get_hw_time_ms() < timeout)
+			res = 0;
+	}
+
+    return res;
+}
+
+int tcgetattr(int fildes, struct termios *termios_p)
+{
+    int ret = -1;
+    if(termios_p == NULL || isatty(fildes) == 0)
+        return ret;
+
+    memset(termios_p, 0, sizeof(struct termios));
+
+    if(fildes == STDOUT_FILENO || fildes == STDERR_FILENO || fildes == (intptr_t)stdout || fildes == (intptr_t)stderr)
+    {
+        termios_p->c_cflag = B115200|CS8;
+        ret = 0;
+    }
+    else if(fildes == STDIN_FILENO || fildes == (intptr_t)stdin)
+    {
+        termios_p->c_cflag = B115200|CS8;
+        ret = 0;
+    }
+    else
+	{
+		filtab_entry_t* fte = __lock(fildes, false, true);
+
+        if(fte)
+        {
+			if(fte->device && fte->device->ioctl)
+			{
+				fte->device->termios = termios_p;
+				ret = fte->device->ioctl(fte->device);
+				fte->device->termios = NULL;
+			}
+			__unlock(fte, false, true);
+        }
+    }
+
+    return ret;
+}
+
+int tcsetattr(int fildes, int when, const struct termios *termios_p)
+{
+    int ret = -1;
+    if(termios_p == NULL || isatty(fildes) == 0)
+        return ret;
+
+    if(fildes == STDOUT_FILENO || fildes == STDERR_FILENO || fildes == (intptr_t)stdout || fildes == (intptr_t)stderr)
+    {
+
+    }
+    else if(fildes == STDIN_FILENO || fildes == (intptr_t)stdin)
+    {
+
+    }
+    else
+	{
+		filtab_entry_t* fte = __lock(fildes, false, true);
+
+        if(fte)
+        {
+			if(fte->device && fte->device->ioctl)
+			{
+				fte->device->termios = (struct termios *)termios_p;
+				if(when == TCSADRAIN)
+		        	_tcdrain(fte);
+				else if(when == TCSAFLUSH)
+					_tcflush(fte, TCIOFLUSH);
+				ret = fte->device->ioctl(fte->device);
+				fte->device->termios = NULL;
+			}
+			__unlock(fte, false, true);
+        }
+    }
+
+    return ret;
+}
+
+int tcdrain(int file)
+{
     int res = EOF;
 
     if(file == STDOUT_FILENO || file == STDERR_FILENO || file == (intptr_t)stdout || file == (intptr_t)stderr)
@@ -1342,26 +1369,43 @@ int tcdrain(int file)
     {
         res = 0;
     }
-    else if(lock_filtab())
-    {
-        filtab_entry_t* fte = __get_entry(file, true);
+    else
+	{
+		filtab_entry_t* fte = __lock(file, false, true);
 
         if(fte)
         {
-            if(fte->mode == S_IFIFO)
-            {
-                timeout = get_hw_time_ms() + fte->device->timeout;
-                while(uxQueueMessagesWaiting(fte->device->pipe.write) > 0 && get_hw_time_ms() < timeout)
-                    portYIELD();
-
-                if(get_hw_time_ms() < timeout)
-                    res = 0;
-            }
-            __return_entry(fte);
+        	res = _tcdrain(fte);
+            __unlock(fte, false, true);
         }
-        unlock_filtab();
     }
 
+    return res;
+}
+
+
+int tcflush(int file, int flags)
+{
+    int res = EOF;
+
+    if(file == STDOUT_FILENO || file == STDERR_FILENO || file == (intptr_t)stdout || file == (intptr_t)stderr)
+    {
+        res = 0;
+    }
+    else if(file == STDIN_FILENO || file == (intptr_t)stdin)
+    {
+        res = 0;
+    }
+    else
+	{
+		filtab_entry_t* fte = __lock(file, false, true);
+
+        if(fte)
+        {
+        	res = _tcflush(fte, flags);
+        	__unlock(fte, false, true);
+        }
+    }
     return res;
 }
 
@@ -1380,9 +1424,9 @@ int tcflow(int file, int flags)
     {
         res = 0;
     }
-    else if(lock_filtab())
-    {
-        filtab_entry_t* fte = __get_entry(file, true);
+    else
+	{
+		filtab_entry_t* fte = __lock(file, false, true);
 
         if(fte)
         {
@@ -1391,55 +1435,8 @@ int tcflow(int file, int flags)
                 (void)flags;
                 res = EOF;
             }
-            __return_entry(fte);
+            __unlock(fte, false, true);
         }
-        unlock_filtab();
-    }
-    return res;
-}
-
-int tcflush(int file, int flags)
-{
-    int res = EOF;
-
-    if(file == STDOUT_FILENO || file == STDERR_FILENO || file == (intptr_t)stdout || file == (intptr_t)stderr)
-    {
-        res = 0;
-    }
-    else if(file == STDIN_FILENO || file == (intptr_t)stdin)
-    {
-        res = 0;
-    }
-    else if(lock_filtab())
-    {
-        filtab_entry_t* fte = __get_entry(file, true);
-
-        if(fte)
-        {
-            if(fte->mode == S_IFIFO)
-            {
-                if(flags == TCIFLUSH)
-                {
-                    xQueueReset(fte->device->pipe.read);
-                    res = 0;
-                }
-
-                else if(flags == TCOFLUSH)
-                {
-                    xQueueReset(fte->device->pipe.write);
-                    res = 0;
-                }
-
-                else if(flags == TCIOFLUSH)
-                {
-                    xQueueReset(fte->device->pipe.write);
-                    xQueueReset(fte->device->pipe.read);
-                    res = 0;
-                }
-            }
-            __return_entry(fte);
-        }
-        unlock_filtab();
     }
     return res;
 }
