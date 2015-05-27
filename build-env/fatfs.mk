@@ -16,4 +16,8 @@ SOURCE += $(FATFS_DIR)/core/ff.c
 SOURCE += $(FATFS_DIR)/diskio_stm32.c
 
 CFLAGS += -I$(FATFS_DIR)/core
+
+CFLAGS += -D _FS_LOCK=$(_FS_LOCK)
+CFLAGS += -D _FS_TINY=$(_FS_TINY)
+CFLAGS += -D _FS_READONLY=$(_FS_READONLY)
 endif
