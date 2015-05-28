@@ -181,8 +181,8 @@ void net_config(netconf_t* netconf, const char* resolv, const char* interface)
 		assert_true(ip_configured);
 		assert_true(nm_configured);
 		assert_true(gw_configured);
-		assert_true(dns1_configured);
-		assert_true(dns2_configured);
+		if(!dns1_configured && !dns2_configured)
+            log_warning(&log, "neither dns1 or dns2 addresses are configured");
 	}
 }
 
