@@ -111,6 +111,8 @@ void net_config(netconf_t* netconf, const char* resolv, const char* interface)
 	bool ip_configured = false;
 	bool nm_configured = false;
 	bool gw_configured = false;
+	bool dns1_configured = false;
+	bool dns2_configured = false;
 
 	log_init(&log, __FUNCTION__);
 
@@ -134,6 +136,8 @@ void net_config(netconf_t* netconf, const char* resolv, const char* interface)
 	netconf->addr_cache[0].addr = 0;
 	netconf->addr_cache[1].addr = 0;
 	netconf->addr_cache[2].addr = 0;
+	netconf->addr_cache[3].addr = 0;
+	netconf->addr_cache[4].addr = 0;
 	netconf->netif.ip_addr.addr = 0;
 	netconf->netif.netmask.addr = 0;
 	netconf->netif.gw.addr = 0;
@@ -154,6 +158,10 @@ void net_config(netconf_t* netconf, const char* resolv, const char* interface)
 					nm_configured = string_to_address((uint8_t*)&(netconf->addr_cache[1].addr), get_config_value(&cfg));
 				else if(config_key_match(&cfg, (const uint8_t*)"gateway"))
 					gw_configured = string_to_address((uint8_t*)&(netconf->addr_cache[2].addr), get_config_value(&cfg));
+				else if(config_key_match(&cfg, (const uint8_t*)"dns1"))
+					dns1_configured = string_to_address((uint8_t*)&(netconf->addr_cache[3].addr), get_config_value(&cfg));
+				else if(config_key_match(&cfg, (const uint8_t*)"dns2"))
+					dns2_configured = string_to_address((uint8_t*)&(netconf->addr_cache[4].addr), get_config_value(&cfg));
 			}
 			// always set mac address
 			if(config_key_match(&cfg, (const uint8_t*)"macaddr"))
@@ -173,6 +181,8 @@ void net_config(netconf_t* netconf, const char* resolv, const char* interface)
 		assert_true(ip_configured);
 		assert_true(nm_configured);
 		assert_true(gw_configured);
+		assert_true(dns1_configured);
+		assert_true(dns2_configured);
 	}
 }
 

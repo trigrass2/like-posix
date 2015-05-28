@@ -68,7 +68,7 @@ typedef struct {
 	dhcp_state_t dhcp_state;
 #endif
 	uint8_t hostname[MAX_HOSTNAME_LENGTH];
-	struct ip_addr addr_cache[3]; // ip, netmask,gw
+	struct ip_addr addr_cache[5]; // ip, netmask,gw,dns1,dns2
 #if NO_SYS
 	uint32_t tcp_timer;
 	uint32_t arp_timer;

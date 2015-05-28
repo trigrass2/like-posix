@@ -42,6 +42,7 @@
 #include "ethernetif.h"
 #include "lwip/tcp_impl.h"
 #include "lwip/dhcp.h"
+#include "lwip/dns.h"
 #include "lwip/mem.h"
 #include "lwip/memp.h"
 #include "lwip/tcp.h"
@@ -94,6 +95,8 @@ void net_init(netconf_t* netconf)
         dhcp_begin(netconf);
     else
     {
+    	dns_setserver(0, &netconf->addr_cache[3]);
+    	dns_setserver(1, &netconf->addr_cache[4]);
         netif_set_up(&netconf->netif);
         xSemaphoreGive(netconf->address_ok);
     }
