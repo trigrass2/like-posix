@@ -170,5 +170,13 @@ JSMN_EXTENSIONS_DIR ?= $(STM32DEVSUPPORTDIR)/jsmn_extensions
 # set appropriately if there is a bootloader in the low flash pages
 APP_ADDRESS_OFFSET ?= 0x0000
 
+## fat filesystem options, see ffconf.h for details
+# file locking
+_FS_LOCK ?= 10
+# minimize filesystem
+_FS_TINY ?= 0
+# make the filessytem read only
+_FS_READONLY ?= 0
+
 # include the makefile that collects all modules together
 include $(BUILD_ENV_DIR)/collect.mk

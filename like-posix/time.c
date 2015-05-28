@@ -120,7 +120,7 @@ int _gettimeofday(struct timeval *tp, struct timezone *tzp)
 
 time_t _time(time_t* time)
 {
-	time_t sec;
+	time_t sec = 0;
     time_t usec;
     get_hw_time((unsigned long*)&sec, (unsigned long*)&usec);
     sec += TIMEZONE_OFFSET;
