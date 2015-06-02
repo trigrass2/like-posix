@@ -144,6 +144,7 @@ typedef struct A_BLOCK_LINK
  */
 typedef struct {
 	dev_ioctl_t* device;	///< pointer to the device interface
+    int fdes;               ///< a secondary file descriptor, used only for sockets at this time.
     int mode;               ///< the the mode under which the device was opened
 	int flags;				///< the the mode under which the device was opened
 	FIL file;				///< regular file, or device interface file
@@ -249,14 +250,8 @@ inline void __delete_filtab_item(filtab_entry_t* fte)
 #if ENABLE_LIKEPOSIX_SOCKETS
     else if(fte->mode == S_IFSOCK)
     {
-        int fd = (int)fte->device;
-        if(fd != -1)
-            lwip_close(fd);
-		if(fte->lock)
-		{
-			// TODO - wtf??
-			fte->rwlock = xSemaphoreCreateCounting();
-		}
+        if(fte->fdes != -1)
+            lwip_close(fte->fdes);
     }
 #endif
 
@@ -285,17 +280,22 @@ inline void __delete_filtab_item(filtab_entry_t* fte)
  * @param 	fdes is a pointer to a raw file table entry, which doesnt have to be pre initialized.
  * @param	name is the name of the file, or device file to open.
  * @param	flags may be a combination of one of O_RDONLY, O_WRONLY, or O_RDWR,
- * 			and any of O_APPEND | O_CREAT | O_TRUNC | O_NONBLOCK
+ * 			and any of O_APPEND | O_CREAT | O_TRUNC | O_NONBLOCK.
+ * 			When used by S_IFSOCK, specify O_CREAT to open a new socket, or anything else to specify accept.
  * @param 	mode is one of S_IFDIR | S_IFCHR | S_IFBLK | S_IFREG | S_IFLNK | S_IFSOCK | S_IFIFO.
- * 			only S_IFREG and S_IFIFO are supported.
+ * 			only S_IFREG, S_IFSOCK and S_IFIFO are supported.
+ * @param   length specifies the queue length to assign to S_IFIFO type devices only. may be set to 0 for S_IFSOCK and S_IFREG.
+ * @param   when flags is set to O_CREAT, sockparam1 specifies the socket namespace to assign to S_IFSOCK type devices only. may be set to 0 for S_IFIFO and S_IFREG.
+ * 			when flags is not set to O_CREAT, sockparam1 specifies the socket file descriptor to accept with, for S_IFSOCK type devices only. may be set to 0 for S_IFIFO and S_IFREG.
+ * @param   sockparam2 specifies the socket style to assign to S_IFSOCK type devices only. may be set to 0 for S_IFIFO and S_IFREG.
+ * 			when flags is not set to O_CREAT, sockparam2 specifies the socket "struct sockaddr *" to accept with, for S_IFSOCK type devices only. may be set to 0 for S_IFIFO and S_IFREG.
+ * @param   sockparam3 specifies the socket protocol to assign to S_IFSOCK type devices only. may be set to 0 for S_IFIFO and S_IFREG.
+ * 			when flags is not set to O_CREAT, sockparam3 specifies the socket "socklen_t *" to accept with, for S_IFSOCK type devices only. may be set to 0 for S_IFIFO and S_IFREG.
  *
  * @retval 0 on success, -1 on failure.
  */
-inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int flags, int mode, int length)
+inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int flags, int mode, int length, int sockparam1, int sockparam2, int sockparam3)
 {
-	if(!name)
-		return EOF;
-
 	int success = EOF;
 	BYTE ff_flags = 0;
 
@@ -304,6 +304,7 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 
 	if(fte)
 	{
+		fte->fdes = -1;
 		fte->mode = mode;
 		fte->device = NULL;
 		fte->flags = flags+1;
@@ -340,7 +341,8 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 		    ff_flags = FA_READ;
 		}
 
-		if(f_open(&fte->file, (const TCHAR*)name, (BYTE)ff_flags) == FR_OK)
+		// we only open the device file if ff_flags has a non zero value
+		if(ff_flags == 0 || (name && f_open(&fte->file, (const TCHAR*)name, (BYTE)ff_flags) == FR_OK))
 		{
 			if(fte->mode == S_IFREG)
 			{
@@ -396,6 +398,31 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 						success = 0;
 				}
 			}
+#if ENABLE_LIKEPOSIX_SOCKETS
+			else if(fte->mode == S_IFSOCK)
+			{
+				if(fte->flags & FCREAT)
+				{
+					fte->flags = FWRITE | FREAD;
+					fte->size = 0;
+					fte->fdes = lwip_socket(sockparam1, sockparam2, sockparam3);
+					if(fte->fdes != -1)
+						success = 0;
+				}
+				else
+				{
+					fte->flags = FWRITE | FREAD;
+					fte->size = 0;
+					fte->fdes = lwip_accept(sockparam1, (struct sockaddr *)sockparam2, (socklen_t *)sockparam3);
+					if(fte->fdes != -1)
+						success = 0;
+				}
+			}
+#else
+			(void)sockparam1;
+			(void)sockparam2;
+			(void)sockparam3;
+#endif
 		}
 
 		if(success == 0)
@@ -450,6 +477,10 @@ inline int __insert_entry(filtab_entry_t* fte)
 /**
  * determine the mode to open the file with - this is a customization of the mode passed into _open()...
  *
+ * @param name - /dev/anything - yields S_IFIFO
+ * 				 /anything/anything - yields S_IFREG
+ * 				 NULL - yields S_IFSOCK
+ *
  * returns a combination of the following...
  *  @arg     S_IFDIR - not implemented
  *  @arg     S_IFCHR - not implemented
@@ -461,6 +492,10 @@ inline int __insert_entry(filtab_entry_t* fte)
  */
 inline int __determine_mode(const char *name)
 {
+#if ENABLE_LIKEPOSIX_SOCKETS
+	if(!name)
+		return S_IFSOCK;
+#endif
 	return strncmp(name, DEVICE_INTERFACE_DIRECTORY, sizeof(DEVICE_INTERFACE_DIRECTORY)-1) == 0 ? S_IFIFO : S_IFREG;
 }
 
@@ -580,7 +615,7 @@ int file_table_hwm()
  */
 int _open(const char *name, int flags, int mode)
 {
-	if(filtab.count > FILE_TABLE_LENGTH)
+	if(filtab.count > FILE_TABLE_LENGTH || !name)
 		return EOF;
 
 	filtab_entry_t* fte = NULL;
@@ -588,7 +623,7 @@ int _open(const char *name, int flags, int mode)
 	int file = EOF;
 
 	// if we got 0 here it means a file table entry was made successfully
-	if(__create_filtab_item(&fte, name, flags, __determine_mode(name), length) == 0)
+	if(__create_filtab_item(&fte, name, flags, __determine_mode(name), length, 0, 0, 0) == 0)
 	{
 		if((fte->mode == S_IFIFO) && fte->device)
 		{
@@ -742,7 +777,7 @@ int _write(int file, char *buffer, unsigned int count)
 	#if ENABLE_LIKEPOSIX_SOCKETS
 				else if(fte->mode == S_IFSOCK)
 				{
-					n = lwip_write((int)fte->device, buffer, count);
+					n = lwip_write(fte->fdes, buffer, count);
 				}
 	#endif
 			}
@@ -798,7 +833,7 @@ int _read(int file, char *buffer, int count)
 	#if ENABLE_LIKEPOSIX_SOCKETS
 				else if(fte->mode == S_IFSOCK)
 				{
-					n = lwip_read((int)fte->device, buffer, count);
+					n = lwip_read(fte->fdes, buffer, count);
 				}
 	#endif
 			}
@@ -1444,184 +1479,140 @@ int tcflow(int file, int flags)
 #if ENABLE_LIKEPOSIX_SOCKETS
 
 /**
- * wrapper for interfacing lwiip functions with like-posix
+ * wrapper for interfacing lwip functions with like-posix
  */
-#define SOCKET_WRAPPER(lwip_function, sockfd, ...)                  \
-    int res = EOF; if(lock_filtab()){                               \
-    filtab_entry_t* fte = __get_entry(sockfd, true);               \
+#define SOCKET_WRAPPER(lwip_function, read, write, sockfd, ...)     \
+    int res = EOF; 					                               	\
+    filtab_entry_t* fte = __lock(sockfd, read, write);              \
     if(fte) {														\
     	if(fte->mode == S_IFSOCK) {                                 \
-    		res = lwip_function((int)fte->device, __VA_ARGS__);     \
+    		res = lwip_function(fte->fdes, __VA_ARGS__);     		\
     	}															\
-		__return_entry(fte);										\
+		__unlock(fte, true, true);									\
     }																\
-    unlock_filtab();                                                \
-} return res;
+	return res;
 
 
 /**
- * creates anew socket and adds it to the file table.
+ * creates a new socket and adds it to the file table.
  *
  * @retval  returns a file descriptor, that may be used with
  *          read(), write(), close(), closesocket(), or -1 if there was an error.
  */
 int socket(int namespace, int style, int protocol)
 {
-    int file = EOF;
+	if(filtab.count > FILE_TABLE_LENGTH)
+		return EOF;
 
-    if(filtab.count > FILE_TABLE_LENGTH)
-        return EOF;
+	filtab_entry_t* fte = NULL;
+	int file = EOF;
 
-    // create new file table node
-    filtab_entry_t* ftn = (filtab_entry_t*)pvPortMalloc(sizeof(filtab_entry_t));
+	// if we got 0 here it means a file table entry was made successfully
+	if(__create_filtab_item(&fte, NULL, O_CREAT, __determine_mode(NULL), 0, namespace, style, protocol) == 0)
+	{
+		// add file to table
+		file = __insert_entry(fte);
 
-    if(!ftn)
-        return EOF;
+		// add failed, close and delete
+		if(file == EOF)
+			__delete_filtab_item(fte);
+	}
 
-    ftn->mode = S_IFSOCK;
-    ftn->flags = FWRITE | FREAD;
-    ftn->device = NULL;
-    ftn->size = 0;
-
-    file = lwip_socket(namespace, style, protocol);
-
-    if(file == -1)
-    {
-        vPortFree(ftn);
-        return file;
-    }
-
-    // hack socket file descriptor on as the device
-    ftn->device = (dev_ioctl_t*)file;
-    file = EOF;
-
-    if(lock_filtab())
-    {
-        // add file to table
-        file = __insert_entry(ftn);
-        unlock_filtab();
-    }
-
-    if(file == EOF)
-        __delete_filtab_item(ftn);
-
-    return file;
+	return file;
 }
 
 /**
- * TODO - reuse code from socket in accept.
+ * accepts incoming socket connections and adds them to the file table.
+ *
+ * ** note, this function is not thread safe, like the other functions in this module **
+ *
+ * @retval  returns a file descriptor, that may be used with
+ *          read(), write(), close(), closesocket(), or -1 if there was an error.
  */
 int accept(int sockfd, struct sockaddr *addr, socklen_t *length_ptr)
 {
-    if(filtab.count > FILE_TABLE_LENGTH)
-        return EOF;
+	if(filtab.count > FILE_TABLE_LENGTH)
+		return EOF;
 
-//    if(lock_filtab())
-//    {
-        filtab_entry_t* fte = __get_entry(sockfd, true);
-        sockfd = EOF;
-        if(fte)
-        {
-        	if(fte->mode == S_IFSOCK)
-        		sockfd = lwip_accept((int)fte->device, addr, length_ptr);
-        	__return_entry(fte);
-        }
-//        unlock_filtab();
-//    }
+	filtab_entry_t* fte = NULL;
+	int file = EOF;
+	filtab_entry_t* parent = __get_entry(sockfd);
 
-    // sockfd is now the accepted socket fdes
+	if(parent && parent->fdes != -1)
+	{
+		// if we got 0 here it means a file table entry was made successfully
+		if(__create_filtab_item(&fte, NULL, 0, __determine_mode(NULL), 0, parent->fdes, (int)addr, (int)length_ptr) == 0)
+		{
+			// add file to table
+			file = __insert_entry(fte);
 
-    if(sockfd == -1)
-        return EOF;
+			// add failed, close and delete
+			if(file == EOF)
+				__delete_filtab_item(fte);
+		}
+	}
 
-    // create new file table node
-    filtab_entry_t* ftn = (filtab_entry_t*)pvPortMalloc(sizeof(filtab_entry_t));
-
-    if(!ftn)
-    {
-        lwip_close(sockfd);
-        return EOF;
-    }
-
-    ftn->mode = S_IFSOCK;
-    ftn->flags = FWRITE | FREAD;
-    ftn->size = 0;
-    // hack sockfd file descriptor on as the device
-    ftn->device = (dev_ioctl_t*)sockfd;
-    sockfd = EOF;
-
-    if(lock_filtab())
-    {
-        // add file to table
-        sockfd = __insert_entry(ftn);
-        // sockfd is now the file table entry fdes
-        unlock_filtab();
-    }
-
-    if(sockfd == EOF)
-        __delete_filtab_item(ftn);
-
-    return sockfd;
+	return file;
 }
 
 int connect(int sockfd, struct sockaddr *addr, socklen_t length)
 {
-    SOCKET_WRAPPER(lwip_connect, sockfd, addr, length);
+    SOCKET_WRAPPER(lwip_connect, true, true, sockfd, addr, length);
 }
 
 int bind(int sockfd, struct sockaddr *addr, socklen_t length)
 {
-    SOCKET_WRAPPER(lwip_bind, sockfd, addr, length);
+    SOCKET_WRAPPER(lwip_bind, true, true, sockfd, addr, length);
 }
 
 int shutdown(int sockfd, int how)
 {
-    SOCKET_WRAPPER(lwip_shutdown, sockfd, how);
+    SOCKET_WRAPPER(lwip_shutdown, true, true, sockfd, how);
 }
 
 int getsockname(int sockfd, struct sockaddr *addr, socklen_t *length)
 {
-    SOCKET_WRAPPER(lwip_getsockname, sockfd, addr, length);
+    SOCKET_WRAPPER(lwip_getsockname, true, true, sockfd, addr, length);
 }
 
 int getpeername(int sockfd, struct sockaddr *addr, socklen_t *length)
 {
-    SOCKET_WRAPPER(lwip_getpeername, sockfd, addr, length);
+    SOCKET_WRAPPER(lwip_getpeername, true, true, sockfd, addr, length);
 }
 
 int setsockopt(int sockfd, int level, int optname, void *optval, socklen_t optlen)
 {
-    SOCKET_WRAPPER(lwip_setsockopt, sockfd, level, optname, optval, optlen);
+    SOCKET_WRAPPER(lwip_setsockopt, true, true, sockfd, level, optname, optval, optlen);
 }
 
 int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen)
 {
-    SOCKET_WRAPPER(lwip_getsockopt, sockfd, level, optname, optval, optlen);
+    SOCKET_WRAPPER(lwip_getsockopt, true, true, sockfd, level, optname, optval, optlen);
 }
 
 int listen(int sockfd, int n)
 {
-    SOCKET_WRAPPER(lwip_listen, sockfd, n);
+    SOCKET_WRAPPER(lwip_listen, false, false, sockfd, n);
 }
 
 int recv(int sockfd, void *buffer, size_t size, int flags)
 {
-    SOCKET_WRAPPER(lwip_recv, sockfd, buffer, size, flags);
+    SOCKET_WRAPPER(lwip_recv, true, false, sockfd, buffer, size, flags);
 }
 
 int recvfrom(int sockfd, void *buffer, size_t size, int flags, struct sockaddr *addr, socklen_t *length)
 {
-    SOCKET_WRAPPER(lwip_recvfrom, sockfd, buffer, size, flags, addr, length);
+    SOCKET_WRAPPER(lwip_recvfrom, true, false, sockfd, buffer, size, flags, addr, length);
 }
 
 int send(int sockfd, const void *buffer, size_t size, int flags)
 {
-    SOCKET_WRAPPER(lwip_send, sockfd, buffer, size, flags);
+    SOCKET_WRAPPER(lwip_send, false, true, sockfd, buffer, size, flags);
 }
 
 int sendto(int sockfd, const void *buffer, size_t size, int flags, struct sockaddr *addr, socklen_t length)
 {
-    SOCKET_WRAPPER(lwip_sendto, sockfd, buffer, size, flags, addr, length);
+    SOCKET_WRAPPER(lwip_sendto, false, true, sockfd, buffer, size, flags, addr, length);
 }
 
 /**
@@ -1634,7 +1625,7 @@ int sendto(int sockfd, const void *buffer, size_t size, int flags, struct sockad
 
 int ioctlsocket(int sockfd, int cmd, void* argp)
 {
-    SOCKET_WRAPPER(lwip_ioctl, sockfd, cmd, argp);
+    SOCKET_WRAPPER(lwip_ioctl, true, true, sockfd, cmd, argp);
 }
 
 /**
