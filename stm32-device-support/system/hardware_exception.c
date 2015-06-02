@@ -44,6 +44,10 @@ void prvGetRegistersFromStack(unsigned int *pulFaultStackAddress )
     (void)pulFaultStackAddress;
 #endif
 
+#if ERROR_LED
+    set_led(ERROR_LED);
+#endif
+
     for( ;; );
 }
 
@@ -86,7 +90,10 @@ void MemManage_Handler()
 {
   /* Go to infinite loop when Memory Manage exception occurs */
 #if DEBUG_PRINTF_EXCEPTIONS
-    printf("memanage fault\n");
+    printf("memmanage fault\n");
+#endif
+#if ERROR_LED
+    set_led(ERROR_LED);
 #endif
   while(1);
 }
@@ -102,6 +109,9 @@ void BusFault_Handler()
 #if DEBUG_PRINTF_EXCEPTIONS
     printf("bus fault\n");
 #endif
+#if ERROR_LED
+    set_led(ERROR_LED);
+#endif
   while (1);
 }
 
@@ -115,6 +125,9 @@ void UsageFault_Handler()
   /* Go to infinite loop when Usage Fault exception occurs */
 #if DEBUG_PRINTF_EXCEPTIONS
     printf("usage fault\n");
+#endif
+#if ERROR_LED
+    set_led(ERROR_LED);
 #endif
   while (1);
 }
