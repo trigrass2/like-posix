@@ -420,6 +420,7 @@ if(http_get_file(url, &response, output, buffer, sizeof(buffer)))
  *
  * @param   url - the full URL to get eg http://host:port/path/to/file.html
  * @param   response - a pointer to an http response object.
+ * 			even if the request fails, the response mesage field may be populated.
  * @param   output - a pointer a filepath to save the url endpoint to, eg "./file.html"
  * @param   buffer - working area, used to store received header, response string
  *              fields will end up pointing to parts of this memory.
@@ -452,12 +453,14 @@ http_response_t* http_get_file(char* url, http_response_t* response, const char*
     memset(response, 0, sizeof(http_response_t));
     response->buffer = buffer;
     response->size = size;
+	response->message = response->buffer;
 
     outfd = open(output, O_WRONLY | O_TRUNC | O_CREAT);
 
     if(outfd == -1)
     {
-        log_error(&log, "error opening output file %s", output);
+    	snprintf(response->buffer, response->size, "error opening target file %s", output);
+        log_error(&log, response->buffer);
         return NULL;
     }
 
@@ -467,7 +470,8 @@ http_response_t* http_get_file(char* url, http_response_t* response, const char*
 
     if(!request.remote)
     {
-        log_error(&log, "remote host invalid");
+    	snprintf(response->buffer, response->size, "invalid host in url %s", url);
+		log_error(&log, response->buffer);
         close(outfd);
         return NULL;
     }
@@ -476,7 +480,8 @@ http_response_t* http_get_file(char* url, http_response_t* response, const char*
 
     if(!request.buffer)
     {
-        log_error(&log, "mem alloc failed");
+    	snprintf(response->buffer, response->size, "mem alloc failed");
+		log_error(&log, response->buffer);
         close(outfd);
         return NULL;
     }
@@ -485,7 +490,8 @@ http_response_t* http_get_file(char* url, http_response_t* response, const char*
 
     if(fd == -1)
     {
-        log_error(&log, "failed to connect, %d", fd);
+    	snprintf(response->buffer, response->size, "failed to connect to %s:%d", request.remote, request.port);
+		log_error(&log, response->buffer);
         close(outfd);
         return NULL;
     }
@@ -496,17 +502,20 @@ http_response_t* http_get_file(char* url, http_response_t* response, const char*
     // send HTTP header
     if(length >= request.size)
     {
+    	snprintf(response->buffer, response->size, "header too large, %d/%dbytes", length, request.size);
+		log_error(&log, response->buffer);
+
         closesocket(fd);
         close(outfd);
-        log_error(&log, "header too large, %d/%dbytes", length, request.size);
         return NULL;
     }
     transfer = send(fd, request.buffer, length, 0);
     if(transfer != length)
     {
+    	snprintf(response->buffer, response->size, "send header failed, %d/%dbytes", transfer, length);
+		log_error(&log, response->buffer);
         closesocket(fd);
         close(outfd);
-        log_error(&log, "send header failed, %d/%dbytes", transfer, length);
         return NULL;
     }
 
