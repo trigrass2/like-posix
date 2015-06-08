@@ -40,6 +40,7 @@
 #include <dirent.h>
 #include "shell.h"
 #include "fs_cmds.h"
+#include "confparse.h"
 
 #define IS_NOT_A_DIRECTORY          " is not a directory"
 #define FORMATTING_SDCARD           "formatting sdcard"
@@ -47,6 +48,8 @@
 #define ERROR_OPENING_SOURCE_FILE      "couldnt open source file"
 #define ERROR_OPENING_DEST_FILE      "couldnt open destination file"
 #define ERROR_MOVING_FILE            "error moving file"
+
+#define CONFIG_CMD_BUFFER_SIZE 		512
 
 const char* units[] = {
        "b", "kb", "Mb", "Gb"
@@ -65,6 +68,7 @@ void install_fs_cmds(shellserver_t* sh)
     register_command(sh, &sh_cat_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_mv_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_cp_cmd, NULL, NULL, NULL);
+    register_command(sh, &sh_config_cmd, NULL, NULL, NULL);
 }
 
 int sh_ls(int fdes, const char** args, unsigned char nargs)
@@ -298,6 +302,51 @@ int sh_cp(int fdes, const char** args, unsigned char nargs)
     return SHELL_CMD_EXIT;
 }
 
+int sh_config(int fdes, const char** args, unsigned char nargs)
+{
+    const char* file = arg_by_index(0, args, nargs);
+    const char* key = arg_by_index(1, args, nargs);
+    const char* value = arg_by_index(2, args, nargs);
+    uint8_t* buffer;
+    bool success = true;
+    int length;
+
+    buffer = malloc(CONFIG_CMD_BUFFER_SIZE);
+
+    if(buffer)
+    {
+	    if(file && key && value)
+	    {
+	    	success = add_config_entry(buffer, CONFIG_CMD_BUFFER_SIZE, (const uint8_t*)file, (const uint8_t*)key, (const uint8_t*)value);
+	    	if(!success)
+	    	{
+	            length = sprintf((char*)buffer, "couldnt add %s=%s to %s" SHELL_NEWLINE, key, value, file);
+	            send(fdes, (char*)buffer, length, 0);
+	    	}
+	    }
+	    // todo - i get a hardfault in the next if block (if(success && value)) when I enable this :(
+//	    else if(file && key)
+//	    {
+//	    	value = (const char*)get_config_value_by_key(buffer, CONFIG_CMD_BUFFER_SIZE, (const uint8_t*)file, (const uint8_t*)key);
+//	    	if(!value)
+//	    	{
+//	            length = sprintf((char*)buffer, "couldnt read %s from %s" SHELL_NEWLINE, key, file);
+//	            send(fdes, (char*)buffer, length, 0);
+//	    	}
+//	    }
+
+		if(success && value)
+		{
+			length = sprintf((char*)buffer, "pair: %s=%s" SHELL_NEWLINE, key, value);
+			send(fdes, (char*)buffer, length, 0);
+		}
+
+		free(buffer);
+    }
+
+    return SHELL_CMD_EXIT;
+}
+
 shell_cmd_t sh_ls_cmd = {
     .name = "ls",
     .usage =
@@ -357,5 +406,12 @@ shell_cmd_t sh_cp_cmd = {
         .usage = "copies a file from one location to another" SHELL_NEWLINE \
 "cp file newfile",
         .cmdfunc = sh_cp
+};
+
+shell_cmd_t sh_config_cmd = {
+        .name = "config",
+        .usage = "configs, adds, reads lines from config files" SHELL_NEWLINE \
+"config file [key] [value]",
+        .cmdfunc = sh_config
 };
 

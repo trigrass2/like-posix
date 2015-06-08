@@ -47,6 +47,7 @@ extern shell_cmd_t sh_echo_cmd;
 extern shell_cmd_t sh_cat_cmd;
 extern shell_cmd_t sh_mv_cmd;
 extern shell_cmd_t sh_cp_cmd;
+extern shell_cmd_t sh_config_cmd;
 
 
 void install_fs_cmds(shellserver_t* sh);
