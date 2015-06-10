@@ -209,10 +209,15 @@ uint64_t get_device_uid()
     serialnumber = *(__IO uint64_t*)(0x1FFFF7E8);
     serialnumber += *(__IO uint64_t*)(0x1FFFF7EC);
 //  serialnumber += *(__IO uint64_t*)(0x1FFFF7F0);
-#elif defined(STM32F10X_CL) || defined(STM32F4XX)
+#elif defined(STM32F10X_CL)
+    // TODO - this isnt right?
     serialnumber = *(__IO uint64_t*)(0x1FFFB7E8);
     serialnumber += *(__IO uint64_t*)(0x1FFFB7EC);
 //  serialnumber += *(__IO uint64_t*)(0x1FFFB7F0);
+#elif defined(STM32F4XX)
+    serialnumber = *(__IO uint64_t*)(0x1FFF7A10);
+    serialnumber += *(__IO uint64_t*)(0x1FFF7A14);
+//  serialnumber += *(__IO uint64_t*)(0x1FFF7A18);
 #endif
 
     return serialnumber;
