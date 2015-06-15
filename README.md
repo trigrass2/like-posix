@@ -268,12 +268,22 @@ Memory Use Strategies
  - large buffers cant be taken from the task stack - it just bloats the task stacks way too much.
  - if they are used all the time, and really dont need to change in size, just define in bss and optionally protect access using a mutex.
  - if they are used not so often, or frequently change in size so that a static buffer would waste space, dynamic memory could be a good option.
- 
+
+autensils
+=========
+
+audio utensils. some of the modules are hardware dependant.
+
+Wav
+---
+
+wave file parsing module.
+
 
 cutensils
 =========
 
-software utensils, written in c. all the software in cutensils io in pure hardware independent c.
+software utensils, written in c. all the software in cutensils is in pure hardware independent c.
 
 Logger
 ------

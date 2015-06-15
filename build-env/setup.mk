@@ -112,6 +112,16 @@ USE_GRAPHIC_WIDGET_TOUCH_KEY ?= 0
 USE_GRAPHIC_WIDGET_PANEL_METER ?= 0
 USE_GRAPHIC_WIDGET_STATUSBAR ?= 0
 
+## wave file module from the autensils module
+# set to 1 to enable, set to 0 to disable
+USE_WAV_AUDIO ?= 0 
+## wave stream module from the autensils module
+# set to 1 to enable, set to 0 to disable
+USE_WAV_STREAM ?= 0 
+## signal generator stream module from the autensils module
+# set to 1 to enable, set to 0 to disable
+USE_SIGGEN_STREAM ?= 0 
+
 ## DRIVERS
 # set thse to 0 to remove from the build, 1 to include in the build
 # standalone drivers
@@ -145,6 +155,8 @@ USE_DRIVER_PWM ?= 0
 BUILD_ENV_DIR ?= $(STM32DEVSUPPORTDIR)/build-env
 ## specify location of stm32-device-support
 DEVICE_SUPPORT_DIR ?= $(STM32DEVSUPPORTDIR)/stm32-device-support
+## specify location of autensils
+AUTENSILS_DIR ?= $(STM32DEVSUPPORTDIR)/autensils
 ## specify location of cutensils
 CUTENSILS_DIR ?= $(STM32DEVSUPPORTDIR)/cutensils
 ## specify location of nutensils
