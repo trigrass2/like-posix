@@ -330,15 +330,11 @@ void i2s_stream_stop()
 void i2s_stream_set_samplerate(uint32_t samplerate)
 {
     i2s_tx_stream.samplerate = i2s_rx_stream.samplerate = samplerate;
-    I2S_InitTypeDef i2s_init;
-    i2s_init.I2S_AudioFreq = i2s_tx_stream.samplerate;
-    i2s_init.I2S_MCLKOutput = I2S_USE_MCLKOUT;
-    i2s_init.I2S_Mode = I2S_USE_MODE;
-    i2s_init.I2S_DataFormat = I2S_USE_FORMAT;
-    i2s_init.I2S_Standard = I2S_USE_DATA_STD;
-    i2s_init.I2S_CPOL = I2S_USE_CPOL;
-    I2S_Init(I2S_STREAM_I2S_PERIPHERAL, &i2s_init);
-    I2S_FullDuplexConfig(I2S_STREAM_I2S_EXT_PERIPHERAL, &i2s_init);
+	i2s_stream_stop();
+    RCC_PLLI2SCmd(DISABLE);
+	RCC_APB1PeriphClockCmd(I2S_STREAM_I2S_CLOCK, DISABLE);
+	init_local_i2s();
+    i2s_stream_start();
 }
 
 /**

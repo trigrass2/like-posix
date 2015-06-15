@@ -35,7 +35,7 @@
 
 #include "stream_defs.h"
 void init_stream(stream_t* stream, const char* name, uint32_t samplerate,
-                uint16_t maxconns, uint16_t* stream_buffer, stream_connection_t** connections,
+                uint16_t maxconns, unsigned_stream_type_t* stream_buffer, stream_connection_t** connections,
                 uint16_t buffer_length, uint8_t channel_count, uint8_t task_prio, uint16_t task_stack, uint16_t full_scale_amplitude, uint32_t resolution);
 void stream_set_samplerate(stream_t* stream, TIM_TypeDef* samplerate_timer, uint32_t timer_clockrate, uint32_t samplerate);
 uint32_t stream_get_samplerate(stream_t* stream);

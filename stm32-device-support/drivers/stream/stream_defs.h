@@ -37,6 +37,9 @@
 #include "board_config.h"
 #include "cutensils.h"
 
+typedef int16_t signed_stream_type_t;
+typedef uint16_t unsigned_stream_type_t;
+
 #define STREAM_SR_PERIOD_RELOAD_2K           36000
 #define STREAM_SR_PERIOD_RELOAD_4K           18000
 #define STREAM_SR_PERIOD_RELOAD_8K           9000
@@ -54,11 +57,11 @@
 
 typedef struct _stream_connection_t stream_connection_t;
 
-typedef void(*stream_callback_t)(uint16_t* buffer, uint16_t length, uint8_t channels, stream_connection_t* conn);
+typedef void(*stream_callback_t)(unsigned_stream_type_t* buffer, uint16_t length, uint8_t channels, stream_connection_t* conn);
 
 typedef struct {
-    uint16_t* buffer;                       ///< private to stream driver, points to the current buffer phase or NULL if no data is ready.
-    uint16_t* _buffer;                      ///< private to stream driver, points to the start of the full stream buffer.
+	unsigned_stream_type_t* buffer;                       ///< private to stream driver, points to the current buffer phase or NULL if no data is ready.
+	unsigned_stream_type_t* _buffer;                      ///< private to stream driver, points to the start of the full stream buffer.
     stream_connection_t** connections;      ///< private to stream driver, register of service interfaces.
     uint32_t samplerate;                    ///< private to stream driver, holds a cached value of the last set samplerate.
     logger_t log;                           ///< private to stream driver, logger.
