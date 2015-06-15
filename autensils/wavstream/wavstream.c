@@ -115,6 +115,7 @@ void wavstream_enable(stream_connection_t* conn, const char* file)
 			wavstream->setsamplerate(wavstream->restore_samplerate);
     	if(wavstream->workarea)
     		free(wavstream->workarea);
+    	wavstream->workarea = NULL;
     }
 }
 
