@@ -21,21 +21,15 @@ const uint8_t FACT[] = RIFF_TAG_FACT;
  */
 static bool wav_file_read_chunk(wav_file_t* file, void* field)
 {
-	int ret = read(file->fdes, field, CHUNK_TAG_LENGTH);
-	if(ret != CHUNK_TAG_LENGTH)
-		log_warning(&file->log, "file %d read: %d", file->fdes, ret);
-	return  ret == CHUNK_TAG_LENGTH;
+	return read(file->fdes, field, CHUNK_TAG_LENGTH) == CHUNK_TAG_LENGTH;
 }
 
 /**
  * compare chunk tag of CHUNK_TAG_LENGTH bytes to another. return true if they match, false otherwise.
  */
-static bool wav_file_compare_chunk(wav_file_t* file, const void* field, const void* compare)
+static bool wav_file_compare_chunk(const void* field, const void* compare)
 {
-	bool ret = memcmp(field, compare, CHUNK_TAG_LENGTH) == 0;
-	if(!ret)
-		log_warning(&file->log, "field %c%c%c%c != %c%c%c%c", ((char*)field)[0], ((char*)field)[1], ((char*)field)[2], ((char*)field)[3], ((char*)compare)[0], ((char*)compare)[1], ((char*)compare)[2], ((char*)compare)[3]);
-	return ret;
+	return memcmp(field, compare, CHUNK_TAG_LENGTH) == 0;
 }
 
 /**
@@ -61,21 +55,19 @@ bool wav_file_unpack_header(wav_file_t* file)
 {
 //	log_debug(NULL, "%d", file->fdes);
 	// read RIFF chunk
-	if(!wav_file_read_chunk(file, file->header.riff) || !wav_file_compare_chunk(file, file->header.riff, RIFF))
+	if(!wav_file_read_chunk(file, file->header.riff) || !wav_file_compare_chunk(file->header.riff, RIFF))
 		return false;
 
 	// read SIZE field
 	if(!wav_file_read_integer(file, &file->header.size))
 		return false;
 
-	log_debug(&file->log, "file size: %u", file->header.size);
-
 	// read WAVE chunk
-	if(!wav_file_read_chunk(file, file->header.type) || !wav_file_compare_chunk(file, file->header.type, WAVE))
+	if(!wav_file_read_chunk(file, file->header.type) || !wav_file_compare_chunk(file->header.type, WAVE))
 		return false;
 
 	// read FMT chunk and all fmt data
-	if(!wav_file_read_chunk(file, file->header.fmt) || !wav_file_compare_chunk(file, file->header.fmt, FMT))
+	if(!wav_file_read_chunk(file, file->header.fmt) || !wav_file_compare_chunk(file->header.fmt, FMT))
 		return false;
 
 	wav_file_read_integer(file, &file->header.fmt_len);
@@ -86,23 +78,19 @@ bool wav_file_unpack_header(wav_file_t* file)
 	wav_file_read_short(file, &file->header.fmt_block_align);
 	wav_file_read_short(file, &file->header.fmt_word_size);
 
-	log_debug(&file->log, "channels: %u", file->header.fmt_num_channels);
-	log_debug(&file->log, "samplerate: %u", file->header.fmt_sample_rate);
-	log_debug(&file->log, "resolution: %u", file->header.fmt_word_size);
-
 	// read next chunk (FACT or DATA) tag
 	if(!wav_file_read_chunk(file, file->header.data))
 		return false;
 
 	// it is the data chunk tag
-	if(wav_file_compare_chunk(file, file->header.data, DATA))
+	if(wav_file_compare_chunk(file->header.data, DATA))
 	{
 		// populate fact chunk with dummy data
 		memcpy(file->header.fact, FACT, CHUNK_TAG_LENGTH);
 		file->header.fact_len = 0;
 	}
 	// it is the fact chunk tag
-	else if(wav_file_compare_chunk(file, file->header.data, FACT))
+	else if(wav_file_compare_chunk(file->header.data, FACT))
 	{
 		memcpy(file->header.fact, file->header.data, CHUNK_TAG_LENGTH);
 		wav_file_read_integer(file, &file->header.fact_len);
@@ -124,10 +112,6 @@ int wav_file_open(wav_file_t* file, const char* filepath)
 {
 	file->fdes = open(filepath, O_RDONLY, 0);
 
-	log_init(&file->log, "wavfile");
-
-	log_debug(&file->log, "open file %s, %d", filepath, file->fdes);
-
 	if(!wav_file_unpack_header(file))
 	{
 		close(file->fdes);
@@ -146,7 +130,8 @@ void wav_file_close(wav_file_t* file)
 
 /**
  * populates the given wav_file_processing_t processing structure transformation parameters.
- * typically called by a stream service once when enabling the stream, aftre the wave file has been opened.
+ *
+ * called by a stream service once when enabling the stream, after the wave file has been opened.
  *
  * Note: allocates a working area buffer, so the function wav_file_deinit_stream_params() must be called when the wave file is finished playing.
  */
@@ -155,7 +140,8 @@ bool wav_file_init_stream_params(wav_file_t* file, wav_file_processing_t* wavpro
 	wavproc->wav_word_size_bytes = file->header.fmt_word_size / 8;
 	wavproc->workarea_length_samples = workarealength * file->header.fmt_num_channels;
 	wavproc->wav_read_length_bytes = wavproc->workarea_length_samples * wavproc->wav_word_size_bytes;
-	wavproc->workarea = malloc(wavproc->wav_read_length_bytes);
+	if(wavproc->workarea == NULL)
+		wavproc->workarea = malloc(wavproc->wav_read_length_bytes);
 	wavproc->buffer_word_size_bytes = buffer_width;
 
 	return wavproc->workarea != NULL;
@@ -173,7 +159,9 @@ void wav_file_deinit_stream_params(wav_file_processing_t* wavproc)
 
 /**
  * populates the given wav_file_processing_t processing structure buffer parameters.
- * typically called by a stream service before calling wav_file_read_mix_to_buffer_channel().
+ *
+ * called by a stream service before calling wav_file_read_mix_to_buffer_channel().
+ * may be called multiple times.
  */
 void wav_file_buffer_setup(wav_file_processing_t* wavproc, void* buffer, uint32_t buffer_length_samples, uint8_t buffer_channels)
 {
@@ -185,15 +173,15 @@ void wav_file_buffer_setup(wav_file_processing_t* wavproc, void* buffer, uint32_
 /**
  * read all channels from N wave file, mixing signal down into one stream buffer channel.
  *
- * supports 8, 16 and 32 bit wave files, of 1 or more channels. does not perform resampling.
+ * supports 8, 16 and 32 bit wave files, of 1 or more channels.
+ * does not perform re-sampling.
+ * does not scale the data.
  *
  * @param file is the open wave file
  * @param wavproc is an initialized wav_file_processing_t structure. initialize with wav_file_init_stream_params() and wav_file_buffer_setup().
  * @param multiply is a number to multiply samples by before after summing. it can be used to amplify the output data.
- * @param divide is a number to divide samples by after summing them. it can be used to attenuate the output data.
- * @retval returns the number of samples read. if < samplecount, then the end of the file has been reached.
  */
-uint32_t wav_file_read_mix_to_buffer_channel(wav_file_t* file, wav_file_processing_t* wavproc, int32_t multiply, int32_t divide)
+uint32_t wav_file_read_mix_to_buffer_channel(wav_file_t* file, wav_file_processing_t* wavproc)
 {
 	uint32_t wordsread = wavproc->workarea_length_samples;
 	uint32_t samplecount = 0;
@@ -202,9 +190,6 @@ uint32_t wav_file_read_mix_to_buffer_channel(wav_file_t* file, wav_file_processi
 	uint32_t word;
 	uint16_t i;
 	int32_t sum;
-
-	// eliminate destruction of the data by "accumulator" overflow
-	divide *= file->header.fmt_num_channels;
 
 	// one loop per 256 samples
 	while(wordsread == wavproc->workarea_length_samples && samplecount < wavproc->buffer_length_samples)
@@ -248,13 +233,13 @@ uint32_t wav_file_read_mix_to_buffer_channel(wav_file_t* file, wav_file_processi
 			switch(wavproc->buffer_word_size_bytes)
 			{
 				case sizeof(int8_t):
-					*(int8_t*)buffer = multiply * sum / divide;
+					*(int8_t*)buffer = sum / file->header.fmt_num_channels;
 				break;
 				case sizeof(int16_t):
-					*(int16_t*)buffer = multiply * sum / divide;
+					*(int16_t*)buffer = sum / file->header.fmt_num_channels;
 				break;
 				case sizeof(int32_t):
-					*(int32_t*)buffer = multiply * sum / divide;
+					*(int32_t*)buffer = sum / file->header.fmt_num_channels;
 				break;
 			}
 

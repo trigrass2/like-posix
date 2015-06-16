@@ -102,8 +102,12 @@ struct _riff_header_t{
 typedef struct {
 	int fdes;
 	struct _riff_header_t header;
-	logger_t log;
 }wav_file_t;
+
+/**
+ * suggested size of file processing work area.
+ */
+#define WAV_FILE_WORK_AREA_LENGTH 256
 
 /**
  * structure that contains pre-computed processing parameters for use by real streams.
@@ -128,7 +132,7 @@ bool wav_file_init_stream_params(wav_file_t* file, wav_file_processing_t* wavpro
 void wav_file_buffer_setup(wav_file_processing_t* wavproc, void* buffer, uint32_t buffer_length_samples, uint8_t buffer_channels);
 void wav_file_deinit_stream_params(wav_file_processing_t* wavproc);
 void wav_file_close(wav_file_t* file);
-uint32_t wav_file_read_mix_to_buffer_channel(wav_file_t* file, wav_file_processing_t* wavproc, int32_t multiply, int32_t divide);
+uint32_t wav_file_read_mix_to_buffer_channel(wav_file_t* file, wav_file_processing_t* wavproc);
 uint16_t wav_file_get_channels(wav_file_t* file);
 uint32_t wav_file_get_data_length(wav_file_t* file);
 uint32_t wav_file_get_samplerate(wav_file_t* file);
