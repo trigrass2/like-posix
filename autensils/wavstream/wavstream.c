@@ -1,7 +1,6 @@
 
 #include "wavstream.h"
 
-#define full_scale_level_mv() ((signed_stream_type_t)stream_get_full_scale_amplitude_mv(conn)/2)
 
 static void wavstream_service_callback_mixdown(unsigned_stream_type_t* buffer, uint16_t length, uint8_t channels, stream_connection_t* wavstream);
 
@@ -29,21 +28,34 @@ void wavstream_init(wavstream_t* wavstream, stream_connection_t* conn, stream_t*
 	stream_connection_init(conn, wavstream_service_callback_mixdown, name, wavstream);
 	stream_connect_service(conn, stream, stream_channel);
 
-    wavstream_set_level(conn, full_scale_level_mv());
+	wavstream->fsa = stream_get_full_scale_amplitude_mv(conn)/2;
+
+    wavstream_set_level(conn, wavstream->fsa);
 }
 
 /**
  * stream callback function.
+ *
+ * operates on one stream channel only.
  */
 void wavstream_service_callback_mixdown(unsigned_stream_type_t* buffer, uint16_t length, uint8_t channels, stream_connection_t* conn)
 {
+	uint16_t i;
     wavstream_t* wavstream = (wavstream_t*)conn->ctx;
+
+    // wave file part
     wav_file_buffer_setup(&wavstream->wavproc, buffer, length, channels);
-    uint32_t samplesread = wav_file_read_mix_to_buffer_channel(&wavstream->file, &wavstream->wavproc, 1, wavstream->divider);
-    if(samplesread < length)
+    uint32_t samplesread = wav_file_read_mix_to_buffer_channel(&wavstream->file, &wavstream->wavproc);
+
+    // scale to user defined level
+    for(i = 0; i < length; i++)
     {
-    	wavstream_enable(conn, NULL);
+    	*buffer = *((signed_stream_type_t*)buffer) * wavstream->level / wavstream->fsa;
+    	buffer += channels;
     }
+
+    if(samplesread < length)
+    	wavstream_enable(conn, NULL);
 }
 
 /**
@@ -55,13 +67,13 @@ void wavstream_set_level(stream_connection_t* conn, signed_stream_type_t level)
 {
     wavstream_t* wavstream = (wavstream_t*)conn->ctx;
 
-    if(level <= full_scale_level_mv())
+    if(level <= wavstream->fsa)
     {
-        wavstream->divider =  full_scale_level_mv() / level;
+        wavstream->level =  level;
         log_info(&wavstream->log, "level set to %dmV", level);
     }
     else
-        log_warning(&wavstream->log, "level %dmV out of range, range is 0 to %dmV", level, full_scale_level_mv());
+        log_warning(&wavstream->log, "level %dmV out of range, range is 0 to %dmV", level, wavstream->fsa);
 }
 
 /**
@@ -70,7 +82,7 @@ void wavstream_set_level(stream_connection_t* conn, signed_stream_type_t level)
 signed_stream_type_t wavstream_get_level(stream_connection_t* conn)
 {
     wavstream_t* wavstream = (wavstream_t*)conn->ctx;
-    return full_scale_level_mv() / wavstream->divider;
+    return wavstream->level;
 }
 
 /**
@@ -80,42 +92,63 @@ void wavstream_enable(stream_connection_t* conn, const char* file)
 {
 	bool enable;
     wavstream_t* wavstream = (wavstream_t*)conn->ctx;
+
+    assert_true(wavstream->getsamplerate && wavstream->setsamplerate);
+
     if(file)
     {
+		log_debug(&wavstream->log, "open file %s", file);
 		if(!conn->enabled && wav_file_open(&wavstream->file, file) != -1)
 		{
-			if(((wav_file_get_format(&wavstream->file) == WAVE_FORMAT_PCM) ||
-					(wav_file_get_format(&wavstream->file) == WAVE_FORMAT_EXTENSIBLE)) &&
-					wav_file_get_channels(&wavstream->file) <= stream_get_channel_count(conn) &&
-					wav_file_get_wordsize_bytes(&wavstream->file) <= sizeof(int32_t) &&
-					wavstream->getsamplerate && wavstream->setsamplerate)
+			if(wav_file_get_format(&wavstream->file) != WAVE_FORMAT_PCM &&
+			   wav_file_get_format(&wavstream->file) != WAVE_FORMAT_EXTENSIBLE)
 			{
-				enable = wav_file_init_stream_params(&wavstream->file, &wavstream->wavproc,
-													sizeof(signed_stream_type_t), WAV_STREAM_WORK_AREA_LENGTH);
-				if(enable)
-				{
-					wavstream->restore_samplerate = wavstream->getsamplerate();
-					wavstream->setsamplerate(wavstream->file.header.fmt_sample_rate);
-				}
-				else
-					log_warning(&wavstream->log, "failed to allocate memory");
-				stream_connection_enable(conn, enable);
+				log_warning(&wavstream->log, "wave file must be PCM (%d) or Extensible format (%d), it is %d",
+												WAVE_FORMAT_PCM, WAVE_FORMAT_EXTENSIBLE, wav_file_get_format(&wavstream->file));
+			}
+			else if(wav_file_get_channels(&wavstream->file) > stream_get_channel_count(conn))
+			{
+				log_warning(&wavstream->log, "number of channels must be less than %d, it was %d",
+												stream_get_channel_count(conn), wav_file_get_channels(&wavstream->file));
+			}
+			else if(wav_file_get_wordsize_bytes(&wavstream->file) > sizeof(int32_t))
+			{
+				log_warning(&wavstream->log, "word length must be less than %db, it was %db",
+												sizeof(int32_t)*8, wav_file_get_wordsize_bits(&wavstream->file));
 			}
 			else
-		        log_warning(&wavstream->log, "cant process format=%d or channelcount=%d or wordsize=%dbits",
-		        		wav_file_get_format(&wavstream->file),
-						wav_file_get_channels(&wavstream->file),
-						wav_file_get_wordsize_bits(&wavstream->file));
+			{
+				enable = wav_file_init_stream_params(&wavstream->file, &wavstream->wavproc,
+													sizeof(signed_stream_type_t), WAV_FILE_WORK_AREA_LENGTH);
+				if(enable)
+				{
+					// set the stream samplerate to match the file
+					wavstream->restore_samplerate = wavstream->getsamplerate();
+					if(wavstream->restore_samplerate != wavstream->file.header.fmt_sample_rate)
+						wavstream->setsamplerate(wavstream->file.header.fmt_sample_rate);
+
+					log_debug(&wavstream->log, "data length: %u", wav_file_get_data_length(&wavstream->file));
+					log_debug(&wavstream->log, "channels: %u", wav_file_get_channels(&wavstream->file));
+					log_debug(&wavstream->log, "samplerate: %u", wav_file_get_samplerate(&wavstream->file));
+					log_debug(&wavstream->log, "resolution: %u", wav_file_get_wordsize_bits(&wavstream->file));
+				}
+				else
+					log_warning(&wavstream->log, "failed to initialize work area");
+				stream_connection_enable(conn, enable);
+
+			}
 		}
     }
     else if(conn->enabled)
     {
 	    stream_connection_enable(conn, false);
 		wav_file_close(&wavstream->file);
-		if(wavstream->setsamplerate)
+		if(wavstream->restore_samplerate != wavstream->getsamplerate())
 			wavstream->setsamplerate(wavstream->restore_samplerate);
 		wav_file_deinit_stream_params(&wavstream->wavproc);
     }
+
+    log_info(&wavstream->log, "playback %s", conn->enabled ? "started" : "stopped");
 }
 
 /**

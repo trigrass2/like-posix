@@ -6,13 +6,11 @@
 #include "wav.h"
 #include "stream_common.h"
 
-#define WAV_STREAM_WORK_AREA_LENGTH 256
-
 typedef struct {
-    wav_file_t file;
-    signed_stream_type_t divider;
     logger_t log;
-    int32_t fsa;
+    wav_file_t file;
+    signed_stream_type_t level;
+    signed_stream_type_t fsa;
     uint32_t restore_samplerate;
     uint32_t(*getsamplerate)(void);
     void(*setsamplerate)(uint32_t);
