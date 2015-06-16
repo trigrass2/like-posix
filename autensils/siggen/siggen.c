@@ -96,7 +96,9 @@ uint16_t siggen_get_amplitude(stream_connection_t* conn)
 
 void siggen_enable(stream_connection_t* conn, bool enable)
 {
+    siggen_t* siggen = (siggen_t*)conn->ctx;
     stream_connection_enable(conn, enable);
+    log_info(&siggen->log, "siggen %s", conn->enabled ? "enabled" : "disabled");
 }
 
 bool siggen_enabled(stream_connection_t* conn)
