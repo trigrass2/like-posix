@@ -105,9 +105,30 @@ typedef struct {
 	logger_t log;
 }wav_file_t;
 
+/**
+ * structure that contains pre-computed processing parameters for use by real streams.
+ * the stream buffer must be structure like so:
+ * 				sample0		      sample1				   sampleN
+ * 				[[ch0, ch1...chN],[ch0, ch1...chN], .... , [ch0, ch1...chN]]
+ */
+typedef struct {
+	uint8_t wav_word_size_bytes;	///< the size in bytes of the wave file data
+	void* buffer;					///< a buffer used by the stream service.
+	uint32_t buffer_length_samples;	///< length of the buffer in samples.
+	uint8_t buffer_channels;		///< the number of channels in the buffer
+	uint8_t buffer_word_size_bytes; ///< the size in bytes of the wave buffer data
+	uint32_t wav_read_length_bytes; ///< the number of bytes to read from the wave file to fill the workarea.
+	void* workarea;					///< working area (used in buffer copy and repacking)
+	uint32_t workarea_length_samples; ///< number of samples in the workarea.
+}wav_file_processing_t;
+
+
 int wav_file_open(wav_file_t* file, const char* filepath);
+bool wav_file_init_stream_params(wav_file_t* file, wav_file_processing_t* wavproc, uint8_t buffer_width, uint16_t workarealength);
+void wav_file_buffer_setup(wav_file_processing_t* wavproc, void* buffer, uint32_t buffer_length_samples, uint8_t buffer_channels);
+void wav_file_deinit_stream_params(wav_file_processing_t* wavproc);
 void wav_file_close(wav_file_t* file);
-uint32_t wav_file_read_mix_to_buffer_channel(wav_file_t* file, uint32_t samplecount, int16_t* buffer, uint8_t bufferchannels, int32_t multiply, int32_t divide, int16_t* workarea, uint32_t workarealength);
+uint32_t wav_file_read_mix_to_buffer_channel(wav_file_t* file, wav_file_processing_t* wavproc, int32_t multiply, int32_t divide);
 uint16_t wav_file_get_channels(wav_file_t* file);
 uint32_t wav_file_get_data_length(wav_file_t* file);
 uint32_t wav_file_get_samplerate(wav_file_t* file);

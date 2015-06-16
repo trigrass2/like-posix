@@ -16,7 +16,7 @@ typedef struct {
     uint32_t restore_samplerate;
     uint32_t(*getsamplerate)(void);
     void(*setsamplerate)(uint32_t);
-    signed_stream_type_t* workarea;
+    wav_file_processing_t wavproc;
 } wavstream_t;
 
 void wavstream_init(wavstream_t* wavstream, stream_connection_t* conn, stream_t* stream, const char* name, int8_t stream_channel, uint32_t(*getsamplerate)(void), void(*setsamplerate)(uint32_t));

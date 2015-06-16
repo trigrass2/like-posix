@@ -1,5 +1,6 @@
 
 
+#include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include "wav.h"
@@ -144,86 +145,125 @@ void wav_file_close(wav_file_t* file)
 }
 
 /**
- * read all channels from N wave file, mixing signal down into one buffer channel.
+ * populates the given wav_file_processing_t processing structure transformation parameters.
+ * typically called by a stream service once when enabling the stream, aftre the wave file has been opened.
  *
- * supports  8, 16 and 32 bit wave files.
- * supports wave files with 1 or 2 channels.
+ * Note: allocates a working area buffer, so the function wav_file_deinit_stream_params() must be called when the wave file is finished playing.
+ */
+bool wav_file_init_stream_params(wav_file_t* file, wav_file_processing_t* wavproc, uint8_t buffer_width, uint16_t workarealength)
+{
+	wavproc->wav_word_size_bytes = file->header.fmt_word_size / 8;
+	wavproc->workarea_length_samples = workarealength * file->header.fmt_num_channels;
+	wavproc->wav_read_length_bytes = wavproc->workarea_length_samples * wavproc->wav_word_size_bytes;
+	wavproc->workarea = malloc(wavproc->wav_read_length_bytes);
+	wavproc->buffer_word_size_bytes = buffer_width;
+
+	return wavproc->workarea != NULL;
+}
+
+/**
+ * cleans up after wav_file_init_stream_params() has been called.
+ */
+void wav_file_deinit_stream_params(wav_file_processing_t* wavproc)
+{
+	if(wavproc->workarea)
+		free(wavproc->workarea);
+	wavproc->workarea = NULL;
+}
+
+/**
+ * populates the given wav_file_processing_t processing structure buffer parameters.
+ * typically called by a stream service before calling wav_file_read_mix_to_buffer_channel().
+ */
+void wav_file_buffer_setup(wav_file_processing_t* wavproc, void* buffer, uint32_t buffer_length_samples, uint8_t buffer_channels)
+{
+	wavproc->buffer_channels = buffer_channels;
+	wavproc->buffer = buffer;
+	wavproc->buffer_length_samples = buffer_length_samples;
+}
+
+/**
+ * read all channels from N wave file, mixing signal down into one stream buffer channel.
  *
- * buffer structure:
- * 						 sample0		  sample1				   sampleN
- * 						[[ch0, ch1...chN],[ch0, ch1...chN], .... , [ch0, ch1...chN]]
+ * supports 8, 16 and 32 bit wave files, of 1 or more channels. does not perform resampling.
  *
  * @param file is the open wave file
- * @param samplecount is the number of samples to read from the wave file, into the buffer, and must be a multiple of the number of samples in the work area (which is typically 256).
- * @param buffer is the memory to save the data from the wave file into, and may be the address of a buffer array plus a channel offset.
- * 			buffer must be at least samplecount * sizeof(int16_t) * the number of channels in the buffer.
- * 			note the the size of samplecount!
- * @param bufferchannels is the number of channels in the buffer (used as the length to increment the buffer in the copy process)
+ * @param wavproc is an initialized wav_file_processing_t structure. initialize with wav_file_init_stream_params() and wav_file_buffer_setup().
  * @param multiply is a number to multiply samples by before after summing. it can be used to amplify the output data.
  * @param divide is a number to divide samples by after summing them. it can be used to attenuate the output data.
  * @retval returns the number of samples read. if < samplecount, then the end of the file has been reached.
- * @param workarea is a memory space to read samples into from the file, before repacking them into the buffer.
- * @param workarealength is the number of wave file samples in the workarea (not samples * channels). this would typically be 256.
  */
-uint32_t wav_file_read_mix_to_buffer_channel(wav_file_t* file, uint32_t samplecount, int16_t* buffer, uint8_t bufferchannels, int32_t multiply, int32_t divide, int16_t* workarea, uint32_t workarealength)
+uint32_t wav_file_read_mix_to_buffer_channel(wav_file_t* file, wav_file_processing_t* wavproc, int32_t multiply, int32_t divide)
 {
-	workarealength *= file->header.fmt_num_channels;
-
-	uint16_t word_size = wav_file_get_wordsize_bytes(file);
-	uint32_t readlength = workarealength * word_size;
-	uint32_t wordsread = workarealength;
-	uint32_t samplesread = 0;
+	uint32_t wordsread = wavproc->workarea_length_samples;
+	uint32_t samplecount = 0;
 	void* scratch;
+	void* buffer = wavproc->buffer;
 	uint32_t word;
-	uint16_t channel;
+	uint16_t i;
 	int32_t sum;
 
 	// eliminate destruction of the data by "accumulator" overflow
 	divide *= file->header.fmt_num_channels;
 
 	// one loop per 256 samples
-	while(wordsread == workarealength && samplesread < samplecount)
+	while(wordsread == wavproc->workarea_length_samples && samplecount < wavproc->buffer_length_samples)
 	{
-		wordsread = read(file->fdes, workarea, readlength);
-		wordsread /= word_size;
-		scratch = workarea;
+		wordsread = read(file->fdes, wavproc->workarea, wavproc->wav_read_length_bytes);
+		wordsread /= wavproc->wav_word_size_bytes;
+		scratch = wavproc->workarea;
+
 		// one loop per sample in wave file
 		for(word = 0; word < wordsread; word += file->header.fmt_num_channels)
 		{
 			sum = 0;
 			// one loop per channel in the sample
-			switch(word_size)
+			switch(wavproc->wav_word_size_bytes)
 			{
 				case sizeof(uint8_t):
-					for(channel = 0; channel < file->header.fmt_num_channels; channel++)
+					for(i = 0; i < file->header.fmt_num_channels; i++)
 					{
 						sum += (*(uint8_t*)scratch)-128; // 8bit wave is unsigned
-						scratch = ((uint8_t*)scratch) + 1;
+						scratch = ((uint8_t*)scratch) + wavproc->wav_word_size_bytes;
 					}
 					sum *= 256; // normalize to 16bits
 				break;
 				case sizeof(int16_t):
-					for(channel = 0; channel < file->header.fmt_num_channels; channel++)
+					for(i = 0; i < file->header.fmt_num_channels; i++)
 					{
 						sum += *(int16_t*)scratch;
-						scratch = ((int16_t*)scratch) + 1;
+						scratch = ((uint8_t*)scratch) + wavproc->wav_word_size_bytes;
 					}
 				break;
 				case sizeof(int32_t):
-					for(channel = 0; channel < file->header.fmt_num_channels; channel++)
+					for(i = 0; i < file->header.fmt_num_channels; i++)
 					{
 						sum += (*(int32_t*)scratch)/65536; // avoid overflow, divide every cycle, normalize to 16bits
-						scratch = ((int32_t*)scratch) + 1;
+						scratch = ((uint8_t*)scratch) + wavproc->wav_word_size_bytes;
 					}
 				break;
+
 			}
-			*buffer = multiply * sum / divide;
-			buffer += bufferchannels;
-			samplesread++;
+
+			switch(wavproc->buffer_word_size_bytes)
+			{
+				case sizeof(int8_t):
+					*(int8_t*)buffer = multiply * sum / divide;
+				break;
+				case sizeof(int16_t):
+					*(int16_t*)buffer = multiply * sum / divide;
+				break;
+				case sizeof(int32_t):
+					*(int32_t*)buffer = multiply * sum / divide;
+				break;
+			}
+
+			buffer = ((uint8_t*)buffer) + (wavproc->buffer_channels * wavproc->buffer_word_size_bytes);
+			samplecount++;
 		}
 	}
 
-	return samplesread;
+	return samplecount;
 }
 
 /**
@@ -268,7 +308,7 @@ uint32_t wav_file_get_wordsize_bits(wav_file_t* file)
  */
 uint32_t wav_file_get_wordsize_bytes(wav_file_t* file)
 {
-	return file->header.fmt_word_size / 8;
+	return file->header.fmt_word_size/8;
 }
 
 /**

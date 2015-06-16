@@ -1,5 +1,4 @@
 
-#include <stdlib.h>
 #include "wavstream.h"
 
 #define full_scale_level_mv() ((signed_stream_type_t)stream_get_full_scale_amplitude_mv(conn)/2)
@@ -39,7 +38,8 @@ void wavstream_init(wavstream_t* wavstream, stream_connection_t* conn, stream_t*
 void wavstream_service_callback_mixdown(unsigned_stream_type_t* buffer, uint16_t length, uint8_t channels, stream_connection_t* conn)
 {
     wavstream_t* wavstream = (wavstream_t*)conn->ctx;
-    uint32_t samplesread = wav_file_read_mix_to_buffer_channel(&wavstream->file, length, (int16_t*)buffer, channels, 1, wavstream->divider, wavstream->workarea, WAV_STREAM_WORK_AREA_LENGTH);
+    wav_file_buffer_setup(&wavstream->wavproc, buffer, length, channels);
+    uint32_t samplesread = wav_file_read_mix_to_buffer_channel(&wavstream->file, &wavstream->wavproc, 1, wavstream->divider);
     if(samplesread < length)
     {
     	wavstream_enable(conn, NULL);
@@ -87,10 +87,11 @@ void wavstream_enable(stream_connection_t* conn, const char* file)
 			if(((wav_file_get_format(&wavstream->file) == WAVE_FORMAT_PCM) ||
 					(wav_file_get_format(&wavstream->file) == WAVE_FORMAT_EXTENSIBLE)) &&
 					wav_file_get_channels(&wavstream->file) <= stream_get_channel_count(conn) &&
-					wav_file_get_wordsize_bytes(&wavstream->file) <= sizeof(int32_t))
+					wav_file_get_wordsize_bytes(&wavstream->file) <= sizeof(int32_t) &&
+					wavstream->getsamplerate && wavstream->setsamplerate)
 			{
-				wavstream->workarea = malloc(WAV_STREAM_WORK_AREA_LENGTH  * wav_file_get_channels(&wavstream->file) * wav_file_get_wordsize_bytes(&wavstream->file));
-				enable = wavstream->workarea && wavstream->getsamplerate && wavstream->setsamplerate;
+				enable = wav_file_init_stream_params(&wavstream->file, &wavstream->wavproc,
+													sizeof(signed_stream_type_t), WAV_STREAM_WORK_AREA_LENGTH);
 				if(enable)
 				{
 					wavstream->restore_samplerate = wavstream->getsamplerate();
@@ -113,9 +114,7 @@ void wavstream_enable(stream_connection_t* conn, const char* file)
 		wav_file_close(&wavstream->file);
 		if(wavstream->setsamplerate)
 			wavstream->setsamplerate(wavstream->restore_samplerate);
-    	if(wavstream->workarea)
-    		free(wavstream->workarea);
-    	wavstream->workarea = NULL;
+		wav_file_deinit_stream_params(&wavstream->wavproc);
     }
 }
 
