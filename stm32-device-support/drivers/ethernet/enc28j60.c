@@ -41,6 +41,7 @@
 
 #include "enc28j60.h"
 
+#include <unistd.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -367,7 +368,10 @@ void enc28j60_write_buffer(uint8_t *buf, uint16_t len)
 	enc28j60_select();
 	enc28j60_tx(ENC28J60_SPI_WBM);
 	while(len--)
-		enc28j60_tx(*(buf++));
+	{
+		enc28j60_tx(*buf);
+		buf++;
+	}
 	enc28j60_release();
 }
 
