@@ -12,9 +12,7 @@ proxies = {
 
 # list ip addresses to uplload to here
 # they may be appended on the command line as well
-ips = [
-"192.168.20.108",
-] + sys.argv[1:]
+ips = sys.argv[1:]
 
 path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "*.*")
 print path

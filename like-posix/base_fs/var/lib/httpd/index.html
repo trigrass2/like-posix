@@ -2,18 +2,13 @@
 <html>
 <head>
 
-<!-- external resources -->
-<link href="http://fonts.googleapis.com/css?family=Istok+Web" rel="stylesheet" type="text/css">
-<link href='http://fonts.googleapis.com/css?family=Droid+Sans' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
 <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
 <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
 
-<!-- internal resources -->
-<link rel="stylesheet" type="text/css" href="style.css">
 <script src="controls.js"></script>
 <script src="update.js"></script>
 
-<!-- javascript -->
 <script>
 
 $(document).ready(function(){
@@ -27,46 +22,79 @@ $(document).unload(function(){
 });
 
 function get_info() {
-	var item = $("#infotable");
-	var html = "";
-	$.get("info", function (data) {
-		$.each(data, function (key, value) {
-			console.log(key + " " + value);
-			html += '<tr><td>' + key + '</td><td>' + value + '</td></tr>';
-		});
+	$.get("info", function (info) {
+		document.getElementById("firmware").innerHTML = info.fwv;
+		document.getElementById("target").innerHTML = info.hwv;
+		document.getElementById("kernel").innerHTML = info.kernel;
 	});
-
-	item.html(html);
 }
 
 function on_status_update(status)
 {
-	if(status.online == 1) {
-		set_green_led_color("online_led", "green");
-	}
-	if(status.online == 0) {
-		set_green_led_color("online_led", "gray");
-	}
+	set_green_led_color("online_led", "green");
+	console.log(status);
+
+	console.log(status.time_s * 1000000 + status.time_us);
+
+	document.getElementById("target_clock").innerHTML = "" + Date(status.time_s * 1000000 + status.time_us);
+	document.getElementById("rxpkts").innerHTML = "" + status.rxpkt;
+	document.getElementById("txpkts").innerHTML = "" + status.txpkt;
 }
 
 function on_status_update_error()
 {
 	set_green_led_color("online_led", "gray");
+	document.getElementById("target_clock").innerHTML = "--:--:--";
+	document.getElementById("rxpkts").innerHTML = "0";
+	document.getElementById("txpkts").innerHTML = "0";
 }
 
 </script>
 </head>
 
-<body class="center">
+<body>
+<nav class="navbar navbar-inverse navbar-fixed-top">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Appleseed HTTP Server</a>
+    </div>
+    <div id="navbar" class="collapse navbar-collapse">
+      <ul class="nav navbar-nav">
+        <li class="active"><a href="/">Home</a></li>
+        <li><a href="about">About</a></li>
+        <li><a href="contact">Contact</a></li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div>
+</nav>
 
-<h1>Appleseed HTTP demo</h1>
-<h2> Welcome to the Appleseed HTTP Demo </h2>
-   
-<p>
-  Online <i class="fa fa-circle" title="online led indicator" id="online_led"></i>
-  <table id="infotable">
-  </table>
-</p>
-   
+<div class="container">
+
+  <div class="starter-template">
+  	<br>
+  	<br>
+    <h3>Welcome to the demo!</h3>
+    <dl class="dl-horizontal">
+    <dt style="text-align:left;width:150px">Online</dt><dd class="text-primary"> <i class="fa fa-circle" title="online led indicator" id="online_led"></i></dd>
+    <dt style="text-align:left;width:150px">Target Clock</dt><dd class="text-primary" id="target_clock"></dd>
+    <dt style="text-align:left;width:150px">RX IP Packets</dt><dd class="text-primary" id="rxpkts"></dd>
+    <dt style="text-align:left;width:150px">TX IP Packets</dt><dd class="text-primary" id="txpkts"></dd>
+    </dl>
+
+    <dl class="dl-horizontal">
+    <dt style="text-align:left;width:150px">Firmware</dt><dd class="text-primary" id="firmware"></dd>
+    <dt style="text-align:left;width:150px">Target</dt><dd class="text-primary" id="target"></dd>
+    <dt style="text-align:left;width:150px">Kernel</dt><dd class="text-primary" id="kernel"></dd>
+    </dl>
+  </div>
+
+</div>
+  
 </body>
 </html>
