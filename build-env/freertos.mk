@@ -27,6 +27,7 @@ else
 ifeq ($(FAMILY), STM32F4)
 SOURCE += $(FREERTOSDIR)/portable/GCC/ARM_CM4F/port.c
 CFLAGS += -I$(FREERTOSDIR)/portable/GCC/ARM_CM4F
+SOURCE += $(FREERTOSDIR)/../heap_ccram.c
 else
 $(error the FAMILY specified '$(FAMILY)' is invalid, it is meant to be set in board.mk)
 endif

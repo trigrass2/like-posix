@@ -22,4 +22,7 @@ _estack = ORIGIN(!STACK_RAM!) + LENGTH(!STACK_RAM!);
 /* STM32F1 use MIN_STACK_SIZE bytes SYSTEM RAM */
 _sstack = _estack - !MIN_STACK_SIZE!;
 
+/* start of CCRAM */
+_sccram = ORIGIN(CCRAM);
+
 INCLUDE !BASE_LINKER_SCRIPT!

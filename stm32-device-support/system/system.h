@@ -83,6 +83,7 @@ typedef  void (*function_pointer_t)(void);
 #endif
 
 #if USE_FREERTOS
+#include "heap_ccram.h"
 #include "freertos_version.h"
 #ifndef OPERATING_SYSTEM
 #define OPERATING_SYSTEM    FREERTOS_NAME
