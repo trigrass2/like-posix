@@ -1240,7 +1240,11 @@ _PTR _realloc_r(struct _reent *re, _PTR oldAddr, size_t newSize)
 
 _PTR _calloc_r(struct _reent *re, size_t num, size_t size) {
 	(void)re;
-	return pvPortMalloc(num*size);
+	size *= num;
+    _PTR m = pvPortMalloc(size);
+    if(m)
+        memset(m, 0, size);
+    return m;
 }
 
 _PTR _malloc_r(struct _reent *re, size_t size) {
