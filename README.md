@@ -1,18 +1,18 @@
-appleseed
-=========
+<h1>Appleseed</h1>
 
-Appleseed, is an application framework for devices based on STM32Fx microcontrollers.
+<h2>introduction</h2>
 
-It provides a set of tools and services and for growing big juicy embedded applications.
+Appleseed is an application framework for devices based on STM32Fx microcontrollers.
 
-The intent is to make application development in posix style c easy, and faily complete, on platforms that are too under powered to run Linux, but are very highly capable when running light weight code.
+It provides a set of tools and services and for growing powerful applications on small targets.
 
-Includes support for multi tasking (freertos), networking (lwip), filesystem (chans fat filesystem), posix c (like-posix), graphical/touch lcd, audio streaming and many other things.
+Application development is made easy, in posix style, on platforms that are too low on memory to run Linux.
+
+Includes support for multi tasking (freertos), networking (lwip), filesystem (chans fat filesystem), posix system calls (like-posix), graphical/touch lcd, audio streaming and many other things.
 
 Each folder in this repository holds a module or a category of modules. These are described below....
 
-Including appleseed in a project
----------------------------------
+<h3>Including appleseed in a project</h3>
 
 This repository may sit anywhere releative to a particular project, but a nice way to do it is with git submodule.
 
@@ -64,11 +64,9 @@ git push ...
 Once you have the code on disk, include appleseed in your project makefile, this is outlined in the next section which describes the build-env folder.
 
 
-build-env
-=========
+<h2>build-env</h2>
 
-Overview
---------
+<h3>Overview</h3>
 
 this module collects up a bunch of makefiles and scripts that can be used to build STM32 projects.
 
@@ -76,20 +74,16 @@ Both STM32F1 and STM32F4 are supported, as well as multiple boards. Chip and boa
 stm32-device-support/board and stm32-device-support/device.
  
  
-Options in project Makefiles
-----------------------------
+<h3>Options in project Makefiles</h3>
 
 There are many options that may be specified in the project makefile. these are set to defaults in the file **setup.mk**.
 
-All of those settings may be overridden in your project makefile, or as envirponment variables, or from the command line.
+All of the settings in **setup.mk** may be overridden in your project makefile, or as envirponment variables, or from the command line.
 
-```bash
+Project configuration makes up the first section of the project makefile. **setup.mk** must be included at the end of you Makefile,
+to enable building with appleseed.
 
-```
-
-**setup.mk** must be included in you makefile after all your customizations and project configurations.
-
-Here is an example of a makefile
+Here is an example:
 
 ``` make
 
@@ -110,7 +104,7 @@ PROJECT_NAME ?= demo-project
 # specify project source
 SOURCE = main.c
 
-# the following is a random set of enabled settings - see setup.mk for a complete list of options.
+# the following are modules to enable - see setup.mk for a complete list of options.
 USE_MINSTDLIBS = 1
 USE_LOGGER = 1
 USE_POSIX_STYLE_IO = 1
@@ -123,13 +117,13 @@ USE_DRIVER_FAT_FILESYSTEM = 1
 include appleseed/build-env/setup.mk
 ```
 
-build options
--------------
+<h3>build options</h3>
 
  - make clean (remove all build artifacts)
- - make all (default build)
- - make release (no debug)
- - make debug (debug enabled)
+ - make all (default build, no debug, optimization set to 2)
+ - make small (default build but with optimization for size)
+ - make release (no debug, optimization set to 2)
+ - make debug (debug enabled, no optimization)
 
 to rebuild completely:
 
@@ -141,8 +135,7 @@ to rebuild completely:
 make clean release PROJECT_NAME="demo-project" BOARD="HY-STM32_100P"
 ```
 
-stm32-device-support
-====================
+<h2>stm32-device-support</h2>
 
 A collection of code that supports building for different stm32fxxx devices.
 
@@ -152,8 +145,7 @@ chips supported: STM32F103VE, STM32F107RC, STM32F407VE, STM32F407VG
 boards supported: HY-STM32_100P, stm32f4_discovery, uemb1, uemb4
 
 
-build options
-------------------
+<h3>build options</h3>
 
  - DEVICE_SUPPORT_DIR
 	 - the path to the stm32-device-support root directory, relative to the project makefile
@@ -165,8 +157,7 @@ build options
  - USE_DRIVER_LWIP_NET
 	 - for boards that include an ethernet device, this option can be set to 1 to enable the device specfic ethernet driver. 
 
-submakefiles
------------------
+<h3>submakefiles</h3>
 
 The user makefile should include the makefiles from this module:
 ```make
@@ -177,8 +168,7 @@ include $(DEVICE_SUPPORT_DIR)/device/device.mk
 
 The user makefile should call **buildlinkerscript** as part of its **all** target. this makes sure  the linker script exists, and matches the chip specified for the board, in board.mk.
 
-Timers
-------
+<h3>Timers</h3>
 
 Timers are used to support device drivers. It can be hard to work out if its safe to use a timer in the application. The drivers that use timers are:
 
@@ -192,8 +182,7 @@ Timers are used to support device drivers. It can be hard to work out if its saf
 |lcd|lcd.c|<project>/board/<board>/lcd_config.h|TIM2|systimer|
 |pwm|pwm.c|pwm_config.h|any left over||
 
-About memory on the STM32 devices, with FreeRTOS
-------------------------------------------------
+<h3>About memory on the STM32 devices, with FreeRTOS</h3>
 
 This is my ramble on memory usage on small processors.
 
@@ -262,31 +251,26 @@ Where the memory comes from must be carefully designed in some cases….
  - many applications use data structures, and static buffering. these can be stacked in main, and fed to the tasks as they start up. This is one way to use this RAM without too much hard thinking.
 
 
-Memory Use Strategies
----------------------
+<h3>Memory Use Strategies</h3>
 
  - large buffers cant be taken from the task stack - it just bloats the task stacks way too much.
  - if they are used all the time, and really dont need to change in size, just define in bss and optionally protect access using a mutex.
  - if they are used not so often, or frequently change in size so that a static buffer would waste space, dynamic memory could be a good option.
 
-autensils
-=========
+<h2>autensils</h2>
 
 audio utensils. some of the modules are hardware dependant.
 
-Wav
----
+<h3>Wav</h3>
 
 wave file parsing module.
 
 
-cutensils
-=========
+<h2>cutensils</h2>
 
 software utensils, written in c. all the software in cutensils is in pure hardware independent c.
 
-Logger
-------
+<h3>Logger</h3>
 
 This is a general logging module.
 supporting logging:
@@ -297,8 +281,7 @@ supporting logging:
  - optionally with ansi colour
  - optionally with timestamp
 
-Confparse
----------
+<h3>Confparse</h3>
 
 configuration file parser / writer. supports:
  - key value storage in files
@@ -318,8 +301,7 @@ more data # inline comment
 mykey my value # illegal
 ```
 
-graphics
-========
+<h2>graphics</h2>
 
 thread safe lcd graphics library that works on top of the lcd driver in stm32-device-support. the library provides...
 
@@ -329,8 +311,7 @@ thread safe lcd graphics library that works on top of the lcd driver in stm32-de
  - images - just bitmaps stored in rom
  - widgets - touch keys, statusbar
  
-like-posix
-==========
+<h2>like-posix</h2>
 
 Builds on top of FreeRTOS, and FatFs by ChaN, providing posix style system calls.
 
@@ -438,8 +419,7 @@ When linked with like-posix these utilize tyhe FreeRTOS memory API.
  * void free(void* ptr);
  
 
-Configuration
--------------
+<h3>Configuration</h3>
 
 the file likeposix_config.h is required at project level, to configure like-posix.
 
@@ -484,8 +464,7 @@ the file likeposix_config.h is required at project level, to configure like-posi
 
 ```
 
-Base Filesystem
------------------
+<h3>Base Filesystem</h3>
 
 Many projects are better when based on a structured filessystem.
 like-posix provides a filesytem template that can be installed on an SD card.
@@ -513,15 +492,13 @@ It is loosely structured, as follows:
     - firmware images for use by the sdcard bootloader live here
 
 
-minstdlibs
-==========
+<h2>minstdlibs</h2>
 
 tiny implementations of c standard library functions.
 
 The code is targeted for use on small embedded targets where memory is limited.
 
-Min stdio
----------
+<h3>Min stdio</h3>
 
 the minimal standard io code has some dependancies - the functions _read, _write, _lseek, _ftell 
 must be defined somewhere in your project.
@@ -640,8 +617,7 @@ prints:
 ```
 
 
-Testing
--------
+<h3>Testing</h3>
 
 Setting up gtest
 
@@ -670,8 +646,7 @@ Building and runnning the tests
 cd minstdlibs/test
 make clean all run
 ```
-nutensils
-=========
+<h2>nutensils</h2>
 
 network oriented utilities.
 
@@ -679,19 +654,16 @@ relies upon:
 
  - the cutensils module
 
-Socket
-------
+<h3>Socket</h3>
 
 this is a collection of socket utilities that can simplify socket programming at application level.
 
-HTTP
-----
+<h3>HTTP</h3>
 
 this is a collection of HTTP protocol utilities. These build upon the nutensils socket module.
 
 
-Threaded Server
----------------
+<h3>Threaded Server</h3>
 
 this is small multithreaded addition to the socket server given in the socket module.
 
@@ -807,8 +779,7 @@ nc <ipaddress> 7
 
 ```
 
-Shell
------
+<h3>Shell</h3>
 
 The shell is an extensible multi threaded server that can run commands in the form of function calls.
 
@@ -871,8 +842,7 @@ nc <ipaddress> 22
 
 ```
 
-jsmn extensions
----------------
+<h3>jsmn extensions</h3>
 
 provides a JSON object/array accessor API supporting keying/indexing and iteration.
 
@@ -1050,13 +1020,11 @@ void test_json_object_of_arrays()
 
 ```
 
-Third Party
-===========
+<h2>Third Party</h2>
 
 There are several third party libraries used by appleseed.
 
-LwIP
-----
+<h3>LwIP</h3>
 obtained from:
 
 http://savannah.nongnu.org/projects/lwip/
@@ -1064,8 +1032,7 @@ http://savannah.nongnu.org/projects/lwip/
 currently at V1.4.1
 
 
-FatFs
------
+<h3>FatFs</h3>
 
 obtained from: http://elm-chan.org/fsw/ff/00index_e.html
 
@@ -1075,8 +1042,7 @@ obtained from: http://elm-chan.org/fsw/ff/00index_e.html
  
 currently at V0.11
 
-FreeRTOS
---------
+<h3>FreeRTOS</h3>
 
 obtained from: 
 
@@ -1084,14 +1050,13 @@ http://www.freertos.org
 
 currently at V8.0.0:rc2
 
-JSMN
-----
+<h3>JSMN</h3>
 
 obtained from:
 
 bitbucket.org/zserge/jsmn
 
-can be used in conjunction with my JSON API **jsmn_extensions**
+Note: can be used in conjunction with the appleseed JSON API  **jsmn_extensions**.
 
 
 

@@ -24,7 +24,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the FatFs project, <https://github.com/drmetal/FatFs>
+ * This file is part of the Appleseed project, <https://github.com/drmetal/app-l-seed>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *

@@ -24,7 +24,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the stm32-device-support project, <https://github.com/drmetal/stm32-device-support>
+ * This file is part of the Appleseed project, <https://github.com/drmetal/app-l-seed>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
