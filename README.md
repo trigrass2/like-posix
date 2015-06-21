@@ -143,6 +143,7 @@ A collection of code that supports building for different stm32fxxx devices.
 Includes chip and board configurations, and hardware drivers.
 
 chips supported: STM32F103VE, STM32F107RC, STM32F407VE, STM32F407VG
+
 boards supported: HY-STM32_100P, stm32f4_discovery, uemb1, uemb4
 
 
@@ -155,19 +156,6 @@ boards supported: HY-STM32_100P, stm32f4_discovery, uemb1, uemb4
  - APP_ADDRESS_OFFSET		
  	- can be set to some other value to make the built application run from a location other than the flash origin. for example setting to 0x4000 will offset the application in flash by 16KBytes. The first 16KBytes could then be used for a bootloader or non volatile data space... defaults to **0x0000**.
 
- - USE_DRIVER_LWIP_NET
-	 - for boards that include an ethernet device, this option can be set to 1 to enable the device specfic ethernet driver. 
-
-<h3>submakefiles</h3>
-
-The user makefile should include the makefiles from this module:
-```make
-CFLAGS += -I$(DEVICE_SUPPORT_DIR)
-include $(DEVICE_SUPPORT_DIR)/board/board.mk
-include $(DEVICE_SUPPORT_DIR)/device/device.mk
-```
-
-The user makefile should call **buildlinkerscript** as part of its **all** target. this makes sure  the linker script exists, and matches the chip specified for the board, in board.mk.
 
 <h3>Timers</h3>
 
@@ -192,17 +180,15 @@ http://www.freertos.org/Stacks-and-stack-overflow-checking.html
 
 **The main stack, on the STM32F4, with FreeRTOS**
 
-I chose to place the CPU/main Stack in CCRAM... this presents a conundrum.
+CPU/main Stack is in CCRAM.
 
  - the scheduler itself will utilise the main stack
  - ISR’s will use the main stack
  - nothing else utilizes the main stack
- - CCRAM may therefore be terribly underutilised
 
-Ways to harness CCRAM then...
+Ways to harness CCRAM in the user program:
 
- - Specify a new RAM region at link time (havent actually done this) that uses a chunk of CCRAM - we would have to use the memory “manually”. 
- - Specify large static buffers as local variables in main, passing them to tasks as they are created by the task management thread. These will remain in scope since main never returns.
+ - Use the special memory allocation api, accessible via heap_ccram.h. this provides the functions malloc_ccram(), calloc_ccram and free_ccram()
 
 **Memory used in tasks**
 
@@ -217,7 +203,7 @@ Where the memory comes from must be carefully designed in some cases….
 - functions using the memory are not reentrant unless mutex is used
 - if memory is used only in a task function, no need to consider reentrance if the task may run only as a singleton...
 - using statically defined memory cannot introduce task instability.
-- speed is good as no allocation code runs at all.
+- speed is good as no allocation code is required.
 	
 **task stack** - *local variables*
 	
@@ -231,8 +217,9 @@ Where the memory comes from must be carefully designed in some cases….
 - the task designer must scale the task stack with any changes to the local variables …
 - the task does not have to be a singleton though - reentrance is achieved since its stack is duplicated for every instance of it.
 	
-**dynamic memory** - *freertos heap*
-	
+**dynamic memory** 
+
+- *freertos heap*	
 - there is no general, unmanaged heap
 - freertos claims a large memory array for its heap
 - this is where tasks are created, and where malloc gets its memory from.
@@ -240,22 +227,23 @@ Where the memory comes from must be carefully designed in some cases….
 - its slow to get at… not managed by hardware, 
 - can fragment, causing memory “loss”
 - not easy to plan dynamic allocation for an entire project, especially when 3rd party libraries are included
-- obviously leads to leaks when not manged properly
-- very convenient…. sort of
+- leads to leaks when not manged properly
+
+- *CCRAM heap*
+- same as a normal heap but managed via the calls malloc_ccram() and free_ccram().
+- care must be taken in choosing to use it, CCRAM may not be used by the DMA controllers.
 	 
 **main stack** - *SRAM/CCRAM*
 
- - on STM32F4 I chose to use the core coupled ram *CCRAM* as the stack.
+ - on STM32F4 the core coupled ram *CCRAM* as the stack.
  - on the STM32F1 the stack resides like normal, at the top of *SRAM*
  - this is the cpu stack - only the main function and ISR’s are able to use this stack memory under FreeRTOS.
- - this is a big chunk of RAM, but it will never be utilised fully in the current situation.
- - many applications use data structures, and static buffering. these can be stacked in main, and fed to the tasks as they start up. This is one way to use this RAM without too much hard thinking.
 
 
-<h3>Memory Use Strategies</h3>
+<h3>Memory Region Choices</h3>
 
- - large buffers cant be taken from the task stack - it just bloats the task stacks way too much.
- - if they are used all the time, and really dont need to change in size, just define in bss and optionally protect access using a mutex.
+ - large buffers shouldnt be taken from the task stack - it bloats them too much.
+ - if they are used all the time, and dont need to change in size, define them in bss. Access is global, so thread safe access should be considered.
  - if they are used not so often, or frequently change in size so that a static buffer would waste space, dynamic memory could be a good option.
 
 <h2>autensils</h2>
@@ -265,6 +253,14 @@ audio utensils. some of the modules are hardware dependant.
 <h3>Wav</h3>
 
 wave file parsing module.
+
+<h3>Wav Stream</h3>
+
+streams wave file data out of the specified stream interface.
+
+<h3>Siggen</h3>
+
+streams a synthesised sine wave out of the specified stream interface.
 
 
 <h2>cutensils</h2>
