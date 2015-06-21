@@ -1,5 +1,4 @@
-appleseed
-=========
+<h1>appleseed</h1>
 
 Appleseed, is an application framework for devices based on STM32Fx microcontrollers.
 
