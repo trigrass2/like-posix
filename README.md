@@ -217,9 +217,7 @@ Where the memory comes from must be carefully designed in some cases….
 - the task designer must scale the task stack with any changes to the local variables …
 - the task does not have to be a singleton though - reentrance is achieved since its stack is duplicated for every instance of it.
 	
-**dynamic memory** 
-
-- *freertos heap*	
+**dynamic memory** - *freertos heap* / *CCRAM heap*
 - there is no general, unmanaged heap
 - freertos claims a large memory array for its heap
 - this is where tasks are created, and where malloc gets its memory from.
@@ -228,10 +226,8 @@ Where the memory comes from must be carefully designed in some cases….
 - can fragment, causing memory “loss”
 - not easy to plan dynamic allocation for an entire project, especially when 3rd party libraries are included
 - leads to leaks when not manged properly
-
-- *CCRAM heap*
-- same as a normal heap but managed via the calls malloc_ccram() and free_ccram().
-- care must be taken in choosing to use it, CCRAM may not be used by the DMA controllers.
+- CCRAM - same as a normal heap but managed via the calls malloc_ccram() and free_ccram().
+- CCRAM - care must be taken in choosing to use it, CCRAM may not be used by the DMA controllers.
 	 
 **main stack** - *SRAM/CCRAM*
 
