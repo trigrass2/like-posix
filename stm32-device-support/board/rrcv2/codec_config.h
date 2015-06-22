@@ -45,4 +45,7 @@
 // nuber of channels is related to data format and standard selected, based on the codec device used.
 #define I2S_STREAM_CHANNEL_COUNT 2
 
+#define SAMPLERATE_MAX			48000
+#define SAMPLERATE_MIN			0
+
 #endif // CODEC_CONF_H_
