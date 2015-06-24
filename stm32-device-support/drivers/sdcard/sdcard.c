@@ -554,7 +554,7 @@ static void SD_LowLevel_DMA_TxConfig(uint32_t *BufferSRC, uint32_t BufferSize)
     DMA_InitStructure.DMA_Priority = DMA_Priority_High;
     DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
     DMA_Init(DMA2_Channel4, &DMA_InitStructure);
-    DMA_ITConfig(DMA2_Channel4, DMA_IT_TC|DMA_IT_TE|DMA_IT_FE, ENABLE);
+    DMA_ITConfig(DMA2_Channel4, DMA_IT_TC|DMA_IT_TE, ENABLE);
     DMA_Cmd(DMA2_Channel4, ENABLE);
 }
 
@@ -583,7 +583,7 @@ static void SD_LowLevel_DMA_RxConfig(uint32_t *BufferDST, uint32_t BufferSize)
     DMA_InitStructure.DMA_Priority = DMA_Priority_High;
     DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
     DMA_Init(DMA2_Channel4, &DMA_InitStructure);
-    DMA_ITConfig(DMA2_Channel4, DMA_IT_TC|DMA_IT_TE|DMA_IT_FE, ENABLE);
+    DMA_ITConfig(DMA2_Channel4, DMA_IT_TC|DMA_IT_TE, ENABLE);
     DMA_Cmd(DMA2_Channel4, ENABLE);
 }
 
