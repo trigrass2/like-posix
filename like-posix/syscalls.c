@@ -170,8 +170,10 @@ typedef struct {
 #define DEVICED_INTERFACE_FILE_SIZE		32
 
 #define DEFAULT_DEVICE_TIMEOUT          1000
+#define DEFAULT_FILETABLE_TIMEOUT		40000
+#define DEFAULT_FILE_LOCK_TIMEOUT		2000
 
-#define lock_filtab()                   (xSemaphoreTake(filtab.lock, 2000/portTICK_RATE_MS) == pdTRUE)
+#define lock_filtab()                   (xSemaphoreTake(filtab.lock, DEFAULT_FILETABLE_TIMEOUT/portTICK_RATE_MS) == pdTRUE)
 #define unlock_filtab()                 xSemaphoreGive(filtab.lock)
 
 
@@ -672,10 +674,10 @@ int _close(int file)
 		if(fte)
 		{
 			if(fte->flags & FWRITE)
-				assert_true(xSemaphoreTake(fte->write_lock, 5000/portTICK_RATE_MS) == pdTRUE);
+				assert_true(xSemaphoreTake(fte->write_lock, DEFAULT_FILE_LOCK_TIMEOUT/portTICK_RATE_MS) == pdTRUE);
 
 			if(fte->flags & FREAD)
-				assert_true(xSemaphoreTake(fte->read_lock, 5000/portTICK_RATE_MS) == pdTRUE);
+				assert_true(xSemaphoreTake(fte->read_lock, DEFAULT_FILE_LOCK_TIMEOUT/portTICK_RATE_MS) == pdTRUE);
 
 			// disable device IO first
 			if((fte->mode == S_IFIFO) && fte->device && fte->device->close)
@@ -708,10 +710,10 @@ static inline filtab_entry_t* __lock(int file, bool read, bool write)
 		if(fte)
 		{
 			if(write && (fte->flags & FWRITE))
-				assert_true(xSemaphoreTake(fte->write_lock, 5000/portTICK_RATE_MS) == pdTRUE);
+				assert_true(xSemaphoreTake(fte->write_lock, DEFAULT_FILE_LOCK_TIMEOUT/portTICK_RATE_MS) == pdTRUE);
 
 			if(read && (fte->flags & FREAD))
-				assert_true(xSemaphoreTake(fte->read_lock, 5000/portTICK_RATE_MS) == pdTRUE);
+				assert_true(xSemaphoreTake(fte->read_lock, DEFAULT_FILE_LOCK_TIMEOUT/portTICK_RATE_MS) == pdTRUE);
 		}
 		unlock_filtab();
 
