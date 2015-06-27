@@ -108,6 +108,11 @@ void dac_stream_init()
     NVIC_Init(&dma_nvic);
 }
 
+stream_t* get_dac_stream()
+{
+	return &dac_stream;
+}
+
 #if FAMILY == STM32F1
 
 void DAC_STREAM_INTERRUPT_HANDLER()

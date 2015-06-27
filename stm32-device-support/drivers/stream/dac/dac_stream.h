@@ -193,6 +193,7 @@
 
 #include "stream_defs.h"
 
+stream_t* get_dac_stream();
 void dac_stream_init();
 void dac_stream_start();
 void dac_stream_stop();

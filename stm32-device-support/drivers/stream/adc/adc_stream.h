@@ -138,6 +138,7 @@
 
 #include "stream_defs.h"
 
+stream_t* get_adc_stream();
 void adc_stream_init();
 void adc_stream_start();
 void adc_stream_stop();

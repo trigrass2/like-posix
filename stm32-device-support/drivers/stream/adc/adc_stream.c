@@ -139,6 +139,11 @@ void adc_stream_init()
     NVIC_Init(&dma_nvic);
 }
 
+stream_t* get_adc_stream()
+{
+	return &adc_stream;
+}
+
 #if FAMILY == STM32F1
 
 void ADC_STREAM_INTERRUPT_HANDLER()
@@ -205,6 +210,7 @@ void init_adc_samplerate_timer()
     };
     TIM_TimeBaseInit(ADC_STREAM_SR_TIMER, &input_timer_init);
 
+#if ADC_STREAM_SR_TIMER_UNIT == 4 || ADC_STREAM_SR_TIMER_UNIT == 2
     TIM_OCInitTypeDef input_timer =
     {
             TIM_OCMode_PWM1,            //
@@ -216,6 +222,7 @@ void init_adc_samplerate_timer()
             TIM_OCIdleState_Set,        // idle state
             TIM_OCIdleState_Set,        // complementary idle state
     };
+#endif
 
 #if ADC_STREAM_SR_TIMER_UNIT == 4
         TIM_OC4Init(ADC_STREAM_SR_TIMER, &input_timer);
