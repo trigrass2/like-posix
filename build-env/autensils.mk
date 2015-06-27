@@ -24,8 +24,10 @@ endif
 
 ifeq ($(USE_WAV_STREAM), 1)
 
+ifeq ($(USE_DRIVER_DAC_STREAM), 0)
 ifeq ($(USE_DRIVER_I2S_STREAM), 0)
-$(error USE_WAV_STREAM is set. wave stream utils require USE_DRIVER_I2S_STREAM set to 1)
+$(error USE_WAV_STREAM is set. wave stream utils require USE_DRIVER_DAC_STREAM or USE_DRIVER_I2S_STREAM set to 1)
+endif
 endif
 
 ifeq ($(USE_POSIX_STYLE_IO), 0)
@@ -41,8 +43,10 @@ endif
 #####################
 ifeq ($(USE_SIGGEN_STREAM), 1)
 
+ifeq ($(USE_DRIVER_DAC_STREAM), 0)
 ifeq ($(USE_DRIVER_I2S_STREAM), 0)
-$(error USE_SIGGEN_STREAM is set. signal generator stream utils require USE_DRIVER_I2S_STREAM set to 1)
+$(error USE_SIGGEN_STREAM is set. signal generator stream utils require USE_DRIVER_DAC_STREAM or USE_DRIVER_I2S_STREAM set to 1)
+endif
 endif
 
 CFLAGS += -I $(AUTENSILS_DIR)/siggen
