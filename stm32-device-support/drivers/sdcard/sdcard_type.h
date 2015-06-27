@@ -41,6 +41,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "board_config.h"
 
  typedef enum
  {
