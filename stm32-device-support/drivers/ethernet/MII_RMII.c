@@ -119,6 +119,12 @@ void ETH_Configuration(const uint8_t* macaddr)
 	/* Initialize Rx Descriptors list: Chain Mode  */
 	ETH_DMARxDescChainInit(DMARxDscrTab, &Rx_Buff[0][0], ETH_RXBUFNB);
 
+#if CHECKSUM_BY_HARDWARE
+	/* Enable the TCP, UDP and ICMP checksum insertion for the Tx frames */
+	for(uint8_t i=0; i<ETH_TXBUFNB; i++)
+		ETH_DMATxDescChecksumInsertionConfig(&DMATxDscrTab[i], ETH_DMATxDesc_ChecksumTCPUDPICMPFull);
+#endif
+
 	/* initialize MAC address in ethernet MAC */
 	ETH_MACAddressConfig(ETH_MAC_Address0, (uint8_t*)macaddr);
 
@@ -129,19 +135,30 @@ void ETH_Configuration(const uint8_t* macaddr)
 void ETH_GPIO_Config(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_TypeDef* eth_io_ports[] = ETH_GPIO_PORTS;
-	uint16_t eth_io_pins[] = ETH_GPIO_PINS;
+	GPIO_TypeDef* eth_o_ports[] = ETH_GPIO_PORTS;
+	uint16_t eth_o_pins[] = ETH_GPIO_PINS;
+	GPIO_TypeDef* eth_i_ports[] = ETH_GPIO_INPUT_PORTS;
+	uint16_t eth_i_pins[] = ETH_GPIO_INPUT_PINS;
 
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 
-	for(uint8_t i = 0; i < sizeof(eth_io_pins)/sizeof(eth_io_pins[0]); i++)
+	for(uint8_t i = 0; i < sizeof(eth_o_pins)/sizeof(eth_o_pins[0]); i++)
 	{
-		GPIO_InitStructure.GPIO_Pin = eth_io_pins[i];
-		GPIO_Init(eth_io_ports[i], &GPIO_InitStructure);
+		GPIO_InitStructure.GPIO_Pin = eth_o_pins[i];
+		GPIO_Init(eth_o_ports[i], &GPIO_InitStructure);
+	}
+
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+
+	for(uint8_t i = 0; i < sizeof(eth_i_pins)/sizeof(eth_i_pins[0]); i++)
+	{
+		GPIO_InitStructure.GPIO_Pin = eth_i_pins[i];
+		GPIO_Init(eth_i_ports[i], &GPIO_InitStructure);
 	}
 
 #ifdef ETH_USE_MCO
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	GPIO_InitStructure.GPIO_Pin = ETH_MCO_PIN;
 	GPIO_Init(ETH_MCO_PORT, &GPIO_InitStructure);
 #endif
