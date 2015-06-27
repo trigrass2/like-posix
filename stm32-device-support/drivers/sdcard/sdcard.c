@@ -88,7 +88,7 @@ typedef struct {
     bool transfer_end;
 #endif
     SD_Error transfer_error;
-    SD_Error sdio_dma_error;
+    SD_Error dma_error;
     bool transfer_multiblock;
     uint8_t card_type;
     uint32_t rca;				///< holds the card RCA shifted up by 16 bits. used by the driver only. the true RCA is stored in SD_CardInfo sdcardinfo.RCA
@@ -102,7 +102,7 @@ volatile sdcard_state_t sdcard_state = {
     .transfer_end = false,
 #endif
     .transfer_error = SD_ACTIVE,
-    .sdio_dma_error = SD_ACTIVE,
+    .dma_error = SD_ACTIVE,
     .transfer_multiblock = false,
     .card_type = SDIO_UNKNOWN_CARD_TYPE,
     .rca = 0,
@@ -768,19 +768,19 @@ void SD_SDIO_DMA_IRQHANDLER(void)
 {
 	if(DMA_GetITStatus(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_IT_TCIF) == SET)
 	{
-	    sdio_state.sdio_dma_error = SD_OK;
+	    sdcard_state.dma_error = SD_OK;
 		DMA_ClearITPendingBit(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_IT_TCIF);
 	}
 	if(DMA_GetITStatus(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_IT_TEIF) == SET)
 	{
-	    sdio_state.sdio_dma_error = SD_DMA_TRANSMISSION_ERROR;
+	    sdcard_state.dma_error = SD_DMA_TRANSMISSION_ERROR;
 		DMA_ClearITPendingBit(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_IT_TEIF);
 //		printf("transmission error\n");
 		usleep(2000);
 	}
 	if(DMA_GetITStatus(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_IT_FEIF) == SET)
 	{
-	    sdio_state.sdio_dma_error = SD_DMA_FIFO_ERROR;
+	    sdcard_state.dma_error = SD_DMA_FIFO_ERROR;
 		DMA_ClearITPendingBit(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_IT_FEIF);
 //		printf("fifo error\n");
 		usleep(2000);
@@ -1307,7 +1307,7 @@ SD_Error SD_ReadBlock(uint8_t *readbuff, uint32_t sector)
         return SD_INVALID_PARAMETER;
 
     sdcard_state.transfer_error = SD_ACTIVE;
-    sdio_state.sdio_dma_error = SD_ACTIVE;
+    sdcard_state.dma_error = SD_ACTIVE;
     sdcard_state.transfer_multiblock = false;
 
     SDIO->DCTRL = 0x0;
@@ -1361,7 +1361,7 @@ SD_Error SD_ReadMultiBlocks(uint8_t *readbuff, uint32_t sector, uint32_t NumberO
     }
 
     sdcard_state.transfer_error = SD_ACTIVE;
-    sdio_state.sdio_dma_error = SD_ACTIVE;
+    sdcard_state.dma_error = SD_ACTIVE;
     sdcard_state.transfer_multiblock = true;
 
     SDIO->DCTRL = 0x0;
@@ -1409,7 +1409,7 @@ SD_Error SD_WriteBlock(const uint8_t *writebuff, uint32_t sector)
         return SD_INVALID_PARAMETER;
 
     sdcard_state.transfer_error = SD_ACTIVE;
-    sdio_state.sdio_dma_error = SD_ACTIVE;
+    sdcard_state.dma_error = SD_ACTIVE;
     sdcard_state.transfer_multiblock = false;
 
     SDIO->DCTRL = 0x0;
@@ -1463,7 +1463,7 @@ SD_Error SD_WriteMultiBlocks(const uint8_t *writebuff, uint32_t sector, uint32_t
     }
 
     sdcard_state.transfer_error = SD_ACTIVE;
-    sdio_state.sdio_dma_error = SD_ACTIVE;
+    sdcard_state.dma_error = SD_ACTIVE;
     sdcard_state.transfer_multiblock = true;
 
     SDIO->DCTRL = 0x0;
@@ -1522,12 +1522,12 @@ SD_Error SD_WaitIOOperation(sdio_wait_on_io_t io_flag)
     uint8_t dummy;
 
     // wait for DMA then SDIO end
-    xQueueReceive(sdio_state.transfer_end, &dummy, 1000/portTICK_PERIOD_MS);
-    xQueueReceive(sdio_state.transfer_end, &dummy, 1000/portTICK_PERIOD_MS);
-    sderr = sdio_state.transfer_error;
-    if(sdio_state.transfer_error != SD_OK || sdio_state.sdio_dma_error != SD_OK)
+    xQueueReceive(sdcard_state.transfer_end, &dummy, 1000/portTICK_PERIOD_MS);
+    xQueueReceive(sdcard_state.transfer_end, &dummy, 1000/portTICK_PERIOD_MS);
+    sderr = sdcard_state.transfer_error;
+    if(sdcard_state.transfer_error != SD_OK || sdcard_state.dma_error != SD_OK)
     {
-//    	printf("sdio error: dmaerr=%u, sdioerr=%u\n", sdio_state.sdio_dma_error, sdio_state.transfer_error);
+//    	printf("sdio error: dmaerr=%u, sdioerr=%u\n", sdcard_state.dma_error, sdcard_state.transfer_error);
     }
 #else
     uint32_t timeout;
