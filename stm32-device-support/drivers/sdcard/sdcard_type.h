@@ -97,7 +97,9 @@
    SD_IDLE                            = (44),
    SD_DATA_WRITE_ERROR                = (45),
    SD_DATA_READ_ERROR                 = (46),
-   SD_BUSY_TIMEOUT                    = (47)
+   SD_BUSY_TIMEOUT                    = (47),
+   SD_DMA_FIFO_ERROR                  = (48),
+   SD_DMA_TRANSMISSION_ERROR          = (49),
  } SD_Error;
 
 /**

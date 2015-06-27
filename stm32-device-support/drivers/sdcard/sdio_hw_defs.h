@@ -54,7 +54,16 @@
 #define SDIO_TRANSFER_CLK_DIV            ((uint8_t)0x02)
 
 #define SD_SDIO_DMA_IRQHANDLER          DMA2_Channel4_5_IRQHandler
-#define SD_SDIO_DMA_IRQn               DMA2_Channel4_5_IRQn
+#define SD_SDIO_DMA_IRQn               	DMA2_Channel4_5_IRQn
+#define SD_SDIO_DMA_CHANNEL           	DMA2_Channel4
+ #define SD_SDIO_DMA_FLAG_GLIF         DMA2_FLAG_GL4
+ #define SD_SDIO_DMA_FLAG_TEIF         DMA2_FLAG_TE4
+ #define SD_SDIO_DMA_FLAG_HTIF         DMA2_FLAG_HT4
+ #define SD_SDIO_DMA_FLAG_TCIF         DMA2_FLAG_TC4
+ #define SD_SDIO_DMA_IT_GLIF           DMA2_IT_GL4
+ #define SD_SDIO_DMA_IT_TEIF           DMA2_IT_TE4
+ #define SD_SDIO_DMA_IT_HTIF           DMA2_IT_HT4
+ #define SD_SDIO_DMA_IT_TCIF           DMA2_IT_TC4
 
 #elif FAMILY == STM32F4
 #define SDIO_FIFO_ADDRESS                ((uint32_t)0x40012C80)
@@ -79,6 +88,11 @@
  #define SD_SDIO_DMA_FLAG_TEIF         DMA_FLAG_TEIF3
  #define SD_SDIO_DMA_FLAG_HTIF         DMA_FLAG_HTIF3
  #define SD_SDIO_DMA_FLAG_TCIF         DMA_FLAG_TCIF3
+ #define SD_SDIO_DMA_IT_FEIF           DMA_IT_FEIF3
+ #define SD_SDIO_DMA_IT_DMEIF          DMA_IT_DMEIF3
+ #define SD_SDIO_DMA_IT_TEIF           DMA_IT_TEIF3
+ #define SD_SDIO_DMA_IT_HTIF           DMA_IT_HTIF3
+ #define SD_SDIO_DMA_IT_TCIF           DMA_IT_TCIF3
  #define SD_SDIO_DMA_IRQn              DMA2_Stream3_IRQn
  #define SD_SDIO_DMA_IRQHANDLER        DMA2_Stream3_IRQHandler
 #elif defined SD_SDIO_DMA_STREAM6
@@ -89,6 +103,11 @@
  #define SD_SDIO_DMA_FLAG_TEIF         DMA_FLAG_TEIF6
  #define SD_SDIO_DMA_FLAG_HTIF         DMA_FLAG_HTIF6
  #define SD_SDIO_DMA_FLAG_TCIF         DMA_FLAG_TCIF6
+ #define SD_SDIO_DMA_IT_FEIF           DMA_IT_FEIF6
+ #define SD_SDIO_DMA_IT_DMEIF          DMA_IT_DMEIF6
+ #define SD_SDIO_DMA_IT_TEIF           DMA_IT_TEIF6
+ #define SD_SDIO_DMA_IT_HTIF           DMA_IT_HTIF6
+ #define SD_SDIO_DMA_IT_TCIF           DMA_IT_TCIF6
  #define SD_SDIO_DMA_IRQn              DMA2_Stream6_IRQn
  #define SD_SDIO_DMA_IRQHANDLER        DMA2_Stream6_IRQHandler
 #endif /* SD_SDIO_DMA_STREAM3 */

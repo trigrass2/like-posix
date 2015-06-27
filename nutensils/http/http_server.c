@@ -50,13 +50,13 @@
 
 
 typedef struct {
-	int16_t length;
+	int length;
 	const http_api_t* api_call;
 	const char* fsroot;
 	const char* req_type;
 	const char* header;
 	const char* content_type;
-	int16_t content_length;
+	int content_length;
 	char scratch[HTTP_SCRATCH_LEN];
 	char url[HTTP_URL_LEN];
 	FILE* file;
@@ -318,18 +318,18 @@ void http_server_connection(sock_conn_t* conn)
 	// POST file response
 	else if(httpconn->file && httpconn->req_type == (char*)HTTP_POST)
 	{
-		log_syslog(&httpserver->log, "write %s", httpconn->scratch);
+		log_syslog(&httpserver->log, "write %s %ub", httpconn->scratch, httpconn->content_length);
 		while(httpconn->content_length)
 		{
 			httpconn->length = recv(conn->connfd, httpconn->scratch, sizeof(httpconn->scratch), 0);
 			if(httpconn->length)
 			{
-				fwrite(httpconn->scratch, 1, httpconn->length, httpconn->file);
+				int c = fwrite(httpconn->scratch, 1, httpconn->length, httpconn->file);
 				httpconn->content_length -= httpconn->length;
+
+		        log_syslog(&httpserver->log, "c %d", c);
 			}
 		}
-		// # TODO - this is here because the filesystem seems to have a problem with fclose being called too quickly after fwrite!!
-
 	}
 	// GET file response
 	else if(httpconn->file && httpconn->req_type == (char*)HTTP_GET)

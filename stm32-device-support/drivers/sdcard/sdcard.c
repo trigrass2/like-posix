@@ -313,6 +313,7 @@ typedef struct {
     bool dma_xfer_end;
 #endif
     SD_Error sdio_xfer_error;
+    SD_Error sdio_dma_error;
     bool sdio_xfer_multi_block;
     uint8_t card_type;
     uint32_t rca;				///< holds the card RCA shifted up by 16 bits. used by the driver only. the true RCA is stored in SD_CardInfo sdcardinfo.RCA
@@ -326,6 +327,7 @@ volatile sdio_state_t sdio_state = {
     .dma_xfer_end = false,
 #endif
     .sdio_xfer_error = SD_ACTIVE,
+    .sdio_dma_error = SD_ACTIVE,
     .sdio_xfer_multi_block = false,
     .card_type = SDIO_UNKNOWN_CARD_TYPE,
     .rca = 0,
@@ -552,7 +554,7 @@ static void SD_LowLevel_DMA_TxConfig(uint32_t *BufferSRC, uint32_t BufferSize)
     DMA_InitStructure.DMA_Priority = DMA_Priority_High;
     DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
     DMA_Init(DMA2_Channel4, &DMA_InitStructure);
-    DMA_ITConfig(DMA2_Channel4, DMA_IT_TC, ENABLE);
+    DMA_ITConfig(DMA2_Channel4, DMA_IT_TC|DMA_IT_TE, ENABLE);
     DMA_Cmd(DMA2_Channel4, ENABLE);
 }
 
@@ -581,7 +583,7 @@ static void SD_LowLevel_DMA_RxConfig(uint32_t *BufferDST, uint32_t BufferSize)
     DMA_InitStructure.DMA_Priority = DMA_Priority_High;
     DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
     DMA_Init(DMA2_Channel4, &DMA_InitStructure);
-    DMA_ITConfig(DMA2_Channel4, DMA_IT_TC, ENABLE);
+    DMA_ITConfig(DMA2_Channel4, DMA_IT_TC|DMA_IT_TE, ENABLE);
     DMA_Cmd(DMA2_Channel4, ENABLE);
 }
 
@@ -598,6 +600,14 @@ void SD_SDIO_DMA_IRQHANDLER(void)
 {
     if(DMA_GetITStatus(DMA2_IT_TC4) == SET)
     {
+        DMA_ClearITPendingBit(DMA2_IT_TC4);
+    }
+    if(DMA_GetITStatus(DMA2_IT_TE4) == SET)
+    {
+        DMA_ClearITPendingBit(DMA2_IT_TE4);
+        printf("transmission error\n");
+    }
+
 #if USE_THREAD_AWARE_SDCARD_DRIVER
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
         uint8_t dummy;
@@ -606,8 +616,6 @@ void SD_SDIO_DMA_IRQHANDLER(void)
 #else
         sdio_state.dma_xfer_end = true;
 #endif
-        DMA_ClearITPendingBit(DMA2_IT_TC4);
-    }
 }
 
 #elif FAMILY == STM32F4
@@ -699,7 +707,7 @@ static void SD_LowLevel_DMA_TxConfig(uint32_t *BufferSRC, uint32_t BufferSize)
     SDDMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_INC4;
     SDDMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_INC4;
     DMA_Init(SD_SDIO_DMA_STREAM, &SDDMA_InitStructure);
-    DMA_ITConfig(SD_SDIO_DMA_STREAM, DMA_IT_TC, ENABLE);
+    DMA_ITConfig(SD_SDIO_DMA_STREAM, DMA_IT_TC|DMA_IT_TE|DMA_IT_FE, ENABLE);
     DMA_FlowControllerConfig(SD_SDIO_DMA_STREAM, DMA_FlowCtrl_Peripheral);
 
     /* DMA2 Stream3  or Stream6 enable */
@@ -739,7 +747,7 @@ void SD_LowLevel_DMA_RxConfig(uint32_t *BufferDST, uint32_t BufferSize)
     SDDMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_INC4;
     SDDMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_INC4;
     DMA_Init(SD_SDIO_DMA_STREAM, &SDDMA_InitStructure);
-    DMA_ITConfig(SD_SDIO_DMA_STREAM, DMA_IT_TC, ENABLE);
+    DMA_ITConfig(SD_SDIO_DMA_STREAM, DMA_IT_TC|DMA_IT_TE|DMA_IT_FE, ENABLE);
     DMA_FlowControllerConfig(SD_SDIO_DMA_STREAM, DMA_FlowCtrl_Peripheral);
 
     /* DMA2 Stream3 or Stream6 enable */
@@ -757,18 +765,36 @@ void SD_LowLevel_DMA_RxConfig(uint32_t *BufferDST, uint32_t BufferSize)
 
 void SD_SDIO_DMA_IRQHANDLER(void)
 {
-    if(DMA2->LISR & SD_SDIO_DMA_FLAG_TCIF)
-    {
+	if(DMA_GetITStatus(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_IT_TCIF) == SET)
+	{
+	    sdio_state.sdio_dma_error = SD_OK;
+		DMA_ClearITPendingBit(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_IT_TCIF);
+	}
+	if(DMA_GetITStatus(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_IT_TEIF) == SET)
+	{
+	    sdio_state.sdio_dma_error = SD_DMA_TRANSMISSION_ERROR;
+		DMA_ClearITPendingBit(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_IT_TEIF);
+//		printf("transmission error\n");
+		usleep(2000);
+	}
+	if(DMA_GetITStatus(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_IT_FEIF) == SET)
+	{
+	    sdio_state.sdio_dma_error = SD_DMA_FIFO_ERROR;
+		DMA_ClearITPendingBit(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_IT_FEIF);
+//		printf("fifo error\n");
+		usleep(2000);
+	}
+
+	DMA_ClearFlag(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_FLAG_TCIF|SD_SDIO_DMA_FLAG_FEIF|SD_SDIO_DMA_FLAG_TEIF);
+
 #if USE_THREAD_AWARE_SDCARD_DRIVER
-        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        uint8_t dummy;
-        xQueueSendFromISR(sdio_state.dma_xfer_end, (const void*)&dummy, &xHigherPriorityTaskWoken);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	uint8_t dummy;
+	xQueueSendFromISR(sdio_state.dma_xfer_end, (const void*)&dummy, &xHigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 #else
-        sdio_state.dma_xfer_end = true;
+	sdio_state.dma_xfer_end = true;
 #endif
-        DMA_ClearFlag(SD_SDIO_DMA_STREAM, SD_SDIO_DMA_FLAG_TCIF|SD_SDIO_DMA_FLAG_FEIF);
-    }
 }
 #endif
 
@@ -1280,6 +1306,7 @@ SD_Error SD_ReadBlock(uint8_t *readbuff, uint32_t sector)
         return SD_INVALID_PARAMETER;
 
     sdio_state.sdio_xfer_error = SD_ACTIVE;
+    sdio_state.sdio_dma_error = SD_ACTIVE;
     sdio_state.sdio_xfer_multi_block = false;
     SDIO->DCTRL = 0x0;
 
@@ -1332,6 +1359,7 @@ SD_Error SD_ReadMultiBlocks(uint8_t *readbuff, uint32_t sector, uint32_t NumberO
     }
 
     sdio_state.sdio_xfer_error = SD_ACTIVE;
+    sdio_state.sdio_dma_error = SD_ACTIVE;
     sdio_state.sdio_xfer_multi_block = true;
     SDIO->DCTRL = 0x0;
 
@@ -1378,6 +1406,7 @@ SD_Error SD_WriteBlock(const uint8_t *writebuff, uint32_t sector)
         return SD_INVALID_PARAMETER;
 
     sdio_state.sdio_xfer_error = SD_ACTIVE;
+    sdio_state.sdio_dma_error = SD_ACTIVE;
     sdio_state.sdio_xfer_multi_block = false;
     SDIO->DCTRL = 0x0;
 
@@ -1430,6 +1459,7 @@ SD_Error SD_WriteMultiBlocks(const uint8_t *writebuff, uint32_t sector, uint32_t
     }
 
     sdio_state.sdio_xfer_error = SD_ACTIVE;
+    sdio_state.sdio_dma_error = SD_ACTIVE;
     sdio_state.sdio_xfer_multi_block = true;
     SDIO->DCTRL = 0x0;
 
@@ -1485,11 +1515,14 @@ SD_Error SD_WaitIOOperation(sdio_wait_on_io_t io_flag)
 #if USE_THREAD_AWARE_SDCARD_DRIVER
     (void)io_flag;
     uint8_t dummy;
-    // wait for DMA end
-    xQueueReceive(sdio_state.dma_xfer_end, &dummy, 5000/portTICK_PERIOD_MS);
-    // wait for SDIO end
-    xQueueReceive(sdio_state.dma_xfer_end, &dummy, 5000/portTICK_PERIOD_MS);
+    // wait for DMA then SDIO end
+    xQueueReceive(sdio_state.dma_xfer_end, &dummy, 1000/portTICK_PERIOD_MS);
+    xQueueReceive(sdio_state.dma_xfer_end, &dummy, 1000/portTICK_PERIOD_MS);
     sderr = sdio_state.sdio_xfer_error;
+    if(sdio_state.sdio_xfer_error != SD_OK || sdio_state.sdio_dma_error != SD_OK)
+    {
+//    	printf("sdio error: dmaerr=%u, sdioerr=%u\n", sdio_state.sdio_dma_error, sdio_state.sdio_xfer_error);
+    }
 #else
     uint32_t timeout;
     timeout = gettime_ms() + SDIO_WAITTIMEOUT;
