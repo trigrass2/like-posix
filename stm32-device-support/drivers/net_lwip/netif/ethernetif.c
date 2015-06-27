@@ -52,15 +52,8 @@
 
 #if USE_DRIVER_MII_RMII_PHY && USE_DRIVER_LWIP_NET
 
-/* Global pointers to track current transmit and receive descriptors */
-// defined in stm32_eth.c
-extern ETH_DMADESCTypeDef  *DMATxDescToSet;
-extern ETH_DMADESCTypeDef  *DMARxDescToGet;
 
-/* Global pointer for last received frame infos */
-// defined in stm32_eth.c, only valid for stm32f4
-extern ETH_DMA_Rx_Frame_infos *DMA_RX_FRAME_infos;
-
+u8_t copy_buffer[ETH_MAX_PACKET_SIZE];
 
 /**
  * performs MAC/PHY level initialization
@@ -69,6 +62,103 @@ static void low_level_init(void* macaddr)
 {
     ETH_Configuration((const uint8_t*)macaddr);
 }
+
+#if FAMILY == STM32F1
+
+/**
+ * This function should do the actual transmission of the packet. The packet is
+ * contained in the pbuf that is passed to the function. This pbuf
+ * might be chained.
+ *
+ * @param netif the lwip network interface structure for this ethernetif
+ * @param p the MAC packet to send (e.g. IP packet including MAC addresses and type)
+ * @return ERR_OK if the packet could be sent
+ *         an err_t value if the packet couldn't be sent
+ *
+ * @note Returning ERR_MEM here if a DMA queue of your MAC is full can lead to
+ *       strange results. You might consider waiting for space in the DMA queue
+ *       to become availale since the stack doesn't retry to send a packet
+ *       dropped because of memory failure (except for the TCP timers).
+ */
+
+static err_t low_level_output(struct netif *netif, struct pbuf *chain)
+{
+    (void)netif;
+    struct pbuf *pbuf;
+    int len = 0;
+
+    // TODO - if there is only one pbuf in the chain and its length is always < ETH_MAX_PACKET_SIZE,
+    // then no need to do this extra copy into copy_buffer
+    // need to look into what a pbuf is (contains a whole frame?)
+
+    /* copy frame from pbufs to driver buffers */
+    for(pbuf = chain; pbuf; pbuf = pbuf->next)
+    {
+        memcpy(&copy_buffer[len], pbuf->payload, pbuf->len);
+        len = len + pbuf->len;
+    }
+
+    // adding this here just to be sure len is of a safe size
+    assert_true(len < ETH_MAX_PACKET_SIZE);
+
+    ETH_HandleTxPkt(copy_buffer, len);
+
+    return ERR_OK;
+}
+
+/**
+ * Should allocate a pbuf and transfer the bytes of the incoming
+ * packet from the interface into the pbuf.
+ *
+ * @param netif the lwip network interface structure for this ethernetif
+ * @return a pbuf filled with the received packet (including MAC header)
+ *         NULL on memory error
+ */
+static struct pbuf * low_level_input(struct netif *netif)
+{
+	(void)netif;
+	struct pbuf *chain = NULL;
+	struct pbuf *pbuf;
+	u32_t len;
+
+    // TODO - if there is only one pbuf in the chain and its length is always < ETH_MAX_PACKET_SIZE,
+    // then no need to do this extra copy into copy_buffer
+    // need to look into what a pbuf is (contains a whole frame?)
+
+	len = ETH_HandleRxPkt(copy_buffer);
+
+	if(len > 0)
+	{
+		/* We allocate a pbuf chain of pbufs from the Lwip buffer pool */
+		chain = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
+
+		/* copy received frame to pbuf chain */
+		for(len = 0, pbuf = chain; pbuf; pbuf = pbuf->next)
+		{
+			memcpy(pbuf->payload, &copy_buffer[len], pbuf->len);
+			len = len + pbuf->len;
+		}
+	}
+
+	return chain;
+}
+
+
+err_t ethernetif_incoming()
+{
+	return ERR_OK;
+//    return ETH_CheckFrameReceived() ? ERR_OK : ERR_MEM;
+}
+
+#elif FAMILY == STM32F4
+/* Global pointers to track current transmit and receive descriptors */
+// defined in stm32_eth.c
+extern ETH_DMADESCTypeDef  *DMATxDescToSet;
+extern ETH_DMADESCTypeDef  *DMARxDescToGet;
+
+/* Global pointer for last received frame infos */
+// defined in stm32_eth.c, only valid for stm32f4
+extern ETH_DMA_Rx_Frame_infos *DMA_RX_FRAME_infos;
 
 /**
  * This function should do the actual transmission of the packet. The packet is
@@ -182,6 +272,14 @@ static struct pbuf * low_level_input(struct netif *netif)
   return p;
 }
 
+err_t ethernetif_incoming()
+{
+    return ETH_CheckFrameReceived() ? ERR_OK : ERR_MEM;
+}
+
+#else
+#error "invalid ethernet MCU configuration"
+#endif
 #elif USE_DRIVER_ENC28J60_PHY && USE_DRIVER_LWIP_NET
 
 // TODO - does the setting CHECKSUM_BY_HARDWARE have an effect here?
@@ -219,7 +317,7 @@ static struct pbuf * low_level_input(struct netif *netif)
     struct pbuf *p, *q;
     u16_t len;
 
-    len = enc28j60_recv_packet_start(MAX_ETH_PAYLOAD);
+    len = enc28j60_recv_packet_start(ETH_MAX_PACKET_SIZE);
 
     /* We allocate a pbuf chain of pbufs from the Lwip buffer pool */
     p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
@@ -237,17 +335,16 @@ static struct pbuf * low_level_input(struct netif *netif)
     return p;
 }
 
-#endif
-
-
 err_t ethernetif_incoming()
 {
-#if USE_DRIVER_MII_RMII_PHY
-    return ETH_CheckFrameReceived() ? ERR_OK : ERR_MEM;
-#elif USE_DRIVER_ENC28J60_PHY
     return enc28j60_check_incoming() ? ERR_OK : ERR_MEM;
-#endif
 }
+
+#else
+#error "invalid ethernet device configuration"
+#endif
+
+
 
 
 /**
