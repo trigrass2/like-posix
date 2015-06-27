@@ -43,8 +43,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "board_config.h"
-#include "sdcard_config.h"
 #include "sdcard_type.h"
 
 #ifndef USE_THREAD_AWARE_SDCARD_DRIVER
