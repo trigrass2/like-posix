@@ -126,7 +126,7 @@ void WEAK OTG_FS_IRQHandler(void);
 __attribute__ ((section(".isr_vector")))
 void (* const g_pfnVectors[])(void) =
 {
-    (intfunc)((unsigned long)&_estack), /* The stack pointer after relocation */
+    (void (*)(void))((unsigned long)&_estack), /* The stack pointer after relocation */
     Reset_Handler,              /* Reset Handler */
     NMI_Handler,                /* NMI Handler */
     HardFault_Handler,          /* Hard Fault Handler */
@@ -246,7 +246,7 @@ void (* const g_pfnVectors[])(void) =
     0,
     0,
     0,
-    (intfunc)0xF1E0F85F       /* @0x1E0. This is for boot in RAM mode for
+    (void (*)(void))0xF1E0F85F       /* @0x1E0. This is for boot in RAM mode for
                            STM32F10x High Density devices. */
 };
 
