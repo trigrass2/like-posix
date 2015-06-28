@@ -120,7 +120,7 @@ void net_task(void *pvParameters)
 #if NO_SYS
 	uint32_t localtime;
 #endif
-
+	err_t e;
 	netconf_t* netconf = (netconf_t*)pvParameters;
 
     for(;;)
@@ -128,17 +128,20 @@ void net_task(void *pvParameters)
     	// TODO - use a semaphore to trigger ethernetif_input from an packet received interrupt.
     	// run the other TCP stuff in a separate thread in that case...
 
-		if(ethernetif_incoming() == ERR_OK)
+        e = ethernetif_incoming();
+
+		if(e == ERR_OK)
 		{
 #if !NO_SYS
 		    LOCK_TCPIP_CORE();
-			ethernetif_input(&netconf->netif);
+			e = ethernetif_input(&netconf->netif);
 			UNLOCK_TCPIP_CORE();
 #else
-			ethernetif_input(&netconf->netif);
+			e = ethernetif_input(&netconf->netif);
 #endif
 		}
-		else
+
+		if(e != ERR_OK)
 		    vTaskDelay(1/portTICK_RATE_MS); // TODO - sort this out!! required in some cases to get CPU time for other tasks :|
 
 #if LWIP_DHCP
