@@ -255,7 +255,7 @@ uint32_t ETH_Init(ETH_InitTypeDef* ETH_InitStruct, uint16_t PHYAddress)
     RegValue = ETH_ReadPHYRegister(PHYAddress, PHY_SR);
   
     /* Configure the MAC with the Duplex Mode fixed by the autonegotiation process */
-    if((RegValue & PHY_Duplex_Status) != (uint32_t)RESET)
+    if((RegValue & PHY_DUPLEX_STATUS) != (uint32_t)RESET)
     {
       /* Set Ethernet duplex mode to FullDuplex following the autonegotiation */
       ETH_InitStruct->ETH_Mode = ETH_Mode_FullDuplex;
@@ -267,7 +267,7 @@ uint32_t ETH_Init(ETH_InitTypeDef* ETH_InitStruct, uint16_t PHYAddress)
       ETH_InitStruct->ETH_Mode = ETH_Mode_HalfDuplex;           
     }
     /* Configure the MAC with the speed fixed by the autonegotiation process */
-    if(RegValue & PHY_Speed_Status)
+    if(RegValue & PHY_SPEED_STATUS)
     {  
       /* Set Ethernet speed to 10M following the autonegotiation */    
       ETH_InitStruct->ETH_Speed = ETH_Speed_10M; 
@@ -631,6 +631,20 @@ uint32_t ETH_HandleRxPkt(uint8_t *ppkt)
   
   /* Return Frame Length/ERROR */
   return (framelength);  
+}
+
+/**
+  * @brief  This function polls for a frame reception
+  * @param  None
+  * @retval Returns 1 when a frame is received, 0 if none.
+  */
+uint32_t ETH_CheckFrameReceived(void)
+{
+  return 1;
+//  (((DMARxDescToGet->Status & ETH_DMARxDesc_OWN) == (uint32_t)RESET) &&
+//          ((DMARxDescToGet->Status & ETH_DMARxDesc_ES) == (uint32_t)RESET) &&
+//          ((DMARxDescToGet->Status & ETH_DMARxDesc_LS) != (uint32_t)RESET) &&
+//          ((DMARxDescToGet->Status & ETH_DMARxDesc_FS) != (uint32_t)RESET));
 }
 
 /**

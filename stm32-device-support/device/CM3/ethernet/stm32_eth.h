@@ -1525,6 +1525,7 @@ uint32_t ETH_GetMMCRegister(uint32_t ETH_MMCReg);
 /** 
   * @brief  PTP  
   */ 
+uint32_t ETH_CheckFrameReceived(void);
 uint32_t ETH_HandlePTPTxPkt(u8 *ppkt, u16 FrameLength, uint32_t *PTPTxTab);
 uint32_t ETH_HandlePTPRxPkt(u8 *ppkt, uint32_t *PTPRxTab);
 void ETH_DMAPTPTxDescChainInit(ETH_DMADESCTypeDef *DMATxDescTab, ETH_DMADESCTypeDef *DMAPTPTxDescTab, u8* TxBuff, uint32_t TxBuffCount);
