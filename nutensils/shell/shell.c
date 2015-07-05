@@ -30,10 +30,44 @@
  *
  */
 
+/**
+ * Text Shell
+ *
+ * threaded server operation:
+ * after start_shell() is called, a socket is opened. for every connection made on that socket
+ * a new shell thread is spawned.
+ * the shell is configured from a config file in this mode. the config file should contain:
+ *  - port 22
+ *  - conns 5
+ *  - name shelld
+ * the socket connection and shell instance will exit when read() returns a value <= 0,
+ * or if the exit command is issued.
+ *
+ * non threaded operation:
+ * to run a shell outside a thread, call shell_instance_thread() with a sock_conn_t structure as the argument.
+ *  - the sock_conn_t structure must have its ctx field set pointing to a shellserver_t structure.
+ *  - the sock_conn_t structure must have its connfd field set to a file descriptor, that will be used for shell IO.
+ *  - the shellserver_t structure needs to be initialized to 0's
+ *  - the shellserver_t structure should have commands registered on it before use.
+ * shell_instance_thread() blocks while running. it will exit when read() returns a value <= 0,
+ * or if the exit command is issued.
+ *
+ *
+ * Note:
+ *
+ * 	- the system calls read, write, open, fdopen, fclose, getcwd, stat are used. if run under appleseed,
+ * 	   requires USE_POSIX_STYLE_IO set to 1 is a must among other things, and ENABLE_LIKEPOSIX_SOCKETS
+ * 	   must be set to 1 in likeposix_config.h
+ * 	- shells share the global current working directory
+ * 	- shells support user defined and built in commands, registered via the register_command() function.
+ * 	- shells support running command(s) from within files. when a filename is specified
+ * 		that is a regular file, it is opened and its contents passed to the shell line by line.
+ */
+
 #include "shell.h"
 
+#include <fcntl.h>
 #include <unistd.h>
-#include <sys/socket.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -41,6 +75,8 @@
 #include <stdlib.h>
 
 #include "builtins.h"
+
+static char shell_cwd[SHELL_CWD_LENGTH_MAX];
 
 typedef struct
 {
@@ -52,14 +88,17 @@ typedef struct
 typedef struct _shell_instance_t{
 	char input_buffer[SHELL_CMD_BUFFER_SIZE];		///< input_buffer is a memory space that stores user input, and is @ref CMD_BUFFER_SIZE in size
 	char history[SHELL_HISTORY_LENGTH][SHELL_CMD_BUFFER_SIZE];	///< history is a memory space that stores previous user input, and is @ref CMD_BUFFER_SIZE in size
-	char cwd[SHELL_CWD_LENGTH_MAX];
 	uint16_t cursor_index;							///< cursor_index is the index of the cursor.
 	uint16_t input_index;							///< input_index is the index of the end of the chacters in the command buffer.
 	int8_t history_index;							///< points to the last item in history
 	unsigned char history_save_index;						///< points to the last item in history
 	shell_cmd_t* head_cmd;
 	bool exitflag;
-	int fdes;
+	FILE* readfs;
+	int readf;
+	int savereadf;
+	int writef;
+	struct stat sstat;
 	current_command_t current_command;
 }shell_instance_t;
 
@@ -148,14 +187,20 @@ void shell_instance_thread(sock_conn_t* conn)
 
 	if(sh)
 	{
-	    sh->cwd[0] = '\0';
+
+        getcwd(shell_cwd, SHELL_CWD_LENGTH_MAX);
 		sh->exitflag = false;
 		sh->input_index = 0;
 		sh->cursor_index = 0;
 		sh->head_cmd = shellserver->head_cmd;
 		sh->history_index = -1;
 		sh->history_save_index = 0;
-		sh->fdes = conn->connfd;
+		sh->readf = conn->connfd;
+		sh->readfs = NULL;
+		sh->writef = conn->connfd;
+		sh->savereadf = -1;
+		sh->sstat.st_size = 0;
+		sh->sstat.st_mode = 0;
 
 		// blocks here running the shell
 		prompt(sh);
@@ -174,27 +219,50 @@ void prompt(shell_instance_t* sh)
 {
 	int code;
 	unsigned char data = 0;
+	unsigned char inject = '\0';
 	unsigned char i = 0;
 
 	while(!sh->exitflag)
 	{
-		if(recv(sh->fdes, &data, 1, 0) <= 0)
+		if(inject == '\0' && read(sh->readf, &data, 1) <= 0)
 			sh->exitflag = true;
 		else
 		{
+			if(inject != '\0')
+			{
+				data = inject;
+				inject = '\0';
+			}
+
+			if(sh->sstat.st_size)
+			{
+				// end of input file reached
+				if(ftell(sh->readfs) == sh->sstat.st_size)
+				{
+					fclose(sh->readfs);
+					sh->readfs = NULL;
+					sh->readf = sh->savereadf;
+					sh->sstat.st_size = 0;
+					sh->sstat.st_mode = 0;
+					// check if a trailing newline is needed
+					if(data != '\n')
+						inject = '\n';
+				}
+			}
+
 			if(data == 0x1B) // ESC
 			{
 				data = 0;
-				recv(sh->fdes, &data, 1, 0);
+				read(sh->readf, &data, 1);
 				if(data == 0x5B)	// ANSI escaped sequences, ascii '['
 				{
 					data = 0;
-					recv(sh->fdes, &data, 1, 0);
+					read(sh->readf, &data, 1);
 
 					if(data == 0x33) // ascii '3'
 					{
 						data = 0;
-						recv(sh->fdes, &data, 1, 0);
+						read(sh->readf, &data, 1);
 						if(data == 0x7E) // DELETE, ascii '~'
 						{
 							if(sh->cursor_index < sh->input_index)
@@ -214,7 +282,7 @@ void prompt(shell_instance_t* sh)
 								// put cursor back where it should be
 								for(i = sh->input_index; i > sh->cursor_index; i--)
 								{
-									send(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1, 0);
+									write(sh->writef, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
 								}
 							}
 						}
@@ -238,7 +306,7 @@ void prompt(shell_instance_t* sh)
 						if(sh->cursor_index > 0)
 						{
 							sh->cursor_index--;
-							send(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1, 0);
+							write(sh->writef, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
 						}
 					}
 					else if(data == 0x43) // RIGHT
@@ -246,19 +314,19 @@ void prompt(shell_instance_t* sh)
 						if(sh->cursor_index < sh->input_index)
 						{
 							sh->cursor_index++;
-							send(sh->fdes, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1, 0);
+							write(sh->writef, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1);
 						}
 					}
 				}
 				else if(data == 0x4F)	// HOME, END
 				{
 					data = 0;
-					recv(sh->fdes, &data, 1, 0);
+					read(sh->readf, &data, 1);
 					if(data == 0x48) // HOME
 					{
 						while(sh->cursor_index > 0)
 						{
-							send(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1, 0);
+							write(sh->writef, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
 							sh->cursor_index--;
 						}
 					}
@@ -266,7 +334,7 @@ void prompt(shell_instance_t* sh)
 					{
 						while(sh->cursor_index < sh->input_index)
 						{
-							send(sh->fdes, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1, 0);
+							write(sh->writef, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1);
 							sh->cursor_index++;
 						}
 					}
@@ -281,8 +349,30 @@ void prompt(shell_instance_t* sh)
 				if(sh->current_command.cmd)
 				{
 					// use args[1] as args[0] points to the command
-				    code = shell_cmd_exec(sh->current_command.cmd, sh->fdes, sh->current_command.args + 1, sh->current_command.nargs);
-				    shell_builtins(sh, code, sh->current_command.cmd);
+					code = shell_cmd_exec(sh->current_command.cmd, sh->writef, sh->current_command.args + 1, sh->current_command.nargs);
+					shell_builtins(sh, code, sh->current_command.cmd);
+				}
+				else if(!sh->sstat.st_size && !stat(sh->input_buffer, &sh->sstat))
+				{
+					if(sh->sstat.st_mode == S_IFREG && sh->sstat.st_size)
+					{
+						sh->savereadf = sh->readf;
+						sh->readf = open(sh->input_buffer, O_RDONLY);
+						if(sh->readf == -1)
+						{
+							sh->readf = sh->savereadf;
+							sh->sstat.st_size = 0;
+							sh->sstat.st_mode = 0;
+						}
+						else
+							sh->readfs = fdopen(sh->readf, "r");
+					}
+				}
+				else if(*sh->current_command.args) // only print a message if there is some content in args[0]
+				{
+					// print error message if the buffer had some content but no valid command
+					write(sh->writef, SHELL_NO_SUCH_COMMAND, sizeof(SHELL_NO_SUCH_COMMAND)-1);
+					write(sh->writef, *sh->current_command.args, strlen((const char*)*sh->current_command.args));
 				}
 
 				sh->input_index = 0;
@@ -309,7 +399,7 @@ void prompt(shell_instance_t* sh)
 					// put cursor back where it should be
 					for(i = sh->input_index; i > sh->cursor_index; i--)
 					{
-						send(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1, 0);
+						write(sh->writef, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
 					}
 				}
 			}
@@ -344,12 +434,12 @@ void prompt(shell_instance_t* sh)
 						put_prompt(sh, NULL, true);
 					}
 
-					send(sh->fdes, &sh->input_buffer[sh->cursor_index-1], strlen((const char*)&sh->input_buffer[sh->cursor_index-1]), 0);
+					write(sh->writef, &sh->input_buffer[sh->cursor_index-1], strlen((const char*)&sh->input_buffer[sh->cursor_index-1]));
 
 					// put cursor back where it should be
 					for(i = sh->input_index; i > sh->cursor_index; i--)
 					{
-						send(sh->fdes, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1, 0);
+						write(sh->writef, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
 					}
 				}
 			}
@@ -401,23 +491,23 @@ void clear_prompt(shell_instance_t* sh)
  */
 void put_prompt(shell_instance_t* sh, const char* argstr, bool newline)
 {
-	int len = strlen(sh->cwd);
+	int len = strlen(shell_cwd);
 
-	send(sh->fdes, "\r", 1, 0);
+	write(sh->writef, "\r", 1);
 	if(newline)
-		send(sh->fdes, "\n", 1, 0);
+		write(sh->writef, "\n", 1);
 
 	if(len > 0)
 	{
-		send(sh->fdes, SHELL_DRIVE, sizeof(SHELL_DRIVE)-1, 0);
-		send(sh->fdes, sh->cwd, len, 0);
-		send(sh->fdes, SHELL_PROMPT, sizeof(SHELL_PROMPT)-1, 0);
+		write(sh->writef, SHELL_DRIVE, sizeof(SHELL_DRIVE)-1);
+		write(sh->writef, shell_cwd, len);
+		write(sh->writef, SHELL_PROMPT, sizeof(SHELL_PROMPT)-1);
 	}
 	else
-		send(sh->fdes, SHELL_ROOT_PROMPT, sizeof(SHELL_ROOT_PROMPT)-1, 0);
+		write(sh->writef, SHELL_ROOT_PROMPT, sizeof(SHELL_ROOT_PROMPT)-1);
 
 	if(argstr)
-		send(sh->fdes, argstr, strlen((const char*)argstr), 0);
+		write(sh->writef, argstr, strlen((const char*)argstr));
 }
 
 /**
@@ -509,16 +599,10 @@ void parse_input(shell_instance_t* sh, current_command_t* cmd)
 		// return command if one was found
 		if(head && head->name)
 		{
-			send(sh->fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1, 0);
+			write(sh->writef, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1);
 			// reduce number of arguments by one as first arg is just the command
 			cmd->nargs--;
 			cmd->cmd = head;
-		}
-		else if(cmd->args[0] != NULL)
-		{
-			// print error message if the buffer had some content but no valid command
-			send(sh->fdes, SHELL_NO_SUCH_COMMAND, sizeof(SHELL_NO_SUCH_COMMAND)-1, 0);
-			send(sh->fdes, cmd->args[0], strlen((const char*)cmd->args[0]), 0);
 		}
 	}
 }
@@ -536,20 +620,20 @@ void shell_builtins(shell_instance_t* sh, int code, shell_cmd_t* cmd)
 			sh->exitflag = true;
 		break;
         case SHELL_CMD_CHDIR:
-            getcwd(sh->cwd, SHELL_CWD_LENGTH_MAX);
+            getcwd(shell_cwd, SHELL_CWD_LENGTH_MAX);
         break;
 		case SHELL_CMD_PRINT_CMDS:
 			head = sh->head_cmd;
-			send(sh->fdes, SHELL_HELP_STR, sizeof(SHELL_HELP_STR)-1, 0);
+			write(sh->writef, SHELL_HELP_STR, sizeof(SHELL_HELP_STR)-1);
 			while(head)
 			{
-				send(sh->fdes, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1, 0);
-				send(sh->fdes, head->name, strlen((const char*)head->name), 0);
+				write(sh->writef, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1);
+				write(sh->writef, head->name, strlen((const char*)head->name));
 				head = head->next;
 			}
 		break;
 		case SHELL_CMD_PRINT_USAGE:
-			cmd_usage(cmd, sh->fdes);
+			cmd_usage(cmd, sh->writef);
 		break;
 	}
 }

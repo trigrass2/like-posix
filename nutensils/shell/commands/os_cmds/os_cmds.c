@@ -101,23 +101,23 @@ int sh_top(int fdes, const char** args, unsigned char nargs)
                 uxTaskGetSystemState(state_table, ntasks, &uptime);
 
                 length = snprintf(buffer, TOP_LINE_BUFFER_SIZE-1, "top - %02d:%02d:%02d up %d days n %d"BLANK_EOL, tm->tm_hour, tm->tm_min, tm->tm_sec, uptime, n);
-                send(fdes, buffer, length, 0);
+                write(fdes, buffer, length);
 
                 length = snprintf(buffer, TOP_LINE_BUFFER_SIZE-1, "Tasks: %d\tMem: %db/%d%%", ntasks, memusage, 100*memusage/configTOTAL_HEAP_SIZE);
-                send(fdes, buffer, length, 0);
+                write(fdes, buffer, length);
 
                 length = snprintf(buffer, TOP_LINE_BUFFER_SIZE-1, "\tFiles: %d/%d hwm: %d"BLANK_EOL, file_table_open_files(), FILE_TABLE_LENGTH, file_table_hwm());
-                send(fdes, buffer, length, 0);
+                write(fdes, buffer, length);
 
-                send(fdes, TOP_HEADER, sizeof(TOP_HEADER)-1, 0);
+                write(fdes, TOP_HEADER, sizeof(TOP_HEADER)-1);
 
                 for(i = 0; i < ntasks; i++)
                 {
                     length = snprintf(buffer, TOP_LINE_BUFFER_SIZE-1, "% 10d % 10d% 10d% 10d\t%s"BLANK_EOL, state_table[i].xHandle, state_table[i].eCurrentState, state_table[i].usStackHighWaterMark, state_table[i].ulRunTimeCounter, state_table[i].pcTaskName);
-                    send(fdes, buffer, length, 0);
+                    write(fdes, buffer, length);
                 }
 
-                send(fdes, ANSII_CLEAR_LINE, sizeof(ANSII_CLEAR_LINE)-1, 0);
+                write(fdes, ANSII_CLEAR_LINE, sizeof(ANSII_CLEAR_LINE)-1);
 
                 free(state_table);
                 sleep(rate);
@@ -128,7 +128,7 @@ int sh_top(int fdes, const char** args, unsigned char nargs)
             ret = ioctlsocket(fdes, FIONREAD, &length);
             if(length > 0)
             {
-                ret = recv(fdes, &code, 1, 0);
+                ret = read(fdes, &code, 1);
                 if(ret > 0)
                     ret = 0;
             }
@@ -139,12 +139,12 @@ int sh_top(int fdes, const char** args, unsigned char nargs)
             if((ret != 0) || (code == 'q') || (n == 0))
                 break;
             else if (code == '\n')
-                send(fdes, SHELL_PREVIOUS_LINE, sizeof(SHELL_PREVIOUS_LINE)-1, 0);
+                write(fdes, SHELL_PREVIOUS_LINE, sizeof(SHELL_PREVIOUS_LINE)-1);
 
             for(i = 0; i < ntasks; i++)
-                send(fdes, REMOVE_PREV_LINE, sizeof(REMOVE_PREV_LINE)-1, 0);
+                write(fdes, REMOVE_PREV_LINE, sizeof(REMOVE_PREV_LINE)-1);
             for(; i < ntasks + 3; i++)
-                send(fdes, SHELL_PREVIOUS_LINE, sizeof(SHELL_PREVIOUS_LINE)-1, 0);
+                write(fdes, SHELL_PREVIOUS_LINE, sizeof(SHELL_PREVIOUS_LINE)-1);
         }
 
         free(buffer);
