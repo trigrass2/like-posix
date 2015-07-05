@@ -1007,19 +1007,20 @@ int _fstat(int file, struct stat *st)
 
 		if(fte)
 		{
-			if(fte->mode == S_IFREG)
-			{
-				if(st)
-					st->st_size = f_size(&fte->file);
-			}
-			if(fte->mode == S_IFIFO)
-			{
-				if(st)
-					st->st_size = fte->size;
-			}
-
 			if(st)
+			{
+				if(fte->mode == S_IFREG)
+				{
+					st->st_size = f_size(&fte->file);
+					st->st_blksize = _MAX_SS;
+				}
+				if(fte->mode == S_IFIFO)
+				{
+					st->st_size = fte->size;
+				}
+
 				st->st_mode = fte->mode;
+			}
 
 			res = 0;
 			__unlock(fte, false, true);
