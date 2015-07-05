@@ -93,7 +93,8 @@ void dac_stream_init()
 
     init_stream(&dac_stream, "dac_stream", DAC_STREAM_DEFAULT_SAMPLERATE,
             DAC_STREAM_MAX_CONNECTIONS, dac_stream_buffer, dac_stream_connections,
-            DAC_STREAM_BUFFER_LENGTH, DAC_STREAM_CHANNEL_COUNT, 3, 128, DAC_FULL_SCALE_AMPLITUDE_MV, resolution);
+            DAC_STREAM_BUFFER_LENGTH, DAC_STREAM_CHANNEL_COUNT, DAC_STREAM_THREAD_PRIO,
+			DAC_STREAM_THREAD_STACK_SIZE, DAC_FULL_SCALE_AMPLITUDE_MV, resolution);
 
     init_local_dac_io();
     init_local_dac();

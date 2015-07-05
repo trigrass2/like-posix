@@ -67,6 +67,14 @@
  */
 #define I2S_STREAM_DMA_IRQ_PRIORITY         4
 
+/**
+ * I2S stream thread priority - all I2S stream connections run sequentially inside this same thread.
+ */
+#define I2S_STREAM_THREAD_PRIO				1
+/**
+ * I2S stream thread stack size.
+ */
+#define I2S_STREAM_THREAD_STACK_SIZE		128
 
 #endif // I2S_STREAM_CONFIG_H
 /**

@@ -95,7 +95,14 @@
  */
 #define ADC_STREAM_ALIGNMENT                ADC_DataAlign_Left
 
-
+/**
+ * ADC stream thread priority - all ADC stream connections run sequentially inside this same thread.
+ */
+#define ADC_STREAM_THREAD_PRIO				1
+/**
+ * ADC stream thread stack size.
+ */
+#define ADC_STREAM_THREAD_STACK_SIZE		128
 #endif // ADC_STREAM_CONFIG_H
 /**
  *

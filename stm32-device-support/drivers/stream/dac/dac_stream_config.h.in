@@ -72,7 +72,14 @@
  * sets DAC data alignment, may be DAC_Align_12b_L or DAC_Align_12b_R
  */
 #define DAC_STREAM_ALIGNMENT               DAC_Align_12b_L
-
+/**
+ * DAC stream thread priority - all DAC stream connections run sequentially inside this same thread.
+ */
+#define DAC_STREAM_THREAD_PRIO				1
+/**
+ * DAC stream thread stack size.
+ */
+#define DAC_STREAM_THREAD_STACK_SIZE		128
 #endif // DAC_STREAM_CONFIG_H
 
 /**

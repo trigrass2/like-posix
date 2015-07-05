@@ -122,7 +122,7 @@ void adc_stream_init()
 
     init_stream(&adc_stream, "adc_stream", ADC_STREAM_DEFAULT_SAMPLERATE,
             ADC_STREAM_MAX_CONNECTIONS, adc_stream_buffer, adc_stream_connections,
-            ADC_STREAM_BUFFER_LENGTH, ADC_STREAM_CHANNEL_COUNT, 3, 128, ADC_FULL_SCALE_AMPLITUDE_MV, resolution);
+            ADC_STREAM_BUFFER_LENGTH, ADC_STREAM_CHANNEL_COUNT, ADC_STREAM_THREAD_PRIO, ADC_STREAM_THREAD_STACK_SIZE, ADC_FULL_SCALE_AMPLITUDE_MV, resolution);
 
     init_local_adc_io();
     init_local_adc();
