@@ -1,5 +1,6 @@
 
 CFLAGS += -I $(NUTENSILS_DIR)
+SOURCE += $(NUTENSILS_DIR)/nutensils.c
 
 USE_SOCK_UTILS_VALUES = 0 1
 

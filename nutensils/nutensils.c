@@ -30,25 +30,28 @@
  *
  */
 
+#include <stdlib.h>
+#include <string.h>
 
-#ifndef NUTENSILS_H_
-#define NUTENSILS_H_
-
-#if USE_SOCK_UTILS
-#include "socket/sock_utils.h"
-#endif
-
-#include "http/http_defs.h"
-
-#if USE_HTTP_UTILS
-#include "http/http_client.h"
-#endif
-
-#if USE_THREADED_SERVER
-#include "threaded_server/threaded_server.h"
-#endif
-
-void split_hostname_and_port(const char* hostnameandport, char* hostname, unsigned short* port);
-
-#endif /* NUTENSILS_H_ */
-
+/**
+ * unpacks hostname and port from the conventional string syntax "hostname:port".
+ *
+ * @param hostnameandport is the string representation to unpack,
+ * 			and should consist of the hostname separated from the port number by a colon.
+ * @param hostname is the destination memory to copy the hostname into. it must be long enough to contain the hostname!!
+ * @param port is a pointer to a short int to store the port number into.
+ */
+void split_hostname_and_port(const char* hostnameandport, char* hostname, unsigned short* port)
+{
+	if(hostnameandport && hostname)
+	{
+		char* portstr = strchr(hostnameandport, ':');
+		int length = portstr - hostnameandport;
+		if(portstr)
+		{
+			*port = atoi(portstr+1);
+			memcpy(hostname, hostnameandport, length);
+			hostname[length] = '\0';
+		}
+	}
+}
