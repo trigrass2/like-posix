@@ -64,7 +64,6 @@ void install_fs_cmds(shellserver_t* sh)
     register_command(sh, &sh_cd_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_rm_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_mkdir_cmd, NULL, NULL, NULL);
-    register_command(sh, &sh_echo_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_cat_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_mv_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_cp_cmd, NULL, NULL, NULL);
@@ -197,32 +196,6 @@ int sh_mkdir(int fdes, const char** args, unsigned char nargs)
         mkdir(dir, 0777);
     else
         write(fdes, ARGUMENT_NOT_SPECIFIED, sizeof(ARGUMENT_NOT_SPECIFIED)-1);
-
-    return SHELL_CMD_EXIT;
-}
-
-int sh_echo(int fdes, const char** args, unsigned char nargs)
-{
-    (void)fdes;
-    (void)nargs;
-    FILE* f;
-    const char* string = args[0];
-    const char* option = args[1];
-    const char* filename = args[2];
-    const char* operate;
-
-    if(!strncmp(">>", (const char*)option, 2))
-        operate = "a";
-    else if(!strncmp(">", (const char*)option, 1))
-        operate = "w";
-    else
-        return SHELL_CMD_PRINT_USAGE;
-
-    f = fopen(filename, operate);
-    if(*operate == 'a')
-        fputc('\n', f);
-    fputs(string, f);
-    fclose(f);
 
     return SHELL_CMD_EXIT;
 }
@@ -374,18 +347,6 @@ shell_cmd_t sh_mkdir_cmd = {
     .name = "mkdir",
     .usage = "creates the specified directory",
     .cmdfunc = sh_mkdir
-};
-
-shell_cmd_t sh_echo_cmd = {
-    .name = "echo",
-    .usage = "add text to new file:" SHELL_NEWLINE \
-"\techo 123 > file.txt" SHELL_NEWLINE \
-"append text on new line in a file:" SHELL_NEWLINE \
-"\techo abc >> file.txt" SHELL_NEWLINE \
-"accepts `, ' and \" quotes" SHELL_NEWLINE \
-"to preserve quotes:" SHELL_NEWLINE \
-"\techo `\"key\": \"value\"` > file.txt",
-    .cmdfunc = sh_echo
 };
 
 shell_cmd_t sh_cat_cmd = {

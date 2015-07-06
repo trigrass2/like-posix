@@ -144,6 +144,16 @@ int sh_reboot(int fdes, const char** args, unsigned char nargs)
     return SHELL_CMD_EXIT;
 }
 
+int sh_echo(int fdes, const char** args, unsigned char nargs)
+{
+    const char* echo = arg_by_index(0, args, nargs);
+
+    if(echo)
+    	write(fdes, echo, strlen(echo));
+
+    return SHELL_CMD_EXIT;
+}
+
 shell_cmd_t sh_help_cmd = {
      .name = "help",
      .usage = "prints a list of available commands",
@@ -160,6 +170,12 @@ shell_cmd_t sh_date_cmd = {
     .name = "date",
     .usage = "prints current date/time",
     .cmdfunc = sh_date
+};
+
+shell_cmd_t sh_echo_cmd = {
+    .name = "echo",
+    .usage = "echoes input text",
+    .cmdfunc = sh_echo
 };
 
 shell_cmd_t sh_uname_cmd = {
