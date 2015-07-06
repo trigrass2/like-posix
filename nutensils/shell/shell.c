@@ -62,6 +62,8 @@
  * 	- shells support user defined and built in commands, registered via the register_command() function.
  * 	- shells support running command(s) from within files. when a filename is specified
  * 		that is a regular file, it is opened and its contents passed to the shell line by line.
+ * 	- supports redirect to file eg: ls > file.txt
+ * 									echo "hello there" >> file.txt
  */
 
 #include "shell.h"
@@ -98,6 +100,7 @@ typedef struct _shell_instance_t{
 	int readf;
 	int savereadf;
 	int writef;
+	int savewritef;
 	struct stat sstat;
 	current_command_t current_command;
 }shell_instance_t;
@@ -127,6 +130,7 @@ int start_shell(shellserver_t* shellserver, const char* configfile)
 	register_command(shellserver, &sh_date_cmd, NULL, NULL, NULL);
     register_command(shellserver, &sh_uname_cmd, NULL, NULL, NULL);
     register_command(shellserver, &sh_reboot_cmd, NULL, NULL, NULL);
+    register_command(shellserver, &sh_echo_cmd, NULL, NULL, NULL);
 
 	return start_threaded_server(&shellserver->server, configfile, shell_instance_thread, shellserver, SHELL_TASK_STACK_SIZE, SHELL_TASK_PRIORITY);
 }
@@ -199,6 +203,7 @@ void shell_instance_thread(sock_conn_t* conn)
 		sh->readfs = NULL;
 		sh->writef = conn->connfd;
 		sh->savereadf = -1;
+		sh->savewritef = -1;
 		sh->sstat.st_size = 0;
 		sh->sstat.st_mode = 0;
 
@@ -221,6 +226,8 @@ void prompt(shell_instance_t* sh)
 	unsigned char data = 0;
 	unsigned char inject = '\0';
 	unsigned char i = 0;
+	const char* specialchar;
+	int outflags;
 
 	while(!sh->exitflag)
 	{
@@ -228,12 +235,14 @@ void prompt(shell_instance_t* sh)
 			sh->exitflag = true;
 		else
 		{
+			// used by the shell to append a character to the stream
 			if(inject != '\0')
 			{
 				data = inject;
 				inject = '\0';
 			}
 
+			// process EOF condition in the input file, if any
 			if(sh->sstat.st_size)
 			{
 				// end of input file reached
@@ -250,6 +259,8 @@ void prompt(shell_instance_t* sh)
 				}
 			}
 
+			// process special input characters UP, DOWN, LEFT_RIGHT, HOME,
+			// END, DELETE, NEWLINE, BACKSPACE and finally any normal characters
 			if(data == 0x1B) // ESC
 			{
 				data = 0;
@@ -346,16 +357,60 @@ void prompt(shell_instance_t* sh)
 
 				parse_input(sh, &sh->current_command);
 
+				// if the command decodes as a shell command
 				if(sh->current_command.cmd)
 				{
+					// check if we are directing to output file
+					// if we got a command and at least 2 other symbols
+					// if the 2nd to last symbol is the '>' character...
+					if(sh->current_command.nargs >= 2)
+					{
+						outflags = -1;
+						specialchar = *(sh->current_command.args + (sh->current_command.nargs - 1));
+
+						printf(specialchar);
+
+						if(specialchar[0] == '>' && specialchar[1] == '\0')
+							outflags = O_WRONLY|O_CREAT;
+						else if(specialchar[0] == '>' && specialchar[1] == '>' && specialchar[2] == '\0')
+							outflags = O_WRONLY|O_CREAT|O_APPEND;
+
+						if(outflags != -1)
+						{
+							sh->savewritef = sh->writef;
+							sh->writef = open(*(sh->current_command.args + sh->current_command.nargs), outflags);
+							if(sh->writef == -1)
+							{
+								sh->writef = sh->savewritef;
+								sh->savewritef = -1;
+							}
+							else if(outflags & O_APPEND)
+							{
+								write(sh->writef, "\n", sizeof("\n")-1);
+							}
+						}
+					}
+
+					// run the command, passing the arguments to it
 					// use args[1] as args[0] points to the command
 					code = shell_cmd_exec(sh->current_command.cmd, sh->writef, sh->current_command.args + 1, sh->current_command.nargs);
 					shell_builtins(sh, code, sh->current_command.cmd);
+
+					// close output file if any
+					if(sh->savewritef != -1)
+					{
+						close(sh->writef);
+						sh->writef = sh->savewritef;
+						sh->savewritef = -1;
+					}
 				}
+				// if we are not already processing an input file
+				// check if the file is regular and can be opened and has a length
 				else if(!sh->sstat.st_size && !stat(sh->input_buffer, &sh->sstat))
 				{
 					if(sh->sstat.st_mode == S_IFREG && sh->sstat.st_size)
 					{
+						// attempt to open file as input source
 						sh->savereadf = sh->readf;
 						sh->readf = open(sh->input_buffer, O_RDONLY);
 						if(sh->readf == -1)
@@ -368,6 +423,7 @@ void prompt(shell_instance_t* sh)
 							sh->readfs = fdopen(sh->readf, "r");
 					}
 				}
+				// check the command or input file is invalid
 				else if(*sh->current_command.args) // only print a message if there is some content in args[0]
 				{
 					// print error message if the buffer had some content but no valid command
@@ -375,6 +431,7 @@ void prompt(shell_instance_t* sh)
 					write(sh->writef, *sh->current_command.args, strlen((const char*)*sh->current_command.args));
 				}
 
+				// reset the shell input buffer
 				sh->input_index = 0;
 				sh->cursor_index = 0;
 				put_prompt(sh, NULL, true);
