@@ -46,7 +46,7 @@
  * CMD_BUFFER_SIZE is the size of the shell command input buffer in bytes.
  */
 #define SHELL_CMD_BUFFER_SIZE       128
-#define SHELL_HISTORY_LENGTH        4
+#define SHELL_HISTORY_LENGTH        1
 #define SHELL_MAX_ARGS              16
 
 #define SHELL_CWD_LENGTH_MAX        256
@@ -59,6 +59,7 @@ typedef struct {
 typedef struct _shell_t shell_t;
 
 int start_shell(shellserver_t* shell, const char* configfile);
-void register_command(shellserver_t* sh, shell_cmd_t* cmd, shell_cmd_func_t cmdfunc, const char* name, const char* usage);
+void shell_instance(shellserver_t* shell, int rdfd, int wrfd);
+void register_command(shellserver_t* shell, shell_cmd_t* cmd, shell_cmd_func_t cmdfunc, const char* name, const char* usage);
 
 #endif /* SHELL_H_ */

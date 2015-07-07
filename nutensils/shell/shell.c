@@ -43,13 +43,16 @@
  * the socket connection and shell instance will exit when read() returns a value <= 0,
  * or if the exit command is issued.
  *
- * non threaded operation:
- * to run a shell outside a thread, call shell_instance_thread() with a sock_conn_t structure as the argument.
- *  - the sock_conn_t structure must have its ctx field set pointing to a shellserver_t structure.
- *  - the sock_conn_t structure must have its connfd field set to a file descriptor, that will be used for shell IO.
- *  - the shellserver_t structure needs to be initialized to 0's
+ * operation without threaded server:
+ * to run a shell outside a threaded server, call shell_instance().
+ *
  *  - the shellserver_t structure should have commands registered on it before use.
- * shell_instance_thread() blocks while running. it will exit when read() returns a value <= 0,
+ *  - the rdfd and wrfd file descriptors point to an input file and an output file,
+ *  	these may be regular files or sockets, or devices, and may be different or the same.
+ *  - the shell_instance() function allocates a shell_instance_t which will be around 768bytes
+ *  	when SHELL_HISTORY_LENGTH is set to 4, around 256bytes when SHELL_HISTORY_LENGTH is set to 0.
+ *
+ * shell_instance() blocks while running. it will exit when read() returns a value <= 0,
  * or if the exit command is issued.
  *
  *
@@ -60,10 +63,29 @@
  * 	   must be set to 1 in likeposix_config.h
  * 	- shells share the global current working directory
  * 	- shells support user defined and built in commands, registered via the register_command() function.
- * 	- shells support running command(s) from within files. when a filename is specified
+ * 	- shells support running command(s) from within files, as shell scripts. when a filename is specified
  * 		that is a regular file, it is opened and its contents passed to the shell line by line.
- * 	- supports redirect to file eg: ls > file.txt
- * 									echo "hello there" >> file.txt
+ * 		control is then returned to the original file stream.
+ * 	- shell scripts must end with a newline, to execute the last line in the script.
+ * 	- supports whitespace in arguments, eg:
+ *	 	 	 	 	 	 	 	 	 	 	 # echo hello there
+ *	 	 	 	 	 	 	 	 	 	 	 # hello
+ *	 	 	 	 	 	 	 	 	 	 	 # echo "hello there"
+ *	 	 	 	 	 	 	 	 	 	 	 # hello there
+ *	 	 	 	 	 	 	 	 	 	 	 # echo 'hello there'
+ *	 	 	 	 	 	 	 	 	 	 	 # hello there
+ *	 	 	 	 	 	 	 	 	 	 	 # echo `hello there`
+ *	 	 	 	 	 	 	 	 	 	 	 # hello there
+ *	 	 	 	 	 	 	 	 	 	 	 # echo "'hello there'"
+ *	 	 	 	 	 	 	 	 	 	 	 # 'hello there'
+ *	 	 	 	 	 	 	 	 	 	 	 # echo '"hello there"'
+ *	 	 	 	 	 	 	 	 	 	 	 # "hello there"
+ * 	- supports redirect to file eg:
+ *									# ls > file.txt
+ * 									# echo "hello there" >> file.txt
+ * 									# shell scripts do not support file output
+ * 									# ./myscript.sh > file.txt
+ * 	- nested shell scripts are supported but **ONLY** when commands in the scripts do not perform read operations.
  */
 
 #include "shell.h"
@@ -85,7 +107,7 @@ typedef struct
 	shell_cmd_t* cmd;
 	const char* args[SHELL_MAX_ARGS];
 	uint16_t nargs;
-}current_command_t;
+}shell_input_t;
 
 typedef struct _shell_instance_t{
 	char input_buffer[SHELL_CMD_BUFFER_SIZE];		///< input_buffer is a memory space that stores user input, and is @ref CMD_BUFFER_SIZE in size
@@ -96,23 +118,27 @@ typedef struct _shell_instance_t{
 	unsigned char history_save_index;						///< points to the last item in history
 	shell_cmd_t* head_cmd;
 	bool exitflag;
-	FILE* readfs;
-	int readf;
-	int savereadf;
-	int writef;
-	int savewritef;
+	FILE* rdfs;
+	int rdfd;
+	int rdfd_hold;
+	int wrfd;
+	int wrfd_hold;
 	struct stat sstat;
-	current_command_t current_command;
+	shell_input_t input_cmd;
 }shell_instance_t;
 
 
-static void prompt(shell_instance_t* sh);
-static void historic_prompt(shell_instance_t* sh);
-static void clear_prompt(shell_instance_t* sh);
-static void put_prompt(shell_instance_t* sh, const char* argstr, bool newline);
-static void parse_input(shell_instance_t* sh, current_command_t* cmd);
-static void shell_builtins(shell_instance_t* sh, int code, shell_cmd_t* cmd);
-static void shell_instance_thread(sock_conn_t* conn);
+void shell_thread(sock_conn_t* conn);
+static void prompt(shell_instance_t* shell_inst);
+static void historic_prompt(shell_instance_t* shell_inst);
+static void clear_prompt(shell_instance_t* shell_inst);
+static void put_prompt(shell_instance_t* shell_inst, const char* argstr, bool newline);
+static void parse_input_line(shell_instance_t* shell_inst);
+static void return_code_catcher(shell_instance_t* shell_inst, int code);
+static void open_output_file(shell_instance_t* shell_inst);
+static void close_output_file(shell_instance_t* shell_inst);
+static bool open_input_file(shell_instance_t* shell_inst);
+static char close_input_file(shell_instance_t* shell_inst, char input_char);
 
 /**
  * starts a shell server. requires a config file that meets the needs of the threaded server...
@@ -132,7 +158,7 @@ int start_shell(shellserver_t* shellserver, const char* configfile)
     register_command(shellserver, &sh_reboot_cmd, NULL, NULL, NULL);
     register_command(shellserver, &sh_echo_cmd, NULL, NULL, NULL);
 
-	return start_threaded_server(&shellserver->server, configfile, shell_instance_thread, shellserver, SHELL_TASK_STACK_SIZE, SHELL_TASK_PRIORITY);
+	return start_threaded_server(&shellserver->server, configfile, shell_thread, shellserver, SHELL_TASK_STACK_SIZE, SHELL_TASK_PRIORITY);
 }
 
 /**
@@ -170,47 +196,52 @@ register_command(&shellserver, &mycmd, sh_mycmd, "mycmd", "help string for mycmd
  * @param   name is a pointer to a string that names the command.
  * @param   usage is a pointer to a string that describes the usage of the command.
  */
-void register_command(shellserver_t* shellserver, shell_cmd_t* cmd, shell_cmd_func_t cmdfunc, const char* name, const char* usage)
+void register_command(shellserver_t* shell, shell_cmd_t* cmd, shell_cmd_func_t cmdfunc, const char* name, const char* usage)
 {
     if(cmd)
     {
         shell_cmd_init(cmd, cmdfunc, name, usage);
-        if(shellserver->head_cmd)
-            cmd->next = shellserver->head_cmd;
-        shellserver->head_cmd = cmd;
+        if(shell->head_cmd)
+            cmd->next = shell->head_cmd;
+        shell->head_cmd = cmd;
     }
 }
 
 /**
  * this function runs inside a new thread, spawned by the threaded_server
  */
-void shell_instance_thread(sock_conn_t* conn)
+void shell_thread(sock_conn_t* conn)
 {
-	shellserver_t* shellserver = (shellserver_t*)conn->ctx;
-	shell_instance_t* sh = calloc(sizeof(shell_instance_t), 1);
+	shellserver_t* shell = (shellserver_t*)conn->ctx;
+	shell_instance(shell, conn->connfd, conn->connfd);
+}
 
-	if(sh)
+/**
+ * this function runs a shell instance, blocking till the file descriptors become invalid or until the exit command is isssued.
+ */
+void shell_instance(shellserver_t* shell, int rdfd, int wrfd)
+{
+	shell_instance_t* shell_inst = calloc(sizeof(shell_instance_t), 1);
+
+	if(shell_inst)
 	{
+		getcwd(shell_cwd, SHELL_CWD_LENGTH_MAX);
+		shell_inst->exitflag = false;
+		shell_inst->input_index = 0;
+		shell_inst->cursor_index = 0;
+		shell_inst->head_cmd = shell->head_cmd;
+		shell_inst->history_index = -1;
+		shell_inst->history_save_index = 0;
+		shell_inst->rdfd = rdfd;
+		shell_inst->rdfs = NULL;
+		shell_inst->wrfd = wrfd;
+		shell_inst->rdfd_hold = -1;
+		shell_inst->wrfd_hold = -1;
+		shell_inst->sstat.st_size = 0;
+		shell_inst->sstat.st_mode = 0;
 
-        getcwd(shell_cwd, SHELL_CWD_LENGTH_MAX);
-		sh->exitflag = false;
-		sh->input_index = 0;
-		sh->cursor_index = 0;
-		sh->head_cmd = shellserver->head_cmd;
-		sh->history_index = -1;
-		sh->history_save_index = 0;
-		sh->readf = conn->connfd;
-		sh->readfs = NULL;
-		sh->writef = conn->connfd;
-		sh->savereadf = -1;
-		sh->savewritef = -1;
-		sh->sstat.st_size = 0;
-		sh->sstat.st_mode = 0;
-
-		// blocks here running the shell
-		prompt(sh);
-
-		free(sh);
+		prompt(shell_inst);
+		free(shell_inst);
 	}
 }
 
@@ -220,243 +251,164 @@ void shell_instance_thread(sock_conn_t* conn)
  * the exit flag is set when the user runs the built in command "exit",
  * or when the client connection closes.
  */
-void prompt(shell_instance_t* sh)
+void prompt(shell_instance_t* shell_inst)
 {
 	int code;
-	unsigned char data = 0;
+	unsigned char input_char = 0;
 	unsigned char inject = '\0';
 	unsigned char i = 0;
-	const char* specialchar;
-	int outflags;
 
-	while(!sh->exitflag)
+	while(!shell_inst->exitflag)
 	{
-		if(inject == '\0' && read(sh->readf, &data, 1) <= 0)
-			sh->exitflag = true;
+		if(inject == '\0' && read(shell_inst->rdfd, &input_char, 1) <= 0)
+			shell_inst->exitflag = true;
 		else
 		{
 			// used by the shell to append a character to the stream
 			if(inject != '\0')
 			{
-				data = inject;
+				input_char = inject;
 				inject = '\0';
 			}
 
-			// process EOF condition in the input file, if any
-			if(sh->sstat.st_size)
-			{
-				// end of input file reached
-				if(ftell(sh->readfs) == sh->sstat.st_size)
-				{
-					fclose(sh->readfs);
-					sh->readfs = NULL;
-					sh->readf = sh->savereadf;
-					sh->sstat.st_size = 0;
-					sh->sstat.st_mode = 0;
-					// check if a trailing newline is needed
-					if(data != '\n')
-						inject = '\n';
-				}
-			}
+			inject = close_input_file(shell_inst, input_char);
 
 			// process special input characters UP, DOWN, LEFT_RIGHT, HOME,
 			// END, DELETE, NEWLINE, BACKSPACE and finally any normal characters
-			if(data == 0x1B) // ESC
+			if(input_char == 0x1B) // ESC
 			{
-				data = 0;
-				read(sh->readf, &data, 1);
-				if(data == 0x5B)	// ANSI escaped sequences, ascii '['
+				input_char = 0;
+				read(shell_inst->rdfd, &input_char, 1);
+				if(input_char == 0x5B)	// ANSI escaped sequences, ascii '['
 				{
-					data = 0;
-					read(sh->readf, &data, 1);
+					input_char = 0;
+					read(shell_inst->rdfd, &input_char, 1);
 
-					if(data == 0x33) // ascii '3'
+					if(input_char == 0x33) // ascii '3'
 					{
-						data = 0;
-						read(sh->readf, &data, 1);
-						if(data == 0x7E) // DELETE, ascii '~'
+						input_char = 0;
+						read(shell_inst->rdfd, &input_char, 1);
+						if(input_char == 0x7E) // DELETE, ascii '~'
 						{
-							if(sh->cursor_index < sh->input_index)
+							if(shell_inst->cursor_index < shell_inst->input_index)
 							{
 								// wipe last character
-								sh->input_index--;
-								for(i = sh->cursor_index; i < sh->input_index; i++)
-									sh->input_buffer[i] = sh->input_buffer[i+1];
+								shell_inst->input_index--;
+								for(i = shell_inst->cursor_index; i < shell_inst->input_index; i++)
+									shell_inst->input_buffer[i] = shell_inst->input_buffer[i+1];
 
-								sh->input_buffer[sh->input_index] = ' ';
-								sh->input_buffer[sh->input_index+1] = '\0';
-								put_prompt(sh, sh->input_buffer, false);
+								shell_inst->input_buffer[shell_inst->input_index] = ' ';
+								shell_inst->input_buffer[shell_inst->input_index+1] = '\0';
+								put_prompt(shell_inst, shell_inst->input_buffer, false);
 								// re print prompt
-								sh->input_buffer[sh->input_index] = '\0';
-								put_prompt(sh, sh->input_buffer, false);
+								shell_inst->input_buffer[shell_inst->input_index] = '\0';
+								put_prompt(shell_inst, shell_inst->input_buffer, false);
 
 								// put cursor back where it should be
-								for(i = sh->input_index; i > sh->cursor_index; i--)
+								for(i = shell_inst->input_index; i > shell_inst->cursor_index; i--)
 								{
-									write(sh->writef, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
+									write(shell_inst->wrfd, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
 								}
 							}
 						}
 					}
-					else if(data == 0x41) // UP
+					else if(input_char == 0x41) // UP
 					{
-						sh->history_index--;
-						if(sh->history_index < 0)
+						shell_inst->history_index--;
+						if(shell_inst->history_index < 0)
 						{
-							sh->history_index = SHELL_HISTORY_LENGTH-1;
+							shell_inst->history_index = SHELL_HISTORY_LENGTH-1;
 						}
-						historic_prompt(sh);
+						historic_prompt(shell_inst);
 					}
-					else if(data == 0x42) // DOWN
+					else if(input_char == 0x42) // DOWN
 					{
-						sh->history_index = -1;
-						historic_prompt(sh);
+						shell_inst->history_index = -1;
+						historic_prompt(shell_inst);
 					}
-					else if(data == 0x44) // LEFT
+					else if(input_char == 0x44) // LEFT
 					{
-						if(sh->cursor_index > 0)
+						if(shell_inst->cursor_index > 0)
 						{
-							sh->cursor_index--;
-							write(sh->writef, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
+							shell_inst->cursor_index--;
+							write(shell_inst->wrfd, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
 						}
 					}
-					else if(data == 0x43) // RIGHT
+					else if(input_char == 0x43) // RIGHT
 					{
-						if(sh->cursor_index < sh->input_index)
+						if(shell_inst->cursor_index < shell_inst->input_index)
 						{
-							sh->cursor_index++;
-							write(sh->writef, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1);
+							shell_inst->cursor_index++;
+							write(shell_inst->wrfd, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1);
 						}
 					}
 				}
-				else if(data == 0x4F)	// HOME, END
+				else if(input_char == 0x4F)	// HOME, END
 				{
-					data = 0;
-					read(sh->readf, &data, 1);
-					if(data == 0x48) // HOME
+					input_char = 0;
+					read(shell_inst->rdfd, &input_char, 1);
+					if(input_char == 0x48) // HOME
 					{
-						while(sh->cursor_index > 0)
+						while(shell_inst->cursor_index > 0)
 						{
-							write(sh->writef, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
-							sh->cursor_index--;
+							write(shell_inst->wrfd, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
+							shell_inst->cursor_index--;
 						}
 					}
-					else if(data == 0x46) // END
+					else if(input_char == 0x46) // END
 					{
-						while(sh->cursor_index < sh->input_index)
+						while(shell_inst->cursor_index < shell_inst->input_index)
 						{
-							write(sh->writef, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1);
-							sh->cursor_index++;
+							write(shell_inst->wrfd, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1);
+							shell_inst->cursor_index++;
 						}
 					}
 				}
 			}
-			else if(data == '\n') // NEWLINE
+			else if(input_char == '\n') // NEWLINE
 			{
-				sh->input_buffer[sh->input_index] = '\0';
+				shell_inst->input_buffer[shell_inst->input_index] = '\0';
 
-				parse_input(sh, &sh->current_command);
+				// parse_input_line opens input and output files - note they are closed by this function
+				parse_input_line(shell_inst);
 
 				// if the command decodes as a shell command
-				if(sh->current_command.cmd)
+				if(shell_inst->input_cmd.cmd)
 				{
-					// check if we are directing to output file
-					// if we got a command and at least 2 other symbols
-					// if the 2nd to last symbol is the '>' character...
-					if(sh->current_command.nargs >= 2)
-					{
-						outflags = -1;
-						specialchar = *(sh->current_command.args + (sh->current_command.nargs - 1));
-
-						printf(specialchar);
-
-						if(specialchar[0] == '>' && specialchar[1] == '\0')
-							outflags = O_WRONLY|O_CREAT;
-						else if(specialchar[0] == '>' && specialchar[1] == '>' && specialchar[2] == '\0')
-							outflags = O_WRONLY|O_CREAT|O_APPEND;
-
-						if(outflags != -1)
-						{
-							sh->savewritef = sh->writef;
-							sh->writef = open(*(sh->current_command.args + sh->current_command.nargs), outflags);
-							if(sh->writef == -1)
-							{
-								sh->writef = sh->savewritef;
-								sh->savewritef = -1;
-							}
-							else if(outflags & O_APPEND)
-							{
-								write(sh->writef, "\n", sizeof("\n")-1);
-							}
-						}
-					}
-
 					// run the command, passing the arguments to it
 					// use args[1] as args[0] points to the command
-					code = shell_cmd_exec(sh->current_command.cmd, sh->writef, sh->current_command.args + 1, sh->current_command.nargs);
-					shell_builtins(sh, code, sh->current_command.cmd);
+					code = shell_cmd_exec(shell_inst->input_cmd.cmd, shell_inst->wrfd, shell_inst->input_cmd.args + 1, shell_inst->input_cmd.nargs);
+					return_code_catcher(shell_inst, code);
 
-					// close output file if any
-					if(sh->savewritef != -1)
-					{
-						close(sh->writef);
-						sh->writef = sh->savewritef;
-						sh->savewritef = -1;
-					}
-				}
-				// if we are not already processing an input file
-				// check if the file is regular and can be opened and has a length
-				else if(!sh->sstat.st_size && !stat(sh->input_buffer, &sh->sstat))
-				{
-					if(sh->sstat.st_mode == S_IFREG && sh->sstat.st_size)
-					{
-						// attempt to open file as input source
-						sh->savereadf = sh->readf;
-						sh->readf = open(sh->input_buffer, O_RDONLY);
-						if(sh->readf == -1)
-						{
-							sh->readf = sh->savereadf;
-							sh->sstat.st_size = 0;
-							sh->sstat.st_mode = 0;
-						}
-						else
-							sh->readfs = fdopen(sh->readf, "r");
-					}
-				}
-				// check the command or input file is invalid
-				else if(*sh->current_command.args) // only print a message if there is some content in args[0]
-				{
-					// print error message if the buffer had some content but no valid command
-					write(sh->writef, SHELL_NO_SUCH_COMMAND, sizeof(SHELL_NO_SUCH_COMMAND)-1);
-					write(sh->writef, *sh->current_command.args, strlen((const char*)*sh->current_command.args));
+					close_output_file(shell_inst);
 				}
 
 				// reset the shell input buffer
-				sh->input_index = 0;
-				sh->cursor_index = 0;
-				put_prompt(sh, NULL, true);
+				shell_inst->input_index = 0;
+				shell_inst->cursor_index = 0;
+				put_prompt(shell_inst, NULL, true);
 			}
-			else if(data == 0x7F) // BACKSPACE
+			else if(input_char == 0x7F) // BACKSPACE
 			{
-				if(sh->cursor_index > 0)
+				if(shell_inst->cursor_index > 0)
 				{
 					// wipe last character
-					sh->input_index--;
-					sh->cursor_index--;
-					for(i = sh->cursor_index; i < sh->input_index; i++)
-						sh->input_buffer[i] = sh->input_buffer[i+1];
+					shell_inst->input_index--;
+					shell_inst->cursor_index--;
+					for(i = shell_inst->cursor_index; i < shell_inst->input_index; i++)
+						shell_inst->input_buffer[i] = shell_inst->input_buffer[i+1];
 
-					sh->input_buffer[sh->input_index] = ' ';
-					sh->input_buffer[sh->input_index+1] = '\0';
-					put_prompt(sh, sh->input_buffer, false);
+					shell_inst->input_buffer[shell_inst->input_index] = ' ';
+					shell_inst->input_buffer[shell_inst->input_index+1] = '\0';
+					put_prompt(shell_inst, shell_inst->input_buffer, false);
 					// re print prompt
-					sh->input_buffer[sh->input_index] = '\0';
-					put_prompt(sh, sh->input_buffer, false);
+					shell_inst->input_buffer[shell_inst->input_index] = '\0';
+					put_prompt(shell_inst, shell_inst->input_buffer, false);
 
 					// put cursor back where it should be
-					for(i = sh->input_index; i > sh->cursor_index; i--)
+					for(i = shell_inst->input_index; i > shell_inst->cursor_index; i--)
 					{
-						write(sh->writef, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
+						write(shell_inst->wrfd, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
 					}
 				}
 			}
@@ -464,39 +416,39 @@ void prompt(shell_instance_t* sh)
 			{
 				// ignore unprintable characters below Space
 				// not sure about characters above 126, Tilde
-				if(data >= ' ')
+				if(input_char >= ' ')
 				{
-					if(sh->input_index < SHELL_CMD_BUFFER_SIZE-1)
+					if(shell_inst->input_index < SHELL_CMD_BUFFER_SIZE-1)
 					{
-						for(i = sh->input_index; i > sh->cursor_index; i--)
+						for(i = shell_inst->input_index; i > shell_inst->cursor_index; i--)
 						{
-							sh->input_buffer[i] = sh->input_buffer[i-1];
+							shell_inst->input_buffer[i] = shell_inst->input_buffer[i-1];
 						}
-						sh->input_buffer[sh->cursor_index] = data;
-						sh->cursor_index++;
-						sh->input_index++;
+						shell_inst->input_buffer[shell_inst->cursor_index] = input_char;
+						shell_inst->cursor_index++;
+						shell_inst->input_index++;
 					}
 					else
 					{
-						// ignore data overflow
-						sh->input_index = 1;
-						sh->cursor_index = 1;
-						sh->input_buffer[0] = data;
+						// ignore input_char overflow
+						shell_inst->input_index = 1;
+						shell_inst->cursor_index = 1;
+						shell_inst->input_buffer[0] = input_char;
 					}
 
-					sh->input_buffer[sh->input_index] = '\0';
+					shell_inst->input_buffer[shell_inst->input_index] = '\0';
 
-					if(sh->input_index == 0)
+					if(shell_inst->input_index == 0)
 					{
-						put_prompt(sh, NULL, true);
+						put_prompt(shell_inst, NULL, true);
 					}
 
-					write(sh->writef, &sh->input_buffer[sh->cursor_index-1], strlen((const char*)&sh->input_buffer[sh->cursor_index-1]));
+					write(shell_inst->wrfd, &shell_inst->input_buffer[shell_inst->cursor_index-1], strlen((const char*)&shell_inst->input_buffer[shell_inst->cursor_index-1]));
 
 					// put cursor back where it should be
-					for(i = sh->input_index; i > sh->cursor_index; i--)
+					for(i = shell_inst->input_index; i > shell_inst->cursor_index; i--)
 					{
-						write(sh->writef, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
+						write(shell_inst->wrfd, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
 					}
 				}
 			}
@@ -507,64 +459,64 @@ void prompt(shell_instance_t* sh)
 /**
  * copies a prompt from a the history buffer to the input buffer, then displays it.
  */
-void historic_prompt(shell_instance_t* sh)
+void historic_prompt(shell_instance_t* shell_inst)
 {
-	if(sh->history_index >= 0 && sh->history_index < SHELL_HISTORY_LENGTH)
+	if(shell_inst->history_index >= 0 && shell_inst->history_index < SHELL_HISTORY_LENGTH)
 	{
-		if(sh->history[sh->history_index][0] != '\0')
+		if(shell_inst->history[shell_inst->history_index][0] != '\0')
 		{
-			clear_prompt(sh);
-			strncpy((char*)sh->input_buffer, (const char*)sh->history[sh->history_index], sizeof(sh->input_buffer)-1);
-			sh->input_index = sh->cursor_index = strlen((const char*)sh->input_buffer);
-			put_prompt(sh, sh->input_buffer, false);
+			clear_prompt(shell_inst);
+			strncpy((char*)shell_inst->input_buffer, (const char*)shell_inst->history[shell_inst->history_index], sizeof(shell_inst->input_buffer)-1);
+			shell_inst->input_index = shell_inst->cursor_index = strlen((const char*)shell_inst->input_buffer);
+			put_prompt(shell_inst, shell_inst->input_buffer, false);
 		}
 	}
 	else
 	{
-		clear_prompt(sh);
-		sh->input_index = sh->cursor_index = 0;
-		sh->input_buffer[sh->input_index] = '\0';
-		put_prompt(sh, NULL, false);
+		clear_prompt(shell_inst);
+		shell_inst->input_index = shell_inst->cursor_index = 0;
+		shell_inst->input_buffer[shell_inst->input_index] = '\0';
+		put_prompt(shell_inst, NULL, false);
 	}
 }
 
 /**
  * clears the input buffer to a fresh prompt.
  */
-void clear_prompt(shell_instance_t* sh)
+void clear_prompt(shell_instance_t* shell_inst)
 {
-	sh->input_index = sh->cursor_index = 0;
-	while(sh->input_buffer[sh->input_index])
+	shell_inst->input_index = shell_inst->cursor_index = 0;
+	while(shell_inst->input_buffer[shell_inst->input_index])
 	{
-		sh->input_buffer[sh->input_index] = ' ';
-		sh->input_index++;
+		shell_inst->input_buffer[shell_inst->input_index] = ' ';
+		shell_inst->input_index++;
 	}
-	sh->input_index = 0;
-	put_prompt(sh, sh->input_buffer, false);
+	shell_inst->input_index = 0;
+	put_prompt(shell_inst, shell_inst->input_buffer, false);
 }
 
 /**
  * prints the prompt string.
  */
-void put_prompt(shell_instance_t* sh, const char* argstr, bool newline)
+void put_prompt(shell_instance_t* shell_inst, const char* argstr, bool newline)
 {
 	int len = strlen(shell_cwd);
 
-	write(sh->writef, "\r", 1);
+	write(shell_inst->wrfd, "\r", 1);
 	if(newline)
-		write(sh->writef, "\n", 1);
+		write(shell_inst->wrfd, "\n", 1);
 
 	if(len > 0)
 	{
-		write(sh->writef, SHELL_DRIVE, sizeof(SHELL_DRIVE)-1);
-		write(sh->writef, shell_cwd, len);
-		write(sh->writef, SHELL_PROMPT, sizeof(SHELL_PROMPT)-1);
+		write(shell_inst->wrfd, SHELL_DRIVE, sizeof(SHELL_DRIVE)-1);
+		write(shell_inst->wrfd, shell_cwd, len);
+		write(shell_inst->wrfd, SHELL_PROMPT, sizeof(SHELL_PROMPT)-1);
 	}
 	else
-		write(sh->writef, SHELL_ROOT_PROMPT, sizeof(SHELL_ROOT_PROMPT)-1);
+		write(shell_inst->wrfd, SHELL_ROOT_PROMPT, sizeof(SHELL_ROOT_PROMPT)-1);
 
 	if(argstr)
-		write(sh->writef, argstr, strlen((const char*)argstr));
+		write(shell_inst->wrfd, argstr, strlen((const char*)argstr));
 }
 
 /**
@@ -573,33 +525,35 @@ void put_prompt(shell_instance_t* sh, const char* argstr, bool newline)
  * populates cmd with the command if one is found.
  * if no command is found, cmd->cmd is set to NULL.
  */
-void parse_input(shell_instance_t* sh, current_command_t* cmd)
+void parse_input_line(shell_instance_t* shell_inst)
 {
-	shell_cmd_t* head = sh->head_cmd;
+	shell_cmd_t* head = shell_inst->head_cmd;
 	char* iter;
-	cmd->cmd = NULL;
+	shell_inst->input_cmd.cmd = NULL;
     unsigned char delimiter;
 
 	if(head)
 	{
-		// be sure that the sh->input_buffer is 0 terminated
-		sh->input_buffer[sizeof(sh->input_buffer)-1] = '\0';
+		// be sure that the shell_inst->input_buffer is 0 terminated
+		shell_inst->input_buffer[sizeof(shell_inst->input_buffer)-1] = '\0';
 
 		// if there was some input, (overwrite oldest save)
-		if(sh->input_buffer[0] != '\0')
+		if(shell_inst->input_buffer[0] != '\0')
 		{
-			strncpy((char*)sh->history[sh->history_save_index], (const char*)sh->input_buffer, sizeof(sh->history[sh->history_save_index]) - 1);
-			sh->history_save_index++;
-			if(sh->history_save_index >= SHELL_HISTORY_LENGTH)
-				sh->history_save_index = 0;
+			strncpy((char*)shell_inst->history[shell_inst->history_save_index],
+					(const char*)shell_inst->input_buffer,
+					sizeof(shell_inst->history[shell_inst->history_save_index]) - 1);
+			shell_inst->history_save_index++;
+			if(shell_inst->history_save_index >= SHELL_HISTORY_LENGTH)
+				shell_inst->history_save_index = 0;
 		}
 
-		memset(cmd->args, 0, sizeof(cmd->args));
+		memset(shell_inst->input_cmd.args, 0, sizeof(shell_inst->input_cmd.args));
 
 		// split input into string chunks delimited by spaces, each is an argument
 		// args[0] is special, it holds the command
-		iter = sh->input_buffer;
-		cmd->nargs = 0;
+		iter = shell_inst->input_buffer;
+		shell_inst->input_cmd.nargs = 0;
 		while(*iter)
 		{
 			// split string into text blocks, delimited by whitespace, trim all whitespace
@@ -624,12 +578,12 @@ void parse_input(shell_instance_t* sh, current_command_t* cmd)
 			}
 
 			// add text block to list
-			cmd->args[cmd->nargs] = iter;
-			cmd->nargs++;
-			if(cmd->nargs >= SHELL_MAX_ARGS)
+			shell_inst->input_cmd.args[shell_inst->input_cmd.nargs] = iter;
+			shell_inst->input_cmd.nargs++;
+			if(shell_inst->input_cmd.nargs >= SHELL_MAX_ARGS)
 				break;
 
-			// if there was no sh->starting delimiter, close the block on the next space
+			// if there was no shell_inst->starting delimiter, close the block on the next space
 			if(!delimiter)
 				delimiter = ' ';
 
@@ -645,52 +599,185 @@ void parse_input(shell_instance_t* sh, current_command_t* cmd)
 			}
 		}
 
+		// null terminate args
+		shell_inst->input_cmd.args[shell_inst->input_cmd.nargs] = NULL;
+
+
 		// match input args[0] (the command) to one of the commands
 		while(head && head->name)
 		{
-			if(!strncmp((const char*)cmd->args[0], (const char*)head->name, sizeof(sh->input_buffer)-1))
+			if(!strncmp((const char*)shell_inst->input_cmd.args[0], (const char*)head->name, sizeof(shell_inst->input_buffer)-1))
 				break;
 			head = head->next;
 		}
 
-		// return command if one was found
+		// return command if one was matched
 		if(head && head->name)
 		{
-			write(sh->writef, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1);
+			write(shell_inst->wrfd, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1);
+
+			// find special characters
+			open_output_file(shell_inst);
+
 			// reduce number of arguments by one as first arg is just the command
-			cmd->nargs--;
-			cmd->cmd = head;
+			shell_inst->input_cmd.nargs--;
+			shell_inst->input_cmd.cmd = head;
+		}
+		// attempt to process an input file
+		else if(open_input_file(shell_inst))
+		{
+
+		}
+		else if(*shell_inst->input_cmd.args)
+		{
+			// print error message if the buffer had some content but no valid command or input file
+			write(shell_inst->wrfd, SHELL_NO_SUCH_COMMAND, sizeof(SHELL_NO_SUCH_COMMAND)-1);
+			write(shell_inst->wrfd, *shell_inst->input_cmd.args, strlen((const char*)*shell_inst->input_cmd.args));
 		}
 	}
 }
 
 /**
+ * finds the special characters > and >> for output file redirect.
+ *
+ * opens the new output file if possible. the output file must be closed by
+ * calling close_output_file().
+ */
+void open_output_file(shell_instance_t* shell_inst)
+{
+	int outflags = -1;
+	int fdes;
+	const char** args;
+
+	// redirect to output file
+	for(args = shell_inst->input_cmd.args, shell_inst->input_cmd.nargs = 0; *args; args++, shell_inst->input_cmd.nargs++)
+	{
+		// select file mode from redirect character
+		if(strcmp(*args, ">") == 0)
+			outflags = O_WRONLY|O_CREAT|O_TRUNC;
+		else if(strcmp(*args, ">>") == 0)
+			outflags = O_WRONLY|O_CREAT|O_APPEND;
+
+		if(outflags != -1)
+		{
+			// remove the special character and filename (if any)
+			*args = NULL;
+			args++;
+			if(*args)
+			{
+				// open the file and add a newline if required
+				fdes = open(*args, outflags);
+				if(fdes != -1 && (outflags & O_APPEND))
+					write(fdes, "\n", sizeof("\n")-1);
+
+				if(fdes != -1)
+				{
+					shell_inst->wrfd_hold = shell_inst->wrfd;
+					shell_inst->wrfd = fdes;
+				}
+			}
+			break;
+		}
+	}
+}
+
+/**
+ * closes output file and directs back to the original write file descriptor.
+ */
+void close_output_file(shell_instance_t* shell_inst)
+{
+	// close output file if any
+	if(shell_inst->wrfd_hold != -1 && shell_inst->wrfd != -1)
+	{
+		close(shell_inst->wrfd);
+		shell_inst->wrfd = shell_inst->wrfd_hold;
+		shell_inst->wrfd_hold = -1;
+	}
+}
+
+/**
+ * try to open an input file (shell script)
+ */
+bool open_input_file(shell_instance_t* shell_inst)
+{
+	// if we are not already processing an input file
+	// check if the file is regular and can be opened and has a length
+	if(!shell_inst->sstat.st_size && !stat(shell_inst->input_buffer, &shell_inst->sstat))
+	{
+		if(shell_inst->sstat.st_mode == S_IFREG && shell_inst->sstat.st_size)
+		{
+			// attempt to open file as input source
+			shell_inst->rdfd_hold = shell_inst->rdfd;
+			shell_inst->rdfd = open(shell_inst->input_buffer, O_RDONLY);
+			if(shell_inst->rdfd == -1)
+			{
+				shell_inst->rdfd = shell_inst->rdfd_hold;
+				shell_inst->sstat.st_size = 0;
+				shell_inst->sstat.st_mode = 0;
+			}
+			else
+			{
+				shell_inst->rdfs = fdopen(shell_inst->rdfd, "r");
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+/**
+ * closes the input file when it reaches EOF,and redirects input to the originial file descriptor.
+ * returns '\0' when not closing. when closing, and input_char is not '\n', returns '\n'.
+ */
+char close_input_file(shell_instance_t* shell_inst, char input_char)
+{
+	// process EOF condition in the input file, if any
+	if(shell_inst->sstat.st_size)
+	{
+		// end of input file reached
+		if(ftell(shell_inst->rdfs) == shell_inst->sstat.st_size)
+		{
+			fclose(shell_inst->rdfs);
+			shell_inst->rdfs = NULL;
+			shell_inst->rdfd = shell_inst->rdfd_hold;
+			shell_inst->sstat.st_size = 0;
+			shell_inst->sstat.st_mode = 0;
+			// check if a trailing newline is needed
+			if(input_char != '\n')
+				return '\n';
+		}
+	}
+
+	return '\0';
+}
+
+/**
  * processes special shell_cmd_t return codes
  */
-void shell_builtins(shell_instance_t* sh, int code, shell_cmd_t* cmd)
+void return_code_catcher(shell_instance_t* shell_inst, int code)
 {
 	shell_cmd_t* head;
 
 	switch(code)
 	{
 		case SHELL_CMD_KILL:
-			sh->exitflag = true;
+			shell_inst->exitflag = true;
 		break;
         case SHELL_CMD_CHDIR:
             getcwd(shell_cwd, SHELL_CWD_LENGTH_MAX);
         break;
 		case SHELL_CMD_PRINT_CMDS:
-			head = sh->head_cmd;
-			write(sh->writef, SHELL_HELP_STR, sizeof(SHELL_HELP_STR)-1);
+			head = shell_inst->head_cmd;
+			write(shell_inst->wrfd, SHELL_HELP_STR, sizeof(SHELL_HELP_STR)-1);
 			while(head)
 			{
-				write(sh->writef, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1);
-				write(sh->writef, head->name, strlen((const char*)head->name));
+				write(shell_inst->wrfd, SHELL_NEWLINE, sizeof(SHELL_NEWLINE)-1);
+				write(shell_inst->wrfd, head->name, strlen((const char*)head->name));
 				head = head->next;
 			}
 		break;
 		case SHELL_CMD_PRINT_USAGE:
-			cmd_usage(cmd, sh->writef);
+			cmd_usage(shell_inst->input_cmd.cmd, shell_inst->wrfd);
 		break;
 	}
 }
