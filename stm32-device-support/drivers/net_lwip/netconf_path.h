@@ -30,51 +30,10 @@
  *
  */
 
-#include "lwipopts.h"
-#include "lwip/netif.h"
-#include "logger.h"
-#include "net_config.h"
-#include "FreeRTOS.h"
-#include "queue.h"
-#include "semphr.h"
-#include "netconf_path.h"
+#ifndef NETCONF_PATH_H_
+#define NETCONF_PATH_H_
 
-#ifndef NET_CONFIG_H_
-#define NET_CONFIG_H_
+#define DEFAULT_RESOLV_CONF_PATH        "/etc/network/resolv"
+#define DEFAULT_NETIF_CONF_PATH         "/etc/network/interface"
 
-#define MAX_HOSTNAME_LENGTH	64
-
-typedef enum {
-    NET_RESOLV_DHCP,
-    NET_RESOLV_STATIC
-} net_resolv_prot_t;
-
-typedef enum {
-    DHCP_STATE_INIT,
-    DHCP_STATE_DISCOVER,
-    DHCP_STATE_DONE=2
-} dhcp_state_t;
-
-typedef struct {
-	logger_t log;
-	struct netif netif;
-	net_resolv_prot_t resolv;
-	SemaphoreHandle_t address_ok;
-#ifdef LWIP_DHCP
-	uint32_t dhcp_fine_timer;
-	uint32_t dhcp_coarse_timer;
-	dhcp_state_t dhcp_state;
-#endif
-	uint8_t hostname[MAX_HOSTNAME_LENGTH];
-	struct ip_addr addr_cache[5]; // ip, netmask,gw,dns1,dns2
-#if NO_SYS
-	uint32_t tcp_timer;
-	uint32_t arp_timer;
-#endif
-}netconf_t;
-
-void net_config(netconf_t* netconf, const char* resolv, const char* interface);
-bool string_to_mac_address(uint8_t* address, const uint8_t* macaddr);
-bool string_to_address(uint8_t* address, const uint8_t* addr);
-
-#endif // NET_CONFIG_H_
+#endif /* NETCONF_PATH_H_ */
