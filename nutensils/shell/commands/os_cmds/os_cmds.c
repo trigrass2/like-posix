@@ -125,6 +125,7 @@ int sh_top(int fdes, const char** args, unsigned char nargs)
 
             code = 0;
             length = 0;
+#ifdef FIONREAD
             ret = ioctlsocket(fdes, FIONREAD, &length);
             if(length > 0)
             {
@@ -132,7 +133,11 @@ int sh_top(int fdes, const char** args, unsigned char nargs)
                 if(ret > 0)
                     ret = 0;
             }
-
+#else
+            ret = read(fdes, &code, 1);
+            if(ret > 0)
+                ret = 0;
+#endif
             if(dec)
                 n--;
 
