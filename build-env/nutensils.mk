@@ -66,6 +66,7 @@ $(error USE_SHELL is set. shell requires USE_HTTP_UTILS set to 1)
 endif
 
 SOURCE += $(NUTENSILS_DIR)/shell/shell.c
+SOURCE += $(NUTENSILS_DIR)/shell/startup_script.c
 SOURCE += $(NUTENSILS_DIR)/shell/shell_command.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell
 SOURCE += $(NUTENSILS_DIR)/shell/commands/builtins/builtins.c

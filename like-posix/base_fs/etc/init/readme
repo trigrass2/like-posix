@@ -1,0 +1,2 @@
+startup scripts can be placed here, with the extension .conf.
+startup scripts should end with a new line to ensure the final command is executed.
