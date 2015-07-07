@@ -30,13 +30,14 @@
  *
  */
 
+#include <sys/time.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
 #include "builtins.h"
 #include "system.h"
 #include "cutensils.h"
-#include "netconf.h"
+#include "netconf_path.h"
 
 int sh_help(int fdes, const char** args, unsigned char nargs)
 {
