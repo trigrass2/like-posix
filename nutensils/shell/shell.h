@@ -33,14 +33,19 @@
 #ifndef SHELL_H_
 #define SHELL_H_
 
-#include "threaded_server.h"
 #include "shell_command.h"
 #include "shell_defs.h"
 
 #define SHELL_TASK_STACK_SIZE 	256
 #define SHELL_TASK_PRIORITY 	1
 
+#define INCLUDE_REMOTE_SHELL_SUPPORT    USE_SOCK_UTILS && USE_THREADED_SERVER
+
 #define DEFAULT_SHELL_CONFIG_PATH   "/etc/shell/shelld_config"
+
+#if INCLUDE_REMOTE_SHELL_SUPPORT
+#include "threaded_server.h"
+#endif
 
 /**
  * CMD_BUFFER_SIZE is the size of the shell command input buffer in bytes.
@@ -53,13 +58,19 @@
 
 typedef struct {
     shell_cmd_t* head_cmd;
+#if INCLUDE_REMOTE_SHELL_SUPPORT
     sock_server_t server;
+#endif
 }shellserver_t;
 
 typedef struct _shell_t shell_t;
 
+
+#if INCLUDE_REMOTE_SHELL_SUPPORT
 int start_shell(shellserver_t* shell, const char* configfile);
+#endif
 void shell_instance(shellserver_t* shell, int rdfd, int wrfd);
 void register_command(shellserver_t* shell, shell_cmd_t* cmd, shell_cmd_func_t cmdfunc, const char* name, const char* usage);
+void install_builtin_cmds(shellserver_t* shellserver);
 
 #endif /* SHELL_H_ */

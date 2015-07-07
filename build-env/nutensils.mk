@@ -57,13 +57,13 @@ CFLAGS += -DUSE_SHELL=$(USE_SHELL)
 
 ifeq ($(USE_SHELL), 1)
 
-ifeq ($(USE_THREADED_SERVER), 0)
-$(error USE_SHELL is set. shell requires USE_THREADED_SERVER set to 1)
-endif
-
-ifeq ($(USE_HTTP_UTILS), 0)
-$(error USE_SHELL is set. shell requires USE_HTTP_UTILS set to 1)
-endif
+#ifeq ($(USE_THREADED_SERVER), 0)
+#$(error USE_SHELL is set. shell requires USE_THREADED_SERVER set to 1)
+#endif
+#
+#ifeq ($(USE_HTTP_UTILS), 0)
+#$(error USE_SHELL is set. shell requires USE_HTTP_UTILS set to 1)
+#endif
 
 SOURCE += $(NUTENSILS_DIR)/shell/shell.c
 SOURCE += $(NUTENSILS_DIR)/shell/startup_script.c
@@ -73,12 +73,14 @@ SOURCE += $(NUTENSILS_DIR)/shell/commands/builtins/builtins.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/builtins
 SOURCE += $(NUTENSILS_DIR)/shell/commands/filesystem_cmds/fs_cmds.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/filesystem_cmds
-SOURCE += $(NUTENSILS_DIR)/shell/commands/network_cmds/net_cmds.c
-CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/network_cmds
 SOURCE += $(NUTENSILS_DIR)/shell/commands/texted/texted.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/texted
 SOURCE += $(NUTENSILS_DIR)/shell/commands/os_cmds/os_cmds.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/os_cmds
+ifeq ($(USE_DRIVER_LWIP_NET), 1)
+SOURCE += $(NUTENSILS_DIR)/shell/commands/network_cmds/net_cmds.c
+CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/network_cmds
+endif
 endif
 
 USE_HTTP_SERVER_VALUES = 0 1
@@ -93,6 +95,10 @@ ifeq ($(USE_HTTP_SERVER), 1)
 
 ifeq ($(USE_THREADED_SERVER), 0)
 $(error USE_HTTP_SERVER is set. http requires USE_THREADED_SERVER set to 1)
+endif
+
+ifeq ($(USE_HTTP_UTILS), 0)
+$(error USE_SHELL is set. shell requires USE_HTTP_UTILS set to 1)
 endif
 
 SOURCE += $(NUTENSILS_DIR)/http/http_server.c

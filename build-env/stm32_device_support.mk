@@ -100,15 +100,16 @@ endif
 ## Networking
 
 CFLAGS += -DUSE_DRIVER_LWIP_NET=$(USE_DRIVER_LWIP_NET)
+
+CFLAGS += -I$(DRIVERSDIR)/net_lwip
+
 ifeq ($(USE_DRIVER_LWIP_NET), 1)
 
 ifneq ($(USE_FREERTOS), 1) 
 $(error to use posix style IO, USE_FREERTOS must be set to 1)
 endif
 
-CFLAGS += -I$(DRIVERSDIR)/net_lwip
 CFLAGS += -I$(DRIVERSDIR)/net_lwip/netif
-
 SOURCE += $(DRIVERSDIR)/net_lwip/net.c
 SOURCE += $(DRIVERSDIR)/net_lwip/netconf.c
 SOURCE += $(DRIVERSDIR)/net_lwip/netif/ethernetif.c

@@ -100,6 +100,13 @@
 
 #include "builtins.h"
 
+#if INCLUDE_REMOTE_SHELL_SUPPORT
+#pragma message "building shell with threaded server support"
+#else
+#pragma message "building shell without threaded server support"
+#endif
+
+
 static char shell_cwd[SHELL_CWD_LENGTH_MAX];
 
 typedef struct
@@ -127,8 +134,9 @@ typedef struct _shell_instance_t{
 	shell_input_t input_cmd;
 }shell_instance_t;
 
-
-void shell_thread(sock_conn_t* conn);
+#if INCLUDE_REMOTE_SHELL_SUPPORT
+static void shell_thread(sock_conn_t* conn);
+#endif
 static void prompt(shell_instance_t* shell_inst);
 static void historic_prompt(shell_instance_t* shell_inst);
 static void clear_prompt(shell_instance_t* shell_inst);
@@ -140,6 +148,7 @@ static void close_output_file(shell_instance_t* shell_inst);
 static bool open_input_file(shell_instance_t* shell_inst);
 static char close_input_file(shell_instance_t* shell_inst, char input_char);
 
+#if INCLUDE_REMOTE_SHELL_SUPPORT
 /**
  * starts a shell server. requires a config file that meets the needs of the threaded server...
  *
@@ -150,16 +159,10 @@ static char close_input_file(shell_instance_t* shell_inst, char input_char);
 int start_shell(shellserver_t* shellserver, const char* configfile)
 {
     memset(shellserver, 0, sizeof(shellserver_t));
-
-	register_command(shellserver, &sh_help_cmd, NULL, NULL, NULL);
-	register_command(shellserver, &sh_exit_cmd, NULL, NULL, NULL);
-	register_command(shellserver, &sh_date_cmd, NULL, NULL, NULL);
-    register_command(shellserver, &sh_uname_cmd, NULL, NULL, NULL);
-    register_command(shellserver, &sh_reboot_cmd, NULL, NULL, NULL);
-    register_command(shellserver, &sh_echo_cmd, NULL, NULL, NULL);
-
+    install_builtin_cmds(shellserver);
 	return start_threaded_server(&shellserver->server, configfile, shell_thread, shellserver, SHELL_TASK_STACK_SIZE, SHELL_TASK_PRIORITY);
 }
+#endif
 
 /**
  * registers a command with the Shell.
@@ -207,6 +210,17 @@ void register_command(shellserver_t* shell, shell_cmd_t* cmd, shell_cmd_func_t c
     }
 }
 
+void install_builtin_cmds(shellserver_t* shellserver)
+{
+    register_command(shellserver, &sh_help_cmd, NULL, NULL, NULL);
+    register_command(shellserver, &sh_exit_cmd, NULL, NULL, NULL);
+    register_command(shellserver, &sh_date_cmd, NULL, NULL, NULL);
+    register_command(shellserver, &sh_uname_cmd, NULL, NULL, NULL);
+    register_command(shellserver, &sh_reboot_cmd, NULL, NULL, NULL);
+    register_command(shellserver, &sh_echo_cmd, NULL, NULL, NULL);
+}
+
+#if INCLUDE_REMOTE_SHELL_SUPPORT
 /**
  * this function runs inside a new thread, spawned by the threaded_server
  */
@@ -215,6 +229,7 @@ void shell_thread(sock_conn_t* conn)
 	shellserver_t* shell = (shellserver_t*)conn->ctx;
 	shell_instance(shell, conn->connfd, conn->connfd);
 }
+#endif
 
 /**
  * this function runs a shell instance, blocking till the file descriptors become invalid or until the exit command is isssued.
@@ -260,9 +275,10 @@ void prompt(shell_instance_t* shell_inst)
 
 	while(!shell_inst->exitflag)
 	{
-		if(inject == '\0' && read(shell_inst->rdfd, &input_char, 1) <= 0)
+	    int ret = read(shell_inst->rdfd, &input_char, 1);
+		if(inject == '\0' && ret < 0)
 			shell_inst->exitflag = true;
-		else
+		else if(ret > 0)
 		{
 			// used by the shell to append a character to the stream
 			if(inject != '\0')
