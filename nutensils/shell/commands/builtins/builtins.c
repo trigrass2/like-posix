@@ -147,9 +147,44 @@ int sh_reboot(int fdes, const char** args, unsigned char nargs)
 int sh_echo(int fdes, const char** args, unsigned char nargs)
 {
     const char* echo = arg_by_index(0, args, nargs);
+    const char* escape;
+    char special;
 
-    if(echo)
-    	write(fdes, echo, strlen(echo));
+    while(echo && *echo)
+    {
+    	escape = strchr(echo, '\\');
+    	if(escape)
+    	{
+    		write(fdes, echo, escape - echo);
+    		escape++;
+    		switch(*escape)
+    		{
+    			case 'n':
+    				special = '\n';
+    			break;
+    			case 'r':
+    				special = '\r';
+    			break;
+    			case 't':
+    				special = '\t';
+    			break;
+    			case 'b':
+    				special = '\b';
+    			break;
+    			case 'a':
+    				special = '\a';
+    			break;
+    		}
+			write(fdes, &special, 1);
+    		escape++;
+    		echo = escape;
+    	}
+    	else
+    	{
+    		write(fdes, echo, strlen(echo));
+    		break;
+    	}
+    }
 
     return SHELL_CMD_EXIT;
 }
@@ -174,7 +209,7 @@ shell_cmd_t sh_date_cmd = {
 
 shell_cmd_t sh_echo_cmd = {
     .name = "echo",
-    .usage = "echoes input text",
+    .usage = "echoes input text. converts \\n, \\r, \\t, \\a, \\t to the corresponding special characters.",
     .cmdfunc = sh_echo
 };
 
