@@ -74,6 +74,11 @@
 #error ENABLE_LIKEPOSIX_SOCKETS must be defined - normally defined in likeposix_config.h
 #endif
 
+#define MAX_DEVICE_TABLE_ENTRIES		255
+#if DEVICE_TABLE_LENGTH >=MAX_DEVICE_TABLE_ENTRIES
+#error DEVICE_TABLE_LENGTH must be less than MAX_DEVICE_TABLE_ENTRIES
+#endif
+
 #if USE_FREERTOS
  typedef struct _dev_ioctl_t dev_ioctl_t;
  /**

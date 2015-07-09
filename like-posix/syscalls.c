@@ -530,6 +530,7 @@ dev_ioctl_t* install_device(char* name,
 	int device;
 	dev_ioctl_t* ret = NULL;
 	unsigned int n = 0;
+	bool file_installed = false;
 
 	log_syslog(NULL, "installing %s...", name);
 
@@ -538,37 +539,48 @@ dev_ioctl_t* install_device(char* name,
 	f_mkdir(DEVICE_INTERFACE_DIRECTORY);
 
     // is it possible to open the device file?
-    if(f_open(&f, (const TCHAR*)name, FA_WRITE|FA_OPEN_ALWAYS) == FR_OK)
+    if(f_open(&f, (const TCHAR*)name, FA_WRITE|FA_READ|FA_OPEN_ALWAYS) == FR_OK)
     {
         for(device = 0; device < DEVICE_TABLE_LENGTH; device++)
         {
             // found an empty slot
             if(filtab.devtab[device] == NULL)
             {
-                // todo, add better logic to write the file only if it is out of date/not exists
-                // install devno in file
-                buf[0] = (unsigned char)device;
-                if((f_write(&f, buf, (UINT)1, (UINT*)&n) == FR_OK) && (n == 1))
+            	// check is file installed already?
+            	n = 0;
+            	buf[0] = MAX_DEVICE_TABLE_ENTRIES;
+            	file_installed = f_read(&f, buf, (UINT)1, (UINT*)&n) == FR_OK && n == 1 && buf[0] == (unsigned char)device;
+
+            	// if not attempt to install
+            	if(!file_installed)
+            	{
+					n = 0;
+					buf[0] = (unsigned char)device;
+					file_installed = f_write(&f, buf, (UINT)1, (UINT*)&n) == FR_OK && n == 1;
+            	}
+
+            	// setup the device if appropriate
+                if(file_installed)
                 {
-                    // create device io structure and populate api
-                    filtab.devtab[device] = pvPortMalloc(sizeof(dev_ioctl_t));
-                    if(filtab.devtab[device])
-                    {
-                        // note that filtab.devtab[device]->pipe is populated by _open()
-                        filtab.devtab[device]->timeout = 0;
-                        filtab.devtab[device]->read_enable = read_enable;
-                        filtab.devtab[device]->write_enable = write_enable;
-                        filtab.devtab[device]->ioctl = ioctl;
-                        filtab.devtab[device]->open = open_dev;
-                        filtab.devtab[device]->close = close_dev;
-                        filtab.devtab[device]->ctx = dev_ctx;
-                        filtab.devtab[device]->termios = NULL;
-                    }
-                    ret = filtab.devtab[device];
-                    log_syslog(NULL, "%s OK", name);
+                	// create device io structure and populate api
+					filtab.devtab[device] = pvPortMalloc(sizeof(dev_ioctl_t));
+					if(filtab.devtab[device])
+					{
+						// note that filtab.devtab[device]->pipe is populated by _open()
+						filtab.devtab[device]->timeout = 0;
+						filtab.devtab[device]->read_enable = read_enable;
+						filtab.devtab[device]->write_enable = write_enable;
+						filtab.devtab[device]->ioctl = ioctl;
+						filtab.devtab[device]->open = open_dev;
+						filtab.devtab[device]->close = close_dev;
+						filtab.devtab[device]->ctx = dev_ctx;
+						filtab.devtab[device]->termios = NULL;
+					}
+					ret = filtab.devtab[device];
+					log_syslog(NULL, "%s installed", name);
                 }
-                else
-                    log_error(NULL, "failed to write device %s", name);
+				else
+					log_error(NULL, "failed to install device %s", name);
 
                 break;
             }
@@ -741,8 +753,10 @@ static inline void __unlock(filtab_entry_t* fte, bool read, bool write)
  */
 int _write(int file, char *buffer, unsigned int count)
 {
-    unsigned int timeout;
 	int n = EOF;
+
+	if(count == 0)
+		return 0;
 
 	if(file == STDOUT_FILENO || file == STDERR_FILENO || file == (intptr_t)stdout || file == (intptr_t)stderr)
 	{
@@ -764,24 +778,45 @@ int _write(int file, char *buffer, unsigned int count)
 				}
 				else if((fte->mode == S_IFIFO) && fte->device)
 				{
-					timeout = fte->device->timeout;
+				    unsigned int timeout = 0;
+					bool tx_idle = uxQueueMessagesWaiting(fte->device->pipe.write) == 0;
 
-					for(n = 0; n < (int)count; n++)
+					// write the remaining data
+					n = 0;
+					while(n < (int)count)
 					{
-						if(xQueueSend(fte->device->pipe.write, buffer++, timeout) != pdTRUE)
-							break;
-						timeout = 0;
+						if(xQueueSend(fte->device->pipe.write, buffer, timeout) != pdTRUE)
+						{
+							if(timeout)
+								break;
+							else
+							{
+								timeout = fte->device->timeout;
+								// enable the physical device to write
+								if(fte->device->write_enable)
+									fte->device->write_enable(fte->device);
+								tx_idle = false;
+							}
+						}
+						else
+						{
+							n++;
+							buffer++;
+						}
 					}
-					// enable the physical device to write
-					if(fte->device->write_enable)
-						fte->device->write_enable(fte->device);
+
+					if(tx_idle)
+					{
+						if(fte->device->write_enable)
+							fte->device->write_enable(fte->device);
+					}
 				}
-	#if ENABLE_LIKEPOSIX_SOCKETS
+#if ENABLE_LIKEPOSIX_SOCKETS
 				else if(fte->mode == S_IFSOCK)
 				{
 					n = lwip_write(fte->fdes, buffer, count);
 				}
-	#endif
+#endif
 			}
 			__unlock(fte, false, true);
 		}
@@ -803,6 +838,9 @@ int _read(int file, char *buffer, int count)
 {
     unsigned int timeout;
 	int n = EOF;
+
+	if(count == 0)
+		return 0;
 
 	if(file == STDIN_FILENO || file == (intptr_t)stdin)
 	{
