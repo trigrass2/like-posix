@@ -33,35 +33,48 @@
 /**
  * Text Shell
  *
- * threaded server operation:
- * after start_shell() is called, a socket is opened. for every connection made on that socket
- * a new shell thread is spawned.
+ *
+ * three modes are possible, threaded server, threaded instance, and blocking instance.
+ *
+ * in threaded server operation, after start_shell() is called, a listening socket is opened. for
+ * every connection made on that listener a new shell thread and socket connection is spawned.
  * the shell is configured from a config file in this mode. the config file should contain:
  *  - port 22
  *  - conns 5
  *  - name shelld
- * the socket connection and shell instance will exit when read() returns a value <= 0,
- * or if the exit command is issued.
+ * typical arguments are: commandset=NULL, configfile="/etc/shell/shelld_config", threaded=true, exit_on_eof=true, rdfd=-1, wrfd=-1
+ * the socket connection and shell instance will exit when read() returns a value <= 0, or if the exit command is issued.
  *
- * operation without threaded server:
- * to run a shell outside a threaded server, call shell_instance().
+ * in threaded instance operation, a single shell instance is started in a new thread. this is most appropriate for
+ * use with a device such as a serial port. the rdfd and wrfd file descriptors correspond to an input file and an output file,
+ * these may be regular files or sockets, or devices, and may be different or the same.
+ * typical arguments are: commandset=NULL, configfile=NULL, threaded=true, exit_on_eof=false, rdfd=<device-fdes>, wrfd=<device-fdes>
+ * the socket connection and shell instance will exit when read() returns a value < 0, or if the exit command is issued.
+ * note: in this mode exit kills stops the shell thread.
  *
- *  - the shellserver_t structure should have commands registered on it before use.
- *  - the rdfd and wrfd file descriptors point to an input file and an output file,
- *  	these may be regular files or sockets, or devices, and may be different or the same.
- *  - the shell_instance() function allocates a shell_instance_t which will be around 768bytes
- *  	when SHELL_HISTORY_LENGTH is set to 4, around 256bytes when SHELL_HISTORY_LENGTH is set to 0.
+ * in blocking instance operation, a shell is started and runs locally, within the calling thread. an example of this is in the
+ * startup_script module.
+ * typical arguments are: commandset=NULL, configfile=NULL, threaded=false, exit_on_eof=<true or false>, rdfd=<file-input-fdes>, wrfd=<file-output-fdes>
+ * when exit_on_eof is true, the shell naturally exits when the file input runs out of characters.
+ * when exit_on_eof is false, the shell naturally blocks while the file input has run out of characters. the shell will
+ * only exit with the exit command.
  *
- * shell_instance() blocks while running. it will exit when read() returns a value <= 0,
- * or if the exit command is issued.
  *
+ * initialization:
+ *  - the shellserver_t structure should have commands registered on it before use. commandset argument is set to NULL in this case.
+ *  - OR
+ *  - specify the head command from another shell. commandset argument must be set to a shell_cmd_t* returned by one
+ *  	of the install_xxx_cmds() functions or a call to register_command().
  *
  * Note:
  *
  * 	- the system calls read, write, open, fdopen, fclose, getcwd, stat are used. if run under appleseed,
- * 	   requires USE_POSIX_STYLE_IO set to 1 is a must among other things, and ENABLE_LIKEPOSIX_SOCKETS
- * 	   must be set to 1 in likeposix_config.h
+ * 	   requires USE_POSIX_STYLE_IO set to 1 is a must among other things.
+ * 	- to use the threaded server ENABLE_LIKEPOSIX_SOCKETS must be set to 1 in likeposix_config.h
  * 	- shells share the global current working directory
+ * 	- the shell_instance() function allocates a shell_instance_t which will be around 768bytes
+ *  	when SHELL_HISTORY_LENGTH is set to 4, around 256bytes when SHELL_HISTORY_LENGTH is set to 0.
+ *  - shell commands must not delete the shell thread - this will result in memory leaks.
  * 	- shells support user defined and built in commands, registered via the register_command() function.
  * 	- shells support running command(s) from within files, as shell scripts. when a filename is specified
  * 		that is a regular file, it is opened and its contents passed to the shell line by line.
@@ -98,7 +111,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "builtins.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 #if INCLUDE_REMOTE_SHELL_SUPPORT
 #pragma message "building shell with threaded server support"
@@ -116,14 +130,14 @@ typedef struct
 	uint16_t nargs;
 }shell_input_t;
 
-typedef struct _shell_instance_t{
+typedef struct {
 	char input_buffer[SHELL_CMD_BUFFER_SIZE];		///< input_buffer is a memory space that stores user input, and is @ref CMD_BUFFER_SIZE in size
 	char history[SHELL_HISTORY_LENGTH][SHELL_CMD_BUFFER_SIZE];	///< history is a memory space that stores previous user input, and is @ref CMD_BUFFER_SIZE in size
 	uint16_t cursor_index;							///< cursor_index is the index of the cursor.
 	uint16_t input_index;							///< input_index is the index of the end of the chacters in the command buffer.
 	int8_t history_index;							///< points to the last item in history
 	unsigned char history_save_index;						///< points to the last item in history
-	shell_cmd_t* head_cmd;
+	shell_cmd_t** head_cmd;
 	bool exitflag;
 	FILE* rdfs;
 	int rdfd;
@@ -132,11 +146,14 @@ typedef struct _shell_instance_t{
 	int wrfd_hold;
 	struct stat sstat;
 	shell_input_t input_cmd;
+	bool exit_on_eof;
 }shell_instance_t;
 
+
 #if INCLUDE_REMOTE_SHELL_SUPPORT
-static void shell_thread(sock_conn_t* conn);
+static void shell_server_thread(sock_conn_t* conn);
 #endif
+void shell_instance(shellserver_t* shell);
 static void prompt(shell_instance_t* shell_inst);
 static void historic_prompt(shell_instance_t* shell_inst);
 static void clear_prompt(shell_instance_t* shell_inst);
@@ -148,21 +165,51 @@ static void close_output_file(shell_instance_t* shell_inst);
 static bool open_input_file(shell_instance_t* shell_inst);
 static char close_input_file(shell_instance_t* shell_inst, char input_char);
 
-#if INCLUDE_REMOTE_SHELL_SUPPORT
 /**
- * starts a shell server. requires a config file that meets the needs of the threaded server...
+ * starts a shell server, or single shell instance.
  *
- * @param   shellserver is a pointer to a fresh shell server structure, its contents will be fully initialized.
- * @param   config file is a filepath to a configuration file. it must contain port and conns settings.
- * @retval  returns -1 on error, and a non zero value on success.
+ * @param   shell is a pointer to a shell server structure, its contents will be fully initialized.
+ * @param   configfile is a filepath to a configuration file. it must contain port and conns settings.
+ * 			if specified, a threaded server is started.
+ * @param   threaded enables threaded server or threaded instance operation when set to true.
+ * 				when set to false, runs a blocking shell (blocks till exit).
+ * @param   exit_on_eof causes the shell to exit when the read system call returns 0 (on EOF).
+ * @param   rdfd - is a file descriptor for reading. ignored when starting a threaded server.
+ * @param   wrfd - is a file descriptor for writing. ignored when starting a threaded server.
+ * @retval  returns -1 on error. when running threaded server, returns the server file descriptor.
+ * 				when running a threaded instance, returns the task handle.
  */
-int start_shell(shellserver_t* shellserver, const char* configfile)
+int start_shell(shellserver_t* shell, shell_cmd_t* commandset, const char* configfile, bool threaded, bool exit_on_eof, int rdfd, int wrfd)
 {
-    memset(shellserver, 0, sizeof(shellserver_t));
-    install_builtin_cmds(shellserver);
-	return start_threaded_server(&shellserver->server, configfile, shell_thread, shellserver, SHELL_TASK_STACK_SIZE, SHELL_TASK_PRIORITY);
-}
+    if(commandset)
+    	shell->head_cmd = commandset;
+
+    shell->rdfd = rdfd;
+    shell->wrfd = wrfd;
+    shell->exit_on_eof = exit_on_eof;
+
+    if(configfile && threaded)
+    {
+#if INCLUDE_REMOTE_SHELL_SUPPORT
+    	return start_threaded_server(&shell->server, configfile, shell_server_thread, shell, SHELL_TASK_STACK_SIZE, SHELL_TASK_PRIORITY);
 #endif
+    }
+    else if(threaded)
+    {
+    	TaskHandle_t th;
+        if(xTaskCreate((TaskFunction_t)shell_instance, "shell", configMINIMAL_STACK_SIZE + SHELL_TASK_STACK_SIZE,
+        				shell, tskIDLE_PRIORITY + SHELL_TASK_PRIORITY, &th) != pdPASS) {
+
+        }
+    	return (int)th;
+    }
+    else
+    {
+    	shell_instance(shell);
+    	return 0;
+    }
+    return -1;
+}
 
 /**
  * registers a command with the Shell.
@@ -185,21 +232,22 @@ shell_cmd_t mycmd = {
     .usage = "help string for mycmd",
     .cmdfunc = sh_mycmd
 };
-register_command(&shellserver, &mycmd, NULL, NULL, NULL);
+register_command(&shell, &mycmd, NULL, NULL, NULL);
 
 // un populated case:
 shell_cmd_t mycmd;
-register_command(&shellserver, &mycmd, sh_mycmd, "mycmd", "help string for mycmd");
+register_command(&shell, &mycmd, sh_mycmd, "mycmd", "help string for mycmd");
 
 \endcode
  *
- * @param   shellserver shellserver is a pointer to a the owning shell server structure.
+ * @param   shell shell is a pointer to a the owning shell server structure.
  * @param   cmd is a pointer to a shell_cmd_t variable.
  * @param   cmdfunc is a pointer to a shell_cmd_func_t function pointer to use for the command.
  * @param   name is a pointer to a string that names the command.
  * @param   usage is a pointer to a string that describes the usage of the command.
+ * @retval  returns a reference to the command set of this shell. this may be used to share command sets between shells.
  */
-void register_command(shellserver_t* shell, shell_cmd_t* cmd, shell_cmd_func_t cmdfunc, const char* name, const char* usage)
+shell_cmd_t* register_command(shellserver_t* shell, shell_cmd_t* cmd, shell_cmd_func_t cmdfunc, const char* name, const char* usage)
 {
     if(cmd)
     {
@@ -208,33 +256,29 @@ void register_command(shellserver_t* shell, shell_cmd_t* cmd, shell_cmd_func_t c
             cmd->next = shell->head_cmd;
         shell->head_cmd = cmd;
     }
-}
 
-void install_builtin_cmds(shellserver_t* shellserver)
-{
-    register_command(shellserver, &sh_help_cmd, NULL, NULL, NULL);
-    register_command(shellserver, &sh_exit_cmd, NULL, NULL, NULL);
-    register_command(shellserver, &sh_date_cmd, NULL, NULL, NULL);
-    register_command(shellserver, &sh_uname_cmd, NULL, NULL, NULL);
-    register_command(shellserver, &sh_reboot_cmd, NULL, NULL, NULL);
-    register_command(shellserver, &sh_echo_cmd, NULL, NULL, NULL);
+    return shell->head_cmd;
 }
 
 #if INCLUDE_REMOTE_SHELL_SUPPORT
 /**
  * this function runs inside a new thread, spawned by the threaded_server
  */
-void shell_thread(sock_conn_t* conn)
+void shell_server_thread(sock_conn_t* conn)
 {
 	shellserver_t* shell = (shellserver_t*)conn->ctx;
-	shell_instance(shell, conn->connfd, conn->connfd);
+	shell->rdfd = conn->connfd;
+	shell->wrfd = conn->connfd;
+	shell_instance(shell);
 }
 #endif
 
 /**
- * this function runs a shell instance, blocking till the file descriptors become invalid or until the exit command is isssued.
+ * this function runs a shell instance.
+ * when exit_on_eof is true, blocks till the file descriptors become invalid, or timeout occurs, or until the exit command is issued (used for shell server)
+ * when exit_on_eof is true, blocks till the file descriptors become invalid, or the exit command is issued (used for single instance, local shell)
  */
-void shell_instance(shellserver_t* shell, int rdfd, int wrfd)
+void shell_instance(shellserver_t* shell)
 {
 	shell_instance_t* shell_inst = calloc(sizeof(shell_instance_t), 1);
 
@@ -244,16 +288,17 @@ void shell_instance(shellserver_t* shell, int rdfd, int wrfd)
 		shell_inst->exitflag = false;
 		shell_inst->input_index = 0;
 		shell_inst->cursor_index = 0;
-		shell_inst->head_cmd = shell->head_cmd;
+		shell_inst->head_cmd = &shell->head_cmd;
 		shell_inst->history_index = -1;
 		shell_inst->history_save_index = 0;
-		shell_inst->rdfd = rdfd;
+		shell_inst->rdfd = shell->rdfd;
 		shell_inst->rdfs = NULL;
-		shell_inst->wrfd = wrfd;
+		shell_inst->wrfd = shell->wrfd;
 		shell_inst->rdfd_hold = -1;
 		shell_inst->wrfd_hold = -1;
 		shell_inst->sstat.st_size = 0;
 		shell_inst->sstat.st_mode = 0;
+		shell_inst->exit_on_eof = shell->exit_on_eof;
 
 		prompt(shell_inst);
 		free(shell_inst);
@@ -272,13 +317,17 @@ void prompt(shell_instance_t* shell_inst)
 	unsigned char input_char = 0;
 	unsigned char inject = '\0';
 	unsigned char i = 0;
+	int ret;
 
 	while(!shell_inst->exitflag)
 	{
-	    int ret = read(shell_inst->rdfd, &input_char, 1);
+		ret = read(shell_inst->rdfd, &input_char, 1);
+
 		if(inject == '\0' && ret < 0)
 			shell_inst->exitflag = true;
-		else if(ret > 0)
+		else if(inject == '\0' && ret == 0)
+			shell_inst->exitflag = shell_inst->exit_on_eof;
+		else
 		{
 			// used by the shell to append a character to the stream
 			if(inject != '\0')
@@ -543,7 +592,7 @@ void put_prompt(shell_instance_t* shell_inst, const char* argstr, bool newline)
  */
 void parse_input_line(shell_instance_t* shell_inst)
 {
-	shell_cmd_t* head = shell_inst->head_cmd;
+	shell_cmd_t* head = *shell_inst->head_cmd;
 	char* iter;
 	shell_inst->input_cmd.cmd = NULL;
     unsigned char delimiter;
@@ -783,7 +832,7 @@ void return_code_catcher(shell_instance_t* shell_inst, int code)
             getcwd(shell_cwd, SHELL_CWD_LENGTH_MAX);
         break;
 		case SHELL_CMD_PRINT_CMDS:
-			head = shell_inst->head_cmd;
+			head = *shell_inst->head_cmd;
 			write(shell_inst->wrfd, SHELL_HELP_STR, sizeof(SHELL_HELP_STR)-1);
 			while(head)
 			{

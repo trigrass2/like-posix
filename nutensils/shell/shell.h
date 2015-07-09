@@ -58,6 +58,9 @@
 
 typedef struct {
     shell_cmd_t* head_cmd;
+    int rdfd;
+    int wrfd;
+    bool exit_on_eof;
 #if INCLUDE_REMOTE_SHELL_SUPPORT
     sock_server_t server;
 #endif
@@ -66,11 +69,7 @@ typedef struct {
 typedef struct _shell_t shell_t;
 
 
-#if INCLUDE_REMOTE_SHELL_SUPPORT
-int start_shell(shellserver_t* shell, const char* configfile);
-#endif
-void shell_instance(shellserver_t* shell, int rdfd, int wrfd);
-void register_command(shellserver_t* shell, shell_cmd_t* cmd, shell_cmd_func_t cmdfunc, const char* name, const char* usage);
-void install_builtin_cmds(shellserver_t* shellserver);
+int start_shell(shellserver_t* shell, shell_cmd_t* commandset, const char* configfile, bool threaded, bool exit_on_eof, int rdfd, int wrfd);
+shell_cmd_t* register_command(shellserver_t* shell, shell_cmd_t* cmd, shell_cmd_func_t cmdfunc, const char* name, const char* usage);
 
 #endif /* SHELL_H_ */
