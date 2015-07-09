@@ -37,4 +37,4 @@
 #define DEFAULT_STARTUP_LOG_EXTENSION		".log"
 #define DEFAULT_STARTUP_SCRIPT_LOG_PATH		"/var/log"
 
-void startup_script_runner(shellserver_t* shell, const char* location, const char* extension);
+void startup_script_runner(shellserver_t* shell, shell_cmd_t* commandset, const char* location, const char* extension);

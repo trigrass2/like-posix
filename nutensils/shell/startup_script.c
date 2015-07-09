@@ -43,7 +43,10 @@
  * intended for use in a similar context to upstart or systemd, for automated configuration
  * of the system or starting threads just after boot time.
  *
- * requires a shellserver_t structure that has already had commands registered.
+ * requires either:
+ *
+ * - a shellserver_t structure that has already had commands registered.
+ * - or a blank shellserver_t structure, and a pointer to the command set of an existing shell.
  *
  * Example usage:
  *
@@ -62,11 +65,11 @@ install_net_cmds(&shell);
 install_os_cmds(&shell);
 // application specific commands here too ...
 
-startup_script_runner(&shell, "/etc/init", ".conf");
+startup_script_runner(&shell, NULL, "/etc/init", ".conf");
 
 @endcode
  */
-void startup_script_runner(shellserver_t* shell, const char* location, const char* extension)
+void startup_script_runner(shellserver_t* shell, shell_cmd_t* commandset, const char* location, const char* extension)
 {
 	const char* dot;
 	int rdfd;
@@ -100,7 +103,7 @@ void startup_script_runner(shellserver_t* shell, const char* location, const cha
 
 				if(rdfd != -1)
 				{
-					shell_instance(shell, rdfd, wrfd);
+					start_shell(shell, commandset, NULL, false, true, rdfd, wrfd);
 					close(rdfd);
 				}
 
