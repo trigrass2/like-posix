@@ -75,6 +75,8 @@ void net_init(netconf_t* netconf)
 {
 	log_init(&netconf->log, "net_init");
 
+	netconf->net_task_enabled = true;
+
 #if NO_SYS
 	lwip_init();
 #else
@@ -110,6 +112,13 @@ void net_init(netconf_t* netconf)
 				NULL);
 }
 
+void net_deinit(netconf_t* netconf)
+{
+	netif_set_down(&netconf->netif);
+	netconf->net_task_enabled = false;
+}
+
+
 bool wait_for_address(netconf_t* netconf)
 {
     return xSemaphoreTake(netconf->address_ok, 10000/portTICK_RATE_MS) == pdTRUE;
@@ -123,7 +132,7 @@ void net_task(void *pvParameters)
 	err_t e;
 	netconf_t* netconf = (netconf_t*)pvParameters;
 
-    for(;;)
+    while(netconf->net_task_enabled)
     {
     	// TODO - use a semaphore to trigger ethernetif_input from an packet received interrupt.
     	// run the other TCP stuff in a separate thread in that case...
@@ -168,6 +177,8 @@ void net_task(void *pvParameters)
 #endif
 		taskYIELD();
     }
+
+    vTaskDelete(NULL);
 }
 
 #if LWIP_DHCP

@@ -60,6 +60,7 @@ typedef struct {
 	struct netif netif;
 	net_resolv_prot_t resolv;
 	SemaphoreHandle_t address_ok;
+	bool net_task_enabled;
 #ifdef LWIP_DHCP
 	uint32_t dhcp_fine_timer;
 	uint32_t dhcp_coarse_timer;
