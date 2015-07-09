@@ -44,4 +44,7 @@ extern shell_cmd_t sh_uname_cmd;
 extern shell_cmd_t sh_reboot_cmd;
 extern shell_cmd_t sh_echo_cmd;
 
+
+shell_cmd_t* install_builtin_cmds(shellserver_t* shell);
+
 #endif /* SHELL_BUILTINS_H_ */

@@ -39,6 +39,17 @@
 #include "cutensils.h"
 #include "netconf_path.h"
 
+
+shell_cmd_t* install_builtin_cmds(shellserver_t* shell)
+{
+    register_command(shell, &sh_help_cmd, NULL, NULL, NULL);
+    register_command(shell, &sh_exit_cmd, NULL, NULL, NULL);
+    register_command(shell, &sh_date_cmd, NULL, NULL, NULL);
+    register_command(shell, &sh_uname_cmd, NULL, NULL, NULL);
+    register_command(shell, &sh_reboot_cmd, NULL, NULL, NULL);
+    return register_command(shell, &sh_echo_cmd, NULL, NULL, NULL);
+}
+
 int sh_help(int fdes, const char** args, unsigned char nargs)
 {
     (void)fdes;
