@@ -39,6 +39,6 @@
 extern shell_cmd_t sh_top_cmd;
 
 
-void install_os_cmds(shellserver_t* sh);
+shell_cmd_t* install_os_cmds(shellserver_t* sh);
 
 #endif /* OS_CMDS_H_ */

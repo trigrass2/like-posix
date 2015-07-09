@@ -41,6 +41,6 @@ extern shell_cmd_t sh_ifconfig_cmd;
 extern shell_cmd_t sh_wget_cmd;
 
 
-void install_net_cmds(shellserver_t* sh);
+shell_cmd_t* install_net_cmds(shellserver_t* sh);
 
 #endif /* NET_CMDS_H_ */

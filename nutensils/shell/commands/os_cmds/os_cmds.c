@@ -45,9 +45,9 @@
 #define BLANK_EOL                       ANSII_CLEAR_LINE_FROM SHELL_NEWLINE
 #define REMOVE_PREV_LINE                SHELL_PREVIOUS_LINE ANSII_CLEAR_LINE
 
-void install_os_cmds(shellserver_t* sh)
+shell_cmd_t* install_os_cmds(shellserver_t* sh)
 {
-    register_command(sh, &sh_top_cmd, NULL, NULL, NULL);
+    return register_command(sh, &sh_top_cmd, NULL, NULL, NULL);
 }
 
 int sh_top(int fdes, const char** args, unsigned char nargs)
@@ -134,9 +134,9 @@ int sh_top(int fdes, const char** args, unsigned char nargs)
                     ret = 0;
             }
 #else
-            ret = read(fdes, &code, 1);
-            if(ret > 0)
-                ret = 0;
+//            ret = read(fdes, &code, 1);
+//            if(ret > 0)
+//                ret = 0;
 #endif
             if(dec)
                 n--;

@@ -56,11 +56,11 @@
 #define NETSTAT_HEADER                  "Proto\tLocal Address\t\tForeign Address\t\tState"SHELL_NEWLINE
 
 
-void install_net_cmds(shellserver_t* sh)
+shell_cmd_t* install_net_cmds(shellserver_t* sh)
 {
     register_command(sh, &sh_netstat_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_ifconfig_cmd, NULL, NULL, NULL);
-    register_command(sh, &sh_wget_cmd, NULL, NULL, NULL);
+    return register_command(sh, &sh_wget_cmd, NULL, NULL, NULL);
 }
 
 int sh_wget(int fdes, const char** args, unsigned char nargs)
