@@ -58,7 +58,7 @@ const char* units[] = {
 #define PAD_TO_FILESIZE     40
 #define PAD_TO_NEXT_FILE    16
 
-void install_fs_cmds(shellserver_t* sh)
+shell_cmd_t* install_fs_cmds(shellserver_t* sh)
 {
     register_command(sh, &sh_ls_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_cd_cmd, NULL, NULL, NULL);
@@ -67,7 +67,7 @@ void install_fs_cmds(shellserver_t* sh)
     register_command(sh, &sh_cat_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_mv_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_cp_cmd, NULL, NULL, NULL);
-    register_command(sh, &sh_config_cmd, NULL, NULL, NULL);
+    return register_command(sh, &sh_config_cmd, NULL, NULL, NULL);
 }
 
 int sh_ls(int fdes, const char** args, unsigned char nargs)
@@ -251,7 +251,7 @@ int sh_cp(int fdes, const char** args, unsigned char nargs)
         f1 = fopen(path, "r");
         if(f1)
         {
-            f2 = fopen(path, "w");
+            f2 = fopen(newpath, "w");
             if(f2)
             {
                 length = 1;

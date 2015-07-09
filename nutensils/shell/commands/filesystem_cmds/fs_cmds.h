@@ -49,6 +49,6 @@ extern shell_cmd_t sh_cp_cmd;
 extern shell_cmd_t sh_config_cmd;
 
 
-void install_fs_cmds(shellserver_t* sh);
+shell_cmd_t* install_fs_cmds(shellserver_t* sh);
 
 #endif /* FS_CMDS_H_ */
