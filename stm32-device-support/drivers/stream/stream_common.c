@@ -72,12 +72,17 @@ void init_stream(stream_t* stream, const char* name, uint32_t samplerate,
     stream->ready = xSemaphoreCreateBinary();
     assert_true(stream->ready);
 
-    assert_true(xTaskCreate((TaskFunction_t)stream_processing_task,
-            name,
-            configMINIMAL_STACK_SIZE + task_stack,
-            stream,
-            tskIDLE_PRIORITY + task_prio,
-            NULL) == pdPASS);
+    if(xTaskCreate((TaskFunction_t)stream_processing_task,
+								name,
+								configMINIMAL_STACK_SIZE + task_stack,
+								stream,
+								tskIDLE_PRIORITY + task_prio,
+								NULL) != pdPASS)
+    {
+    	log_error(&stream->log, "failed to create task");
+    	assert_true(0);
+    }
+
 #else
     (void)task_prio;
     (void)task_stack;
