@@ -33,6 +33,8 @@
 #if USE_POSIX_STYLE_IO
 #include "syscalls.h"
 #endif
+
+#include <stddef.h>
 #include "spi.h"
 #include "spi_it.h"
 #include "base_spi.h"
@@ -45,10 +47,11 @@ static int spi_close_ioctl(dev_ioctl_t* dev);
 static int spi_open_ioctl(dev_ioctl_t* dev);
 static int spi_enable_tx_ioctl(dev_ioctl_t* dev);
 static int spi_enable_rx_ioctl(dev_ioctl_t* dev);
+#endif
+
 static int8_t get_spi_devno(SPI_TypeDef* spi);
 // used in the interrupt handlers....
 void* spi_dev_ioctls[NUM_ONCHIP_SPIS];
-#endif
 
 static void spi_init_device(SPI_TypeDef* spi, FunctionalState enable);
 static void spi_init_gpio(SPI_TypeDef* spi);
