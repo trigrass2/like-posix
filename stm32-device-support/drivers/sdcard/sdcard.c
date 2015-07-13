@@ -2210,7 +2210,6 @@ static SD_Error IsCardProgramming(uint8_t *pstatus)
 
 static void SD_LowLevel_Init();
 static void SD_LowLevel_DeInit();
-void SD_SetSPIPrescaler(uint16_t presc);
 static SD_Error SD_WaitForReady();
 static SD_Error SD_WaitForToken(uint8_t token);
 static SD_Error SD_WaitForDataResponse();
@@ -2334,7 +2333,7 @@ SD_Error SD_Init(SD_CardInfo* cardinfo)
 
 		if(code == SD_OK)
 		{
-//			SD_SetSPIPrescaler(SPI_BaudRatePrescaler_2); // go for fast SPI operation
+			spi_set_baudrate(SDCARD_SPI_PERIPHERAL, SDCARD_SPI_FULL_BAUDRATE);
 			sdcard_state.card_type = cardinfo->CardType;
 		}
 	}
@@ -2346,16 +2345,12 @@ void SD_LowLevel_Init()
 {
 	spi_deassert_nss(SDCARD_SPI_PERIPHERAL);
 	spi_init(SDCARD_SPI_PERIPHERAL, NULL, true);
+	spi_set_baudrate(SDCARD_SPI_PERIPHERAL, SDCARD_SPI_INIT_BAUDRATE);
 }
 
 void SD_LowLevel_DeInit()
 {
 	spi_deassert_nss(SDCARD_SPI_PERIPHERAL);
-}
-
-void SD_SetSPIPrescaler(uint16_t presc)
-{
-	spi_set_prescaler(SDCARD_SPI_PERIPHERAL, presc);
 }
 
 SD_Error SD_PowerON(void)
