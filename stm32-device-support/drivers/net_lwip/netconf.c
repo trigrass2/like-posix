@@ -175,12 +175,20 @@ void net_config(netconf_t* netconf, const char* resolv, const char* interface)
 
 	// at least the mac address has to have been configured
 	assert_true(mac_configured);
+#if !USE_FULL_ASSERT
+	(void)mac_configured;
+#endif
 	// if we require static setting then all three of ip, netmask and gateway must be configured
 	if(netconf->resolv == NET_RESOLV_STATIC)
 	{
 		assert_true(ip_configured);
 		assert_true(nm_configured);
 		assert_true(gw_configured);
+#if !USE_FULL_ASSERT
+		(void)ip_configured;
+		(void)nm_configured;
+		(void)gw_configured;
+	#endif
 		if(!dns1_configured && !dns2_configured)
             log_warning(&log, "neither dns1 or dns2 addresses are configured");
 	}
