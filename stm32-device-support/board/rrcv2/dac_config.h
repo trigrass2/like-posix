@@ -35,4 +35,7 @@
 
 #define DAC_FULL_SCALE_AMPLITUDE_MV 3000
 
+#define DAC_SAMPLERATE_MAX			333000 // 3us settling time
+#define DAC_SAMPLERATE_MIN			0
+
 #endif // DAC_CONF_H_
