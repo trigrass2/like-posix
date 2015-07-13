@@ -69,6 +69,7 @@ USE_JSMN ?= 0
 ## there are some small alternatives to the standard libraries
 # set to 1 to enable those (may reduce code size by several 10's of kb)
 USE_MINSTDLIBS ?= 0
+USE_MINSTDIO_FLOAT_SUPPORT ?= 1
 
 ## there is a small configuration file utility
 # set to 1 to enable

@@ -125,7 +125,9 @@ static inline void hashflag(int fd, putx_t _put_str, unsigned int flags, char** 
 static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, const char * fmt, va_list argp)
 {
 	float d;
+#if USE_MINSTDIO_FLOAT_SUPPORT
     float prescision = DEFAULT_FTOA_PRECISION;
+#endif
 	int ret = -1;
 	char* start = *dst;
 	void* v;
@@ -224,7 +226,9 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 								fmt++;
 						break;
 						case 'f':
+#if USE_MINSTDIO_FLOAT_SUPPORT
 						    prescision = 1 / pow(10, padding);
+#endif
 						break;
 					}
 
@@ -379,7 +383,11 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 						case 'f':
 							d = (float)va_arg(argp, double);
 							plusflag(fd, _put_char, flags, dst);
+#if USE_MINSTDIO_FLOAT_SUPPORT
 							_put_str(fd, dst, ftoa(intbuf, d, prescision));
+#else
+							_put_str(fd, dst, itoa((int)d, intbuf, 10));
+#endif
 						break;
 
 						case '%':

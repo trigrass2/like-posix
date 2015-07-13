@@ -46,6 +46,10 @@ extern "C" {
 
 #include <stdio.h>
 
+#ifndef USE_MINSTDIO_FLOAT_SUPPORT
+#define USE_MINSTDIO_FLOAT_SUPPORT 1
+#endif
+
 #ifdef __cplusplus
 }
 #endif
