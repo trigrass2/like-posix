@@ -99,7 +99,7 @@ int sock_connect(const char *host, int port, int type, struct sockaddr* servaddr
     char portbuf[16];
     struct addrinfo *addr_list, *addr_ptr;
     struct addrinfo hints;
-    int fd;
+    int fd = -1;
     int res;
 
     log_init(&log, "sock_connect");
