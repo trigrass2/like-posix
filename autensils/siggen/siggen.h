@@ -37,7 +37,6 @@
 
 
 extern const uint16_t sine_unsigned_65536[65536];
-extern const int16_t sine_signed_32768[32768];
 extern const uint16_t sine_unsigned_32768[32768];
 extern const uint16_t sine_unsigned_16384[16384];
 extern const uint16_t sine_unsigned_8192[8192];
@@ -45,6 +44,15 @@ extern const uint16_t sine_unsigned_4096[4096];
 extern const uint16_t sine_unsigned_2048[2048];
 extern const uint16_t sine_unsigned_1024[1024];
 extern const uint16_t sine_unsigned_512[512];
+
+extern const int16_t sine_signed_65536[65536];
+extern const int16_t sine_signed_32768[32768];
+extern const int16_t sine_signed_16384[16384];
+extern const int16_t sine_signed_8192[8192];
+extern const int16_t sine_signed_4096[4096];
+extern const int16_t sine_signed_2048[2048];
+extern const int16_t sine_signed_1024[1024];
+extern const int16_t sine_signed_512[512];
 
 #define SIGGEN_DEFAULT_FREQUENCY           1000
 #define SIGGEN_DEFAULT_AMPLITUDE           100
