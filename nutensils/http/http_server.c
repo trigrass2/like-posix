@@ -326,8 +326,6 @@ void http_server_connection(sock_conn_t* conn)
 			{
 				int c = fwrite(httpconn->scratch, 1, httpconn->length, httpconn->file);
 				httpconn->content_length -= httpconn->length;
-
-		        log_syslog(&httpserver->log, "c %d", c);
 			}
 		}
 	}
