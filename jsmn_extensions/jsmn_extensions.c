@@ -168,7 +168,6 @@ jsmntok_t* json_object_value_iterator(json_t* json)
     return json->current_item;
 }
 
-
 /**
  * json object value access by key.
  *
@@ -195,7 +194,7 @@ jsmntok_t* json_get_value_by_key(json_t* json, jsmntok_t* object, char* key)
         {
            if(json->tokens + token->parent == object)
            {
-               if(memcmp(key, json->buffer + token->start, token->end - token->start) == 0)
+               if((strlen(key) == (size_t)(token->end - token->start)) && (memcmp(key, json->buffer + token->start, token->end - token->start) == 0))
                {
                    json->current_item = token + 1;
                    return json->current_item;
