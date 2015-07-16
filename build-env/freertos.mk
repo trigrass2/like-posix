@@ -18,6 +18,7 @@ CFLAGS += -I$(FREERTOSDIR)/include
 SOURCE += $(FREERTOSDIR)/list.c
 SOURCE += $(FREERTOSDIR)/queue.c
 SOURCE += $(FREERTOSDIR)/tasks.c
+SOURCE += $(FREERTOSDIR)/timers_.c
 SOURCE += $(FREERTOSDIR)/portable/MemMang/heap_2.c
 
 ifeq ($(FAMILY), STM32F1)
