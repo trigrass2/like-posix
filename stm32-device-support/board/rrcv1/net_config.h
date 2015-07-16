@@ -39,8 +39,8 @@
 /**
  * Ethernet driver buffer size and count - defaults are set in stm32_eth.h
  */
-#define ETH_RXBUFNB        4                   // Rx buffers
-#define ETH_TXBUFNB        8                   // Tx buffers
+#define ETH_RXBUFNB        2                   // Rx buffers
+#define ETH_TXBUFNB        2                   // Tx buffers
 #define MAX_ETH_PAYLOAD     600
 
 #define NET_LINK_LED			LED1
