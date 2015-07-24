@@ -47,7 +47,8 @@
 
 shell_cmd_t* install_os_cmds(shellserver_t* sh)
 {
-    return register_command(sh, &sh_top_cmd, NULL, NULL, NULL);
+    register_command(sh, &sh_top_cmd, NULL, NULL, NULL);
+    return register_command(sh, &sh_sleep_cmd, NULL, NULL, NULL);
 }
 
 int sh_top(int fdes, const char** args, unsigned char nargs)
@@ -134,6 +135,7 @@ int sh_top(int fdes, const char** args, unsigned char nargs)
                     ret = 0;
             }
 #else
+            // for files without ioctlsocket support ...
 //            ret = read(fdes, &code, 1);
 //            if(ret > 0)
 //                ret = 0;
@@ -158,6 +160,22 @@ int sh_top(int fdes, const char** args, unsigned char nargs)
     return SHELL_CMD_EXIT;
 }
 
+int sh_sleep(int fdes, const char** args, unsigned char nargs)
+{
+	(void)fdes;
+	float time;
+	const char* arg = arg_by_index(0, args, nargs);
+	if(arg)
+	{
+		time = atof(arg);
+		if(time < UINT32_MAX/1000000)
+			usleep(1000000 * time);
+		else
+			sleep(time);
+	}
+    return SHELL_CMD_EXIT;
+}
+
 shell_cmd_t sh_top_cmd = {
     .name = "top",
     .usage = "prints task info" SHELL_NEWLINE
@@ -165,5 +183,11 @@ shell_cmd_t sh_top_cmd = {
 "\t-d\t update speed in seconds, defaults to 2."SHELL_NEWLINE
 "\t-n\t the number of times to cycle. runs continuously if not specified.",
     .cmdfunc = sh_top
+};
+
+shell_cmd_t sh_sleep_cmd = {
+    .name = "sleep",
+    .usage = "sleep <time> suspends shell execution for a number of seconds",
+    .cmdfunc = sh_sleep
 };
 

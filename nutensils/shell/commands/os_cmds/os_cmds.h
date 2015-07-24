@@ -37,6 +37,7 @@
 #include "shell.h"
 
 extern shell_cmd_t sh_top_cmd;
+extern shell_cmd_t sh_sleep_cmd;
 
 
 shell_cmd_t* install_os_cmds(shellserver_t* sh);
