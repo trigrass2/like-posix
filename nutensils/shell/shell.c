@@ -629,32 +629,44 @@ void parse_input_line(shell_instance_t* shell_inst)
 			delimiter = 0;
 
 			// iterate until a non space is found
-			while(*iter && (*iter == ' '))
+			while(*iter && *iter == ' ')
 				iter++;
 
 			if(!*iter)
 				break;
 
 			// if are we entering a quote text block, keep the delimiters value
-			if((*iter == '`') || (*iter == '\'') || (*iter == '"'))
+			if(*iter == '`' || *iter == '\'' || *iter == '"')
 			{
 				delimiter = *iter;
 				iter++;
 			}
 
-			// add text block to list
-			shell_inst->input_cmd.args[shell_inst->input_cmd.nargs] = iter;
-			shell_inst->input_cmd.nargs++;
-			if(shell_inst->input_cmd.nargs >= SHELL_MAX_ARGS)
-				break;
+			// add text block to list, if the block does not start with the comment character
+			// if the block is in quotes, add it anyway
+			if(*iter != '#' || delimiter)
+			{
+				shell_inst->input_cmd.args[shell_inst->input_cmd.nargs] = iter;
+				shell_inst->input_cmd.nargs++;
+				if(shell_inst->input_cmd.nargs >= SHELL_MAX_ARGS)
+					break;
+			}
 
 			// if there was no shell_inst->starting delimiter, close the block on the next space
 			if(!delimiter)
 				delimiter = ' ';
 
 			// iterate until the closing delimiter is found
-			while(*iter && (*iter != delimiter))
+			while(*iter && *iter != delimiter)
+			{
+				// if a comment character is found when not inside a quote block, finish parsing the input
+				if(delimiter == ' ' && *iter == '#')
+				{
+					*iter = '\0';
+					break;
+				}
 				iter++;
+			}
 
 			// zero terminate if we arent at the end already
 			if(*iter)
