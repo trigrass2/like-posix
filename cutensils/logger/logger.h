@@ -46,6 +46,13 @@
  extern "C" {
 #endif
 
+#ifndef USE_FREERTOS
+ /**
+  * build for freertos...
+  */
+#define USE_FREERTOS   0
+#endif
+
 #ifndef USE_LOGGER
  /**
   * enable logging
@@ -79,6 +86,13 @@
   * this is the size in bytes of the buffer used to format the log message.
   */
 #define LOG_BUFFER_SIZE   512
+#endif
+
+#ifndef USE_LOGGER_TIMESTAMP
+ /**
+  * compile with timestamp support
+  */
+#define USE_LOGGER_TIMESTAMP	0
 #endif
 
 #ifndef LOG_TIMESTAMP_BUFFER_SIZE

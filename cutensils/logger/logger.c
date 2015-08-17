@@ -302,9 +302,10 @@ static inline void write_log_record(logger_t* logger, log_level_t level, char* m
                 if(_log_coloured)
                     write(handlers[i], colourstop, sizeof(colourstop)-1);
                 write(handlers[i], "\n", 1);
-
+#ifdef fsync
                 if(isatty(handlers[i]) == 0)
                     fsync(handlers[i]);
+#endif
 		    }
 #if USE_UDP_LOGGER
 		    else
