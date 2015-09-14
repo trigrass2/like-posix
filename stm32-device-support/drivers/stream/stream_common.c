@@ -232,11 +232,9 @@ void stream_processing_task(stream_t* stream)
         {
             for(connection = 0; connection < stream->maxconns; connection++)
             {
-            	//GPIO_SetBits(GPIOB, GPIO_Pin_14);
                 interface = stream->connections[connection];
                 if(interface && interface->enabled && (interface->stream_channel == channel))
                     interface->process(stream->buffer + channel, stream->length/2, stream->channels, interface);
-            	//GPIO_ResetBits(GPIOB, GPIO_Pin_14);
             }
         }
     }
