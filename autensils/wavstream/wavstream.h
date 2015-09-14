@@ -36,6 +36,24 @@
 #include "wav.h"
 #include "stream_common.h"
 
+#ifndef WAVSTREAM_USE_MUTEX
+#ifdef USE_FREERTOS
+#define WAVSTREAM_USE_MUTEX USE_FREERTOS
+#else
+#define WAVSTREAM_USE_MUTEX 0
+#endif
+#endif
+
+#if USE_FREERTOS && WAVSTREAM_USE_MUTEX
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
+#pragma message "building wavstream with thread safety 'on', WAVSTREAM_USE_MUTEX=1"
+#else
+#pragma message "building wavstream with thread safety 'off', WAVSTREAM_USE_MUTEX=0"
+#endif
+
+
 typedef struct {
     logger_t log;
     wav_file_t file;
@@ -45,7 +63,26 @@ typedef struct {
     uint32_t(*getsamplerate)(void);
     void(*setsamplerate)(uint32_t);
     wav_file_processing_t wavproc;
+#if WAVSTREAM_USE_MUTEX
+    SemaphoreHandle_t busy;
+#endif
 } wavstream_t;
+
+#if WAVSTREAM_USE_MUTEX
+#define init_wavstream_mutex() 						\
+	do												\
+	{												\
+		wavstream->busy = xSemaphoreCreateMutex();		\
+		assert_true(wavstream->busy);					\
+	}												\
+	while(0)
+#define wavstream_take_mutex() (xSemaphoreTake(wavstream->busy, 1000/portTICK_RATE_MS) == pdTRUE)
+#define wavstream_give_mutex() xSemaphoreGive(wavstream->busy)
+#else
+#define init_wavstream_mutex()
+#define wavstream_take_mutex()	1
+#define wavstream_give_mutex()
+#endif
 
 void wavstream_init(wavstream_t* wavstream, stream_connection_t* conn, stream_t* stream, const char* name, int8_t stream_channel, uint32_t(*getsamplerate)(void), void(*setsamplerate)(uint32_t));
 void wavstream_enable(stream_connection_t* conn, const char* file);
