@@ -140,7 +140,7 @@ bool wav_file_unpack_header(wav_file_t* file)
  */
 int wav_file_open(wav_file_t* file, const char* filepath)
 {
-	file->fdes = open(filepath, O_RDONLY, 0);
+	file->fdes = open(filepath, O_RDONLY);
 
 	if(!wav_file_unpack_header(file))
 	{
