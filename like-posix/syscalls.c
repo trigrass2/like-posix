@@ -716,20 +716,23 @@ int _close(int file)
 
 static inline filtab_entry_t* __lock(int file, bool read, bool write)
 {
+	int lock_successful = pdTRUE;
 	if(lock_filtab())
 	{
 		filtab_entry_t* fte = __get_entry(file);
 		if(fte)
 		{
 			if(write && (fte->flags & FWRITE))
-				assert_true(xSemaphoreTake(fte->write_lock, DEFAULT_FILE_LOCK_TIMEOUT/portTICK_RATE_MS) == pdTRUE);
+				lock_successful = xSemaphoreTake(fte->write_lock, DEFAULT_FILE_LOCK_TIMEOUT/portTICK_RATE_MS);
 
-			if(read && (fte->flags & FREAD))
-				assert_true(xSemaphoreTake(fte->read_lock, DEFAULT_FILE_LOCK_TIMEOUT/portTICK_RATE_MS) == pdTRUE);
+			if(read && (fte->flags & FREAD) && (lock_successful == pdTRUE))
+				lock_successful = xSemaphoreTake(fte->read_lock, DEFAULT_FILE_LOCK_TIMEOUT/portTICK_RATE_MS);
 		}
 		unlock_filtab();
-
-		return fte;
+		if(lock_successful == pdTRUE)
+			return fte;
+		else
+			return NULL;
 	}
 	return NULL;
 }
