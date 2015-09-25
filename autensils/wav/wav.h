@@ -33,7 +33,9 @@
 #ifndef WAVE_H_
 #define WAVE_H_
 
-#include "stream_common.h"
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
 
 //The sample data must end on an even byte boundary.
 //All numeric data fields are in the Intel format of low-high byte ordering.

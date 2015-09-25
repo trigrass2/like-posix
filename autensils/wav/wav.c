@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <string.h>
 #include "wav.h"
 
 
@@ -161,6 +162,8 @@ void wav_file_close(wav_file_t* file)
 /**
  * populates the given wav_file_processing_t processing structure transformation parameters.
  *
+ * NOTE: wavproc must be zeroed before first use!
+ *
  * called by a stream service once when enabling the stream, after the wave file has been opened.
  *
  * Note: allocates a working area buffer, so the function wav_file_deinit_stream_params() must be called when the wave file is finished playing.
@@ -207,8 +210,12 @@ void wav_file_buffer_setup(wav_file_processing_t* wavproc, void* buffer, uint32_
  * does not perform re-sampling.
  * does not scale the data.
  *
+ * The buffer channel is selected by setting the buffer address, with a channel offset
+ * added in the call to wav_file_buffer_setup()
+ *
  * @param file is the open wave file
- * @param wavproc is an initialized wav_file_processing_t structure. initialize with wav_file_init_stream_params() and wav_file_buffer_setup().
+ * @param wavproc is an initialized wav_file_processing_t structure.
+ * 			initialize with wav_file_init_stream_params() and wav_file_buffer_setup().
  * @param multiply is a number to multiply samples by before after summing. it can be used to amplify the output data.
  */
 uint32_t wav_file_read_mix_to_buffer_channel(wav_file_t* file, wav_file_processing_t* wavproc)
@@ -229,7 +236,7 @@ uint32_t wav_file_read_mix_to_buffer_channel(wav_file_t* file, wav_file_processi
 		scratch = wavproc->workarea;
 
 		// one loop per sample in wave file
-		for(word = 0; word < wordsread; word += file->header.fmt_num_channels)
+		for(word = 0; word < wordsread; word += file->header.fmt_num_channels, samplecount++)
 		{
 			sum = 0;
 			// one loop per channel in the sample
@@ -274,7 +281,6 @@ uint32_t wav_file_read_mix_to_buffer_channel(wav_file_t* file, wav_file_processi
 			}
 
 			buffer = ((uint8_t*)buffer) + (wavproc->buffer_channels * wavproc->buffer_word_size_bytes);
-			samplecount++;
 		}
 	}
 
@@ -332,7 +338,7 @@ uint32_t wav_file_get_wordsize_bytes(wav_file_t* file)
  */
 wave_fmt_t wav_file_get_format(wav_file_t* file)
 {
-	return file->header.fmt_tag;
+	return (wave_fmt_t)file->header.fmt_tag;
 }
 
 
