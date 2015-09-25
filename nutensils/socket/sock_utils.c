@@ -63,9 +63,11 @@
  *
  \code
 
+ # TCP Socket
+
  char buf[32];
 
- int fd = sock_connect("google.com", 80, SOCK_STREAM, NULL) != -1);
+ int fd = sock_connect("hostname.abc", 80, SOCK_STREAM, NULL);
 
  if(fd != -1)
  {
@@ -79,15 +81,37 @@
 
  \code
 
+ # UDP Socket, general
+
  char buf[32];
  struct sockaddr_in servaddr;
 
- int fd = sock_connect("google.com", 80, SOCK_DGRAM, &servaddr) != -1);
+ int fd = sock_connect("hostname.abc", 80, SOCK_DGRAM, &servaddr);
 
  if(fd != -1)
  {
      sendto(fd, "hello", strlen("hello"), 0, (struct sockaddr*)&servaddr, sizeof(servaddr));
+ 	 // receive only from "hostname.abc"
      recvfrom(fd, buf, sizeof(buf), 0, NULL, NULL);
+     recv(fd, buf, sizeof(buf), 0);
+ }
+
+ \endcode
+
+ \code
+
+ # UDP Socket, receiving
+
+ socklen_t l = 0;
+ char buf[32];
+ struct sockaddr_in servaddr;
+
+ int fd = sock_connect(NULL, 80, SOCK_DGRAM, &servaddr);
+
+ if(fd != -1)
+ {
+ 	 // receive from any adress - source address is inserted into servaddr on reception
+     recvfrom(fd, buf, sizeof(buf), 0, (struct sockaddr*)&servaddr, &l);
  }
 
  \endcode
@@ -120,6 +144,10 @@ int sock_connect(const char *host, int port, int type, struct sockaddr* servaddr
     hints.ai_flags = 0;
     hints.ai_protocol = 0;
 
+    // not implemented in lwip 1.4.1
+//    if(type == SOCK_DGRAM && host == NULL)
+//        hints.ai_flags = AI_PASSIVE;
+
     // convert integer port to string for getaddrinfo
     snprintf(portbuf, sizeof(portbuf)-1, "%d", port);
 
@@ -140,10 +168,27 @@ int sock_connect(const char *host, int port, int type, struct sockaddr* servaddr
         if(addr_ptr->ai_socktype == SOCK_STREAM)
         {
             if(connect(fd, addr_ptr->ai_addr, addr_ptr->ai_addrlen) >= 0)
+            {
+                log_info(&log, "connect %s:%s %s", host, portbuf, "OK");
                 break;
+            }
+            log_info(&log, "connect %s:%s %s", host, portbuf, "failed");
         }
         else if(addr_ptr->ai_socktype == SOCK_DGRAM)
         {
+        	if(host == NULL)
+        	{
+        		// work around hints.ai_flags = AI_PASSIVE not being possible
+        		// lwip will set the address to INADDR_LOOPBACK when host is NULL
+        		// we set to IP_ADDR_ANY instead
+                memset(&((struct sockaddr_in*)addr_ptr->ai_addr)->sin_addr, 0, sizeof(struct in_addr));
+        		if(bind(fd, addr_ptr->ai_addr, addr_ptr->ai_addrlen) == 0){
+                    log_info(&log, "bind %s %s", portbuf, "OK");
+        		}
+        		else{
+        	        log_error(&log, "bind %s %s", portbuf, "failed");
+        		}
+        	}
             *servaddr = *addr_ptr->ai_addr;
             break;
         }
