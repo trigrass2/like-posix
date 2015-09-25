@@ -606,7 +606,7 @@ void SD_SDIO_DMA_IRQHANDLER(void)
     if(DMA_GetITStatus(DMA2_IT_TE4) == SET)
     {
         DMA_ClearITPendingBit(DMA2_IT_TE4);
-        printf("transmission error\n");
+//        printf("transmission error\n");
     }
 
 #if USE_THREAD_AWARE_SDCARD_DRIVER
