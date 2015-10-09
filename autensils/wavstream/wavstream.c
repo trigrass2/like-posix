@@ -61,6 +61,8 @@ void wavstream_init(wavstream_t* wavstream, stream_connection_t* conn, stream_t*
 
 	wavstream->fsa = stream_get_full_scale_amplitude_mv(conn)/2;
 
+	memset(&wavstream->wavproc, 0, sizeof(wav_file_processing_t));
+
 	init_wavstream_mutex();
 
     wavstream_set_level(conn, wavstream->fsa);
@@ -173,12 +175,10 @@ void wavstream_enable(stream_connection_t* conn, const char* file)
 						log_debug(&wavstream->log, "channels: %u", wav_file_get_channels(&wavstream->file));
 						log_debug(&wavstream->log, "samplerate: %u", wav_file_get_samplerate(&wavstream->file));
 						log_debug(&wavstream->log, "resolution: %u", wav_file_get_wordsize_bits(&wavstream->file));
+						stream_connection_enable(conn, true);
 					}
 					else
 						log_warning(&wavstream->log, "failed to initialize work area");
-
-					stream_connection_enable(conn, enable);
-
 				}
 			}
 		}
