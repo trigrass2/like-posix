@@ -41,7 +41,7 @@
 
 #include "strutils.h"
 #include <ctype.h>
-
+#include <math.h>
 
 
 /**
@@ -148,6 +148,164 @@ int string_in_list(const char* str, unsigned short str_len, const char** list)
         i++;
     }
     return -1;
+}
+
+static void strreverse(char* begin, char* end)
+{
+    char aux;
+    while(end>begin)
+        aux=*end, *end--=*begin, *begin++=aux;
+}
+
+char* itoa(int value, char* str, int base)
+{
+    static char num[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+    char* wstr=str;
+    int sign;
+
+    // Validate base
+    if (base<2 || base>35)
+    {
+        *wstr='\0';
+        return 0;
+    }
+    // Take care of sign
+    if ((sign=value) < 0)
+        value = -value;
+    // Conversion. Number is reversed.
+    do
+        *wstr++ = num[value%base];
+    while(value /= base);
+    // append sign
+    if((base == 10) && (sign < 0))
+        *wstr++='-';
+
+    // terminate
+    *wstr='\0';
+    // Reverse string
+    strreverse(str,wstr-1);
+
+    return str;
+}
+
+/**
+ * convert long long/int64_t type to ascii.
+ */
+char* ditoa(int64_t value, char* str, int base)
+{
+    static char num[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+    char* wstr=str;
+    int64_t sign;
+
+    // Validate base
+    if (base<2 || base>35)
+    {
+        *wstr='\0';
+        return 0;
+    }
+    // Take care of sign
+    if ((sign=value) < 0)
+        value = -value;
+    // Conversion. Number is reversed.
+    do
+        *wstr++ = num[value%base];
+    while(value /= base);
+    // append sign
+    if((base == 10) && (sign < 0))
+        *wstr++='-';
+
+    // terminate
+    *wstr='\0';
+    // Reverse string
+    strreverse(str,wstr-1);
+
+    return str;
+}
+
+/**
+ * convert long long/int64_t type to ascii.
+ */
+char* ftoa(char *dst, float num, float prescision)
+{
+    // handle special cases
+    if(isnan(num))
+        strcpy(dst, "nan");
+    else if(isinf(num))
+        strcpy(dst, "inf");
+    else if(num == 0.0)
+        strcpy(dst, "0");
+    else if(num < 0 && -num <= prescision)
+        strcpy(dst, "0");
+    else if(num > 0 && num <= prescision)
+        strcpy(dst, "0");
+    else
+    {
+        int digit, m, m1 = 0;
+        char *c = dst;
+        int neg = (num < 0);
+        if (neg)
+            num = -num;
+        // calculate magnitude
+        m = (float)log10(num);
+        int useExp = (m >= 14 || (neg && m >= 9) || m <= -9);
+        if(neg)
+            *(c++) = '-';
+        // set up for scientific notation
+        if(useExp)
+        {
+            if(m < 0)
+                m -= 1.0;
+            num = num / (float)pow(10.0, m);
+            m1 = m;
+            m = 0;
+        }
+        if(m < 1.0)
+            m = 0;
+
+        // convert the number
+        while(num > prescision || m >= 0) {
+            float weight = (float)pow(10.0, m);
+            if(weight > 0 && !isinf(weight))
+            {
+                digit = (float)floor(num / weight);
+                num -= (digit * weight);
+                *(c++) = '0' + digit;
+            }
+            if (m == 0 && num > 0)
+                *(c++) = '.';
+            m--;
+        }
+        if(useExp) {
+            // convert the exponent
+            int i, j;
+            *(c++) = 'e';
+            if(m1 > 0)
+                *(c++) = '+';
+            else
+            {
+                *(c++) = '-';
+                m1 = -m1;
+            }
+            m = 0;
+            while(m1 > 0)
+            {
+                *(c++) = '0' + m1 % 10;
+                m1 /= 10;
+                m++;
+            }
+            c -= m;
+            for (i = 0, j = m-1; i<j; i++, j--)
+            {
+                // swap without temporary
+                c[i] ^= c[j];
+                c[j] ^= c[i];
+                c[i] ^= c[j];
+            }
+            c += m;
+        }
+        *c = '\0';
+    }
+    return dst;
 }
 
 /**

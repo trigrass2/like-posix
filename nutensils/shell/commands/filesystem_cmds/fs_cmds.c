@@ -31,16 +31,17 @@
  */
 
 
-#include "minstdlib.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
-#include "shell.h"
-#include "fs_cmds.h"
+#include "strutils.h"
 #include "confparse.h"
+#include "fs_cmds.h"
+#include "shell.h"
 
 #define IS_NOT_A_DIRECTORY          " is not a directory"
 #define FORMATTING_SDCARD           "formatting sdcard"

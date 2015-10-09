@@ -31,24 +31,29 @@
  */
 
 /**
- * @addtogroup strutils
- * @file strutils.h
+ * @addtogroup minstdlib
+ * @file minstdlib.h
  * @{
  */
 
-#ifndef STRUTILS_H_
-#define STRUTILS_H_
+#ifndef MINSTDLIB_H_
+#define MINSTDLIB_H_
 
-#include <stdbool.h>
-#include <string.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-char* strtoupper(char* s);
-char* strtolower(char* s);
-int ahtoi(char* s);
-char adtoi(char d);
-int string_in_list(const char* str, unsigned short str_len, const char** list);
+#include <stdint.h>
+#include <float.h>
 
-#endif // STRUTILS_H_
+
+#include <stdlib.h>
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* MINSTDLIB_H_ */
 
 /**
  * @}

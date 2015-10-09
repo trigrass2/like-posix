@@ -35,7 +35,7 @@
 
 #include "board_config.h"
 #include "asserts.h"
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
 #include "syscalls.h"
 #endif
 
@@ -52,7 +52,7 @@ inline void spi_rx_isr(SPI_TypeDef* spi, void* spi_dev)
 {
 	if(SPI_I2S_GetITStatus(spi, SPI_I2S_IT_RXNE) == SET)
 	{
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		xQueueSendFromISR(((dev_ioctl_t*)spi_dev)->pipe.read, (char*)&(spi->DR), &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -72,7 +72,7 @@ inline void spi_tx_isr(SPI_TypeDef* spi, void* spi_dev)
 {
 	if(SPI_I2S_GetITStatus(spi, SPI_I2S_IT_TXE) == SET)
 	{
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		if(xQueueReceiveFromISR(((dev_ioctl_t*)spi_dev)->pipe.write, (char*)&(spi->DR), &xHigherPriorityTaskWoken) == pdFALSE)
 			SPI_I2S_ITConfig(spi, SPI_I2S_IT_TXE, DISABLE);

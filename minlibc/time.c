@@ -63,7 +63,7 @@
 #define USE_FREERTOS 0
 #endif
 
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
 #include "likeposix_config.h"
 #endif
 

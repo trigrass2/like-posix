@@ -31,35 +31,22 @@
  */
 
 /**
- * @addtogroup minstdlib
- * @file minstdlib.h
+ * @defgroup minstdlib minimal stdlib
+ *
+ * tiny versions of some stdlib functions.
+ *
+ * @file minstdlib.c
  * @{
  */
 
-#ifndef MINSTDLIB_H_
-#define MINSTDLIB_H_
+//#include <stdint.h>
+//#include <stddef.h>
+//#include <math.h>
+//
+//#include "_stdlib.h"
+//#include "_string.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
-#include <stdint.h>
-#include <float.h>
-
-#define DEFAULT_FTOA_PRECISION FLT_MIN
-
-void strreverse(char* begin, char* end);
-char* itoa(int value, char* str, int base);
-char* ditoa(int64_t value, char* str, int base);
-char* ftoa(char *dst, float num, float prescision);
-
-#include <stdlib.h>
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* MINSTDLIB_H_ */
 
 /**
  * @}

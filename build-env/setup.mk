@@ -68,8 +68,8 @@ USE_JSMN ?= 0
 
 ## there are some small alternatives to the standard libraries
 # set to 1 to enable those (may reduce code size by several 10's of kb)
-USE_MINSTDLIBS ?= 0
-USE_MINSTDIO_FLOAT_SUPPORT ?= 1
+USE_MINLIBC ?= 0
+MINLIBC_INCLUDE_FLOAT_SUPPORT ?= 1
 
 ## there is a small configuration file utility
 # set to 1 to enable
@@ -84,7 +84,7 @@ USE_LOGGER_TIMESTAMP ?= 1
 
 ## to use many of the facilities, posix style IO is required.
 # set to 1 to enable
-USE_POSIX_STYLE_IO ?= 0
+USE_LIKEPOSIX ?= 0
 
 ## socket utilities from the nutensils project
 # set to 1 to enable, set to 0 to disable
@@ -171,7 +171,7 @@ FREERTOS_DIR ?= $(STM32DEVSUPPORTDIR)/freertos
 ## specify location of LwIP
 LWIP_DIR ?= $(STM32DEVSUPPORTDIR)/LwIP
 ## specify location of minstdlibs
-MINSTDLIBSDIR ?= $(STM32DEVSUPPORTDIR)/minstdlibs
+MINLIBCDIR ?= $(STM32DEVSUPPORTDIR)/minlibc
 ## specify location of graphics
 GRAPHICSDIR ?= $(STM32DEVSUPPORTDIR)/graphics
 ## specify location of jsmn

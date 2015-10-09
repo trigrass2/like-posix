@@ -19,6 +19,10 @@ CFLAGS += -I $(CUTENSILS_DIR)
 # logger make be included even if not enabled
 CFLAGS += -I $(CUTENSILS_DIR)/logger
 
+# strutils may always be included
+CFLAGS += -I $(CUTENSILS_DIR)/strutils
+SOURCE += $(CUTENSILS_DIR)/strutils/strutils.c
+
 ifeq ($(USE_LOGGER), 1)
 SOURCE += $(CUTENSILS_DIR)/logger/logger.c
 endif

@@ -1,10 +1,11 @@
 
-#include <string.h>
 #include <stdint.h>
 #include <limits.h>
+
+#include "../_stdio.h"
+#include "../_string.h"
 #include "gtest/gtest.h"
 #include "strutils.h"
-#include "minstdio.h"
 
 /**
  * test fixture for functions calling _write

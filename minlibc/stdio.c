@@ -4,7 +4,6 @@
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
- *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
@@ -45,10 +44,12 @@
 #include <unistd.h> // open(), close() etc
 #include <ctype.h> // isdigit() etc
 #include <fcntl.h>
-#include "minstdio.h"
-#include "minstdlib.h"
-#include "minstring.h"
+
 #include "strutils.h"
+
+#include "_stdio.h"
+#include "_stdlib.h"
+#include "_string.h"
 
 #define PLUS_FLAG 1
 #define MINUS_FLAG 2
@@ -125,7 +126,7 @@ static inline void hashflag(int fd, putx_t _put_str, unsigned int flags, char** 
 static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, const char * fmt, va_list argp)
 {
 	float d;
-#if USE_MINSTDIO_FLOAT_SUPPORT
+#if MINLIBC_INCLUDE_FLOAT_SUPPORT
     float prescision = DEFAULT_FTOA_PRECISION;
 #endif
 	int ret = -1;
@@ -226,7 +227,7 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 								fmt++;
 						break;
 						case 'f':
-#if USE_MINSTDIO_FLOAT_SUPPORT
+#if MINLIBC_INCLUDE_FLOAT_SUPPORT
 						    prescision = 1 / pow(10, padding);
 #endif
 						break;
@@ -383,7 +384,7 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 						case 'f':
 							d = (float)va_arg(argp, double);
 							plusflag(fd, _put_char, flags, dst);
-#if USE_MINSTDIO_FLOAT_SUPPORT
+#if MINLIBC_INCLUDE_FLOAT_SUPPORT
 							_put_str(fd, dst, ftoa(intbuf, d, prescision));
 #else
 							_put_str(fd, dst, itoa((int)d, intbuf, 10));

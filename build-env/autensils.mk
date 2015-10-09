@@ -9,8 +9,8 @@ CFLAGS += -DUSE_SIGGEN_STREAM=$(USE_SIGGEN_STREAM)
 #####################
 ifeq ($(USE_WAV_AUDIO), 1)
 
-ifeq ($(USE_POSIX_STYLE_IO), 0)
-$(error USE_WAV_AUDIO is set. wave audio utils require USE_POSIX_STYLE_IO set to 1)
+ifeq ($(USE_LIKEPOSIX), 0)
+$(error USE_WAV_AUDIO is set. wave audio utils require USE_LIKEPOSIX set to 1)
 endif
 
 CFLAGS += -I $(AUTENSILS_DIR)/wav
@@ -30,8 +30,8 @@ $(error USE_WAV_STREAM is set. wave stream utils require USE_DRIVER_DAC_STREAM o
 endif
 endif
 
-ifeq ($(USE_POSIX_STYLE_IO), 0)
-$(error USE_WAV_STREAM is set. wave stream utils require USE_POSIX_STYLE_IO set to 1)
+ifeq ($(USE_LIKEPOSIX), 0)
+$(error USE_WAV_STREAM is set. wave stream utils require USE_LIKEPOSIX set to 1)
 endif
 
 CFLAGS += -I $(AUTENSILS_DIR)/wavstream
