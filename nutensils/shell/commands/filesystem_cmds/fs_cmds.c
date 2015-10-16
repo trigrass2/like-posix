@@ -41,6 +41,7 @@
 #include "shell.h"
 #include "fs_cmds.h"
 #include "confparse.h"
+#include "sdfs.h"
 
 #define IS_NOT_A_DIRECTORY          " is not a directory"
 #define FORMATTING_SDCARD           "formatting sdcard"
@@ -48,8 +49,13 @@
 #define ERROR_OPENING_SOURCE_FILE      "couldnt open source file"
 #define ERROR_OPENING_DEST_FILE      "couldnt open destination file"
 #define ERROR_MOVING_FILE            "error moving file"
+// 16 characters per column
+#define DF_CMD_HEADING            "      Filesystem         1K-blocks            Used       Available            Use%      Mounted on"
+#define DF_CMD_ROW            	  "%13s:%s%18u%16u%16u%15u%%%16s"
 
 #define CONFIG_CMD_BUFFER_SIZE 		512
+#define LS_CMD_BUFFER_SIZE 		256
+#define DF_CMD_BUFFER_SIZE 		256
 
 const char* units[] = {
        "b", "kb", "Mb", "Gb"
@@ -67,6 +73,7 @@ shell_cmd_t* install_fs_cmds(shellserver_t* sh)
     register_command(sh, &sh_cat_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_mv_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_cp_cmd, NULL, NULL, NULL);
+    register_command(sh, &sh_df_cmd, NULL, NULL, NULL);
     return register_command(sh, &sh_config_cmd, NULL, NULL, NULL);
 }
 
@@ -79,7 +86,7 @@ int sh_ls(int fdes, const char** args, unsigned char nargs)
     struct dirent *ent;
     bool ll = has_switch((const char*)"-l", args, nargs);
     const char* rel = final_arg(args, nargs);
-    char* buffer = malloc(256);
+    char* buffer = malloc(LS_CMD_BUFFER_SIZE);
 
     if(buffer)
     {
@@ -157,7 +164,7 @@ int sh_cd(int fdes, const char** args, unsigned char nargs)
     const char* path;
 
     if(!nargs)
-        path = "/";
+        path = sdfs_mountpoint();
     else
         path = arg_by_index(0, args, nargs);
 
@@ -319,6 +326,36 @@ int sh_config(int fdes, const char** args, unsigned char nargs)
 
     return SHELL_CMD_EXIT;
 }
+
+int sh_df(int fdes, const char** args, unsigned char nargs)
+{
+	(void)nargs;
+	(void)args;
+    char* buffer = malloc(DF_CMD_BUFFER_SIZE);
+    uint32_t sectors = sdfs_sector_count();
+    uint32_t free_clusters = sdfs_clusters_free();
+    uint32_t sectors_per_cluster = sdfs_cluster_size();
+    uint32_t used = (sectors - (free_clusters*sectors_per_cluster))/2;
+    uint32_t available = (free_clusters*sectors_per_cluster)/2;
+
+    if(buffer)
+    {
+		write(fdes, DF_CMD_HEADING SHELL_NEWLINE, sizeof(DF_CMD_HEADING SHELL_NEWLINE)-1);
+		int length = sprintf(buffer, DF_CMD_ROW SHELL_NEWLINE,
+				sdfs_drive_name(), sdfs_drive_mapping(), sectors/2, used, available, used/available, sdfs_mountpoint());
+		write(fdes, (char*)buffer, length);
+		free(buffer);
+    }
+
+    return SHELL_CMD_EXIT;
+}
+
+shell_cmd_t sh_df_cmd = {
+    .name = "df",
+    .usage =
+"prints disk usage information",
+    .cmdfunc = sh_df
+};
 
 shell_cmd_t sh_ls_cmd = {
     .name = "ls",
