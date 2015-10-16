@@ -54,9 +54,16 @@ bool sdfs_init(void);
 
 bool sdfs_ready();
 
+uint8_t sdfs_card_type();
 uint32_t sdfs_card_capacity();
 uint32_t sdfs_sector_size();
-uint8_t sdfs_card_type();
+uint32_t sdfs_sector_count();
+uint32_t sdfs_clusters_free();
+uint32_t sdfs_cluster_size();
+
+char* sdfs_drive_mapping();
+char* sdfs_drive_name();
+char* sdfs_mountpoint();
 
 #endif // SDFS_H_
 
