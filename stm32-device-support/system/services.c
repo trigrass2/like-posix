@@ -48,6 +48,9 @@
 #include <unistd.h>
 #include "cutensils.h"
 #endif
+#if USE_MINLIBC
+#include "_stdio.h"
+#endif
 
 void init_services()
 {
@@ -69,6 +72,9 @@ void init_services()
 #endif
 #if USE_LIKEPOSIX
     init_likeposix();
+#endif
+#if USE_MINLIBC
+    init_minlibc();
 #endif
 }
 
