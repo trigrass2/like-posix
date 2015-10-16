@@ -83,7 +83,10 @@ typedef struct {
 #if USE_FREERTOS
     TaskHandle_t sdcard_task_handle;
 #endif
-    char* drive;
+    char* drivemapping;
+    char drivenumber;
+    char* mountpoint;
+    char drivename[13];
     bool mounted;
     logger_t log;
 }sdfs_t;
@@ -99,7 +102,10 @@ static sdfs_t sdfs;
  */
 bool sdfs_init(void)
 {
-    sdfs.drive = "0";
+    sdfs.drivenumber = 0;
+    sdfs.drivemapping = "0:";
+    sdfs.drivename[0] = '\0';
+    sdfs.mountpoint = "/";
     sdfs.mounted = false;
     log_init(&sdfs.log, "sdfs");
     log_syslog(&sdfs.log, "sdfs init");
@@ -113,7 +119,7 @@ bool sdfs_init(void)
                &sdfs.sdcard_task_handle) == pdPASS;
 
 #else
-    if(f_mount(&sdfs.fs, sdfs.drive, 1) == FR_OK)
+    if(f_mount(&sdfs.fs, sdfs.drivemapping, 1) == FR_OK)
     {
         // HACK - alll the f_ functions do perform the chk_mounted routine,
         // which calls disk_initialize for us.
@@ -142,7 +148,7 @@ void sdcard_task(void* pvParameters)
     for(;;)
     {
         // after power on or any card not present event, wait a while with the IO in an idle state
-        f_mount(NULL, sdfs.drive, 0);
+        f_mount(NULL, sdfs.drivemapping, 0);
         sdfs.mounted = false;
         set_diskstatus(SD_NOT_PRESENT);
         SD_DeInit();
@@ -153,7 +159,7 @@ void sdcard_task(void* pvParameters)
         while(SD_Detect() != SD_PRESENT)
              vTaskDelay(100/portTICK_RATE_MS);
 
-        if(f_mount(&sdfs.fs, sdfs.drive, 1) == FR_OK)
+        if(f_mount(&sdfs.fs, sdfs.drivemapping, 1) == FR_OK)
         {
             // HACK - alll the f_ functions do perform the chk_mounted routine,
             // which calls disk_initialize for us.
@@ -190,24 +196,62 @@ uint32_t sdfs_card_capacity()
     uint32_t capacity = 0;
     uint32_t sectorsize = 0;
     uint32_t sectorcount = 0;
-    disk_ioctl(atoi(sdfs.drive), GET_SECTOR_SIZE, &sectorsize);
-    disk_ioctl(atoi(sdfs.drive), GET_SECTOR_COUNT, &sectorcount);
+    disk_ioctl(sdfs.drivenumber, GET_SECTOR_SIZE, &sectorsize);
+    disk_ioctl(sdfs.drivenumber, GET_SECTOR_COUNT, &sectorcount);
     capacity = sectorsize * (sectorcount / 1024);
     return capacity;
+}
+
+char* sdfs_mountpoint()
+{
+	return sdfs.mountpoint;
+}
+
+uint32_t sdfs_sector_count()
+{
+    uint32_t sectorcount = 0;
+    disk_ioctl(sdfs.drivenumber, GET_SECTOR_COUNT, &sectorcount);
+    return sectorcount;
 }
 
 uint32_t sdfs_sector_size()
 {
     uint32_t sectorsize = 0;
-    disk_ioctl(atoi(sdfs.drive), GET_SECTOR_SIZE, &sectorsize);
+    disk_ioctl(sdfs.drivenumber, GET_SECTOR_SIZE, &sectorsize);
     return sectorsize;
 }
 
 uint8_t sdfs_card_type()
 {
     uint8_t cardtype = SDIO_UNKNOWN_CARD_TYPE;
-    disk_ioctl(atoi(sdfs.drive), MMC_GET_TYPE, &cardtype);
+    disk_ioctl(sdfs.drivenumber, MMC_GET_TYPE, &cardtype);
     return cardtype;
+}
+
+
+char* sdfs_drive_name()
+{
+	DWORD vsn;
+	f_getlabel(sdfs.drivemapping, sdfs.drivename, &vsn);
+	return sdfs.drivename;
+}
+
+char* sdfs_drive_mapping()
+{
+	return sdfs.drivemapping;
+}
+
+uint32_t sdfs_clusters_free()
+{
+	FATFS *fs;
+	DWORD nclst;
+    f_getfree(sdfs.drivemapping, &nclst, &fs);
+    return nclst;
+}
+
+uint32_t sdfs_cluster_size()
+{
+    return sdfs.fs.csize;
 }
 
 /**
