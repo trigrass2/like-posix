@@ -244,6 +244,21 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 							s = (char*)va_arg(argp, char*);
 							if(!s)
 								s = (const char*)"(null)";
+							if(flags&SPACE_FLAG)
+							{
+								padding -= strlen(s);
+								if(padding > 0)
+								{
+									char padbuf[padding+1];
+									padbuf[padding] = '\0';
+									while(padding)
+									{
+										padding--;
+										padbuf[padding] = padchar;
+									}
+									_put_str(fd, dst, padbuf);
+								}
+							}
 							_put_str(fd, dst, s);
 						break;
 
