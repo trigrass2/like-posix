@@ -31,40 +31,28 @@
  */
 
 /**
- * @addtogroup strutils
- * @file strutils.h
+ * @addtogroup minlibc
+ *
+ * @file config.h
  * @{
  */
 
-#ifndef STRUTILS_H_
-#define STRUTILS_H_
+#ifndef MINLIBC_CONFIG_H_
+#define MINLIBC_CONFIG_H_
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-
-char* strtoupper(char* s);
-char* strtolower(char* s);
-int ahtoi(char* s);
-char adtoi(char d);
-int string_in_list(const char* str, unsigned short str_len, const char** list);
-
-#ifndef itoa
-char* itoa(int value, char* str, int base);
-#endif
-#ifndef ditoa
-char* ditoa(int64_t value, char* str, int base);
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#define DEFAULT_FTOA_PRECISION 0.00000001
-//#define DEFAULT_FTOA_PRECISION 9
-
-#ifndef ftoa
-//char* ftoa(char *dst, float num, unsigned int precision);
-char* ftoa(char *dst, float num, float precision);
+#ifndef MINLIBC_BUILD_FOR_TEST
+#define MINLIBC_BUILD_FOR_TEST 0
 #endif
 
-#endif // STRUTILS_H_
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* MINLIBC_CONFIG_H_ */
 
 /**
  * @}

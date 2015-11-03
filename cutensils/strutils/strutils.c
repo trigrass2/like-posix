@@ -40,6 +40,7 @@
  */
 
 #include "strutils.h"
+#include <stdio.h>
 #include <ctype.h>
 #include <math.h>
 
@@ -307,6 +308,44 @@ char* ftoa(char *dst, float num, float prescision)
     }
     return dst;
 }
+
+//char* ftoa(char *dst, float num, unsigned int precision)
+//{
+//
+//    char fmt[32] = "%d.";
+//    unsigned int p = pow(10, precision);
+//    int i;
+//
+//    if(isnan(num))
+//        strcpy(dst, "nan");
+//    else if(isinf(num))
+//        strcpy(dst, "inf");
+//    else if(num < 1/p)
+//        strcpy(dst, "0");
+//    else
+//    {
+//
+//        int hi = num;
+//        if(hi > num)
+//            hi--;
+//        num = num - hi;
+//        num = num * p;
+//        unsigned int lo = (unsigned int)num;
+//
+//        i = 0;
+//        while(num < 1.00000000000000 && i < 26)
+//        {
+//            strcat(fmt, "0");
+//            num *= 10;
+//            i++;
+//        }
+//        strcat(fmt, "%u");
+//        sprintf(dst, fmt, hi, lo);
+//    }
+//
+//    return dst;
+//}
+
 
 /**
  * @}

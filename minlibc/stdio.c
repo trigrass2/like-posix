@@ -74,10 +74,11 @@ MINLIBC_FOPEN_MAX: specified in _stdio.h, my be overidden from the project makef
 FILE_TABLE_LENGTH: specified in like_posix_config.h (per project).
             sets the number of files in the file descriptor table (can be any type of file)
 
+ * @file stdio.c
  * @{
  */
 
-#include <sys/reent.h>
+
 #include <stdarg.h>
 #include <stdint.h>
 #include <math.h>
@@ -87,9 +88,9 @@ FILE_TABLE_LENGTH: specified in like_posix_config.h (per project).
 
 #include "strutils.h"
 
-#include "_stdio.h"
-#include "_stdlib.h"
-#include "_string.h"
+#include "minlibc/stdio.h"
+#include "minlibc/stdlib.h"
+#include "minlibc/string.h"
 
 fake__FILE __fstab[FOPEN_MAX];
 static char __tmpnambuf[L_tmpnam];
@@ -267,7 +268,11 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 						break;
 						case 'f':
 #if MINLIBC_INCLUDE_FLOAT_SUPPORT
-						    prescision = 1 / pow(10, padding);
+						    if(padding)
+						    {
+						        prescision = 1 / pow(10, padding);
+//						        prescision = padding;
+						    }
 #endif
 						break;
 					}
@@ -495,7 +500,7 @@ int printf(const char * fmt, ...)
 	char* dst = NULL;
 	va_list argp;
 	va_start(argp, fmt);
-	int ret = strfmt(STDOUT_FILENO, __minlibc_putc, __minlibc_puts, &dst, fmt, argp);
+    int ret = strfmt(STDOUT_FILENO, __minlibc_putc, __minlibc_puts, &dst, fmt, argp);
 	va_end(argp);
 	return ret;
 }
@@ -506,9 +511,9 @@ int printf(const char * fmt, ...)
  */
 void init_minlibc()
 {
-    _impure_ptr->_stdin = (__FILE*)&__fstab[FILE_STREAM_TABLE_INDEX_STDIN];
-    _impure_ptr->_stdout = (__FILE*)&__fstab[FILE_STREAM_TABLE_INDEX_STDOUT];
-    _impure_ptr->_stderr = (__FILE*)&__fstab[FILE_STREAM_TABLE_INDEX_STDERR];
+    stdin = (__FILE*)&__fstab[FILE_STREAM_TABLE_INDEX_STDIN];
+    stdout = (__FILE*)&__fstab[FILE_STREAM_TABLE_INDEX_STDOUT];
+    stderr = (__FILE*)&__fstab[FILE_STREAM_TABLE_INDEX_STDERR];
 
     short i;
 
@@ -753,7 +758,7 @@ int ungetc(int c, FILE* stream)
 
 int fputc(int character, FILE* stream)
 {
-    return _write(__get_fileno(stream), (char*)&character, 1);;
+    return _write(__get_fileno(stream), (char*)&character, 1) != EOF ? character : EOF;
 }
 
 #ifndef putc
@@ -838,6 +843,7 @@ int fseek(FILE * stream, long int offset, int origin)
     return _lseek(__get_fileno(stream), offset, origin);
 }
 
+#if MINLIBC_BUILD_FOR_TEST
 size_t fwrite(const void *data, size_t size, size_t count, FILE *stream)
 {
     return _write(__get_fileno(stream), (char*)data, size*count);
@@ -847,8 +853,9 @@ size_t fread(void *data, size_t size, size_t count, FILE *stream)
 {
     return _read(__get_fileno(stream), (char*)data, size*count);
 }
+#endif
 
-int fflush(FILE* stream)
+int _fflush(FILE* stream)
 {
     return _fsync(__get_fileno(stream));
 }

@@ -49,7 +49,7 @@
 #include "cutensils.h"
 #endif
 #if USE_MINLIBC
-#include "_stdio.h"
+#include "minlibc/stdio.h"
 #endif
 
 void init_services()
