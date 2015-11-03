@@ -149,6 +149,8 @@ USE_DRIVER_DAC_STREAM ?= 0
 USE_DRIVER_I2S_STREAM ?= 0
 # PWM driver
 USE_DRIVER_PWM ?= 0
+# 1 wire drivers
+USE_DRIVER_1WIRE ?= 0
 
 
 
