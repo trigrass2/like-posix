@@ -171,7 +171,7 @@ typedef struct {
 
 #define DEFAULT_DEVICE_TIMEOUT          1000
 #define DEFAULT_FILETABLE_TIMEOUT		40000
-#define DEFAULT_FILE_LOCK_TIMEOUT		2000
+#define DEFAULT_FILE_LOCK_TIMEOUT		10000
 
 #define lock_filtab()                   (xSemaphoreTake(filtab.lock, DEFAULT_FILETABLE_TIMEOUT/portTICK_RATE_MS) == pdTRUE)
 #define unlock_filtab()                 xSemaphoreGive(filtab.lock)
