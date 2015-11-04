@@ -686,10 +686,10 @@ int _close(int file)
 		if(fte)
 		{
 			if(fte->flags & FWRITE)
-				assert_true(xSemaphoreTake(fte->write_lock, DEFAULT_FILE_LOCK_TIMEOUT/portTICK_RATE_MS) == pdTRUE);
+				xSemaphoreTake(fte->write_lock, DEFAULT_FILE_LOCK_TIMEOUT/portTICK_RATE_MS);
 
 			if(fte->flags & FREAD)
-				assert_true(xSemaphoreTake(fte->read_lock, DEFAULT_FILE_LOCK_TIMEOUT/portTICK_RATE_MS) == pdTRUE);
+				xSemaphoreTake(fte->read_lock, DEFAULT_FILE_LOCK_TIMEOUT/portTICK_RATE_MS);
 
 			// disable device IO first
 			if((fte->mode == S_IFIFO) && fte->device && fte->device->close)
