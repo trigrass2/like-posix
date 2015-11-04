@@ -167,7 +167,7 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 {
 	float d;
 #if MINLIBC_INCLUDE_FLOAT_SUPPORT
-    float prescision = DEFAULT_FTOA_PRECISION;
+    float precision = DEFAULT_FTOA_PRECISION;
 #endif
 	int ret = -1;
 	char* start = *dst;
@@ -270,8 +270,8 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 #if MINLIBC_INCLUDE_FLOAT_SUPPORT
 						    if(padding)
 						    {
-						        prescision = 1 / pow(10, padding);
-//						        prescision = padding;
+						        precision = 1 / pow(10, padding);
+//						        precision = padding;
 						    }
 #endif
 						break;
@@ -444,7 +444,7 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 							d = (float)va_arg(argp, double);
 							plusflag(fd, _put_char, flags, dst);
 #if MINLIBC_INCLUDE_FLOAT_SUPPORT
-							_put_str(fd, dst, ftoa(intbuf, d, prescision));
+							_put_str(fd, dst, ftoa(intbuf, d, precision));
 #else
 							_put_str(fd, dst, itoa((int)d, intbuf, 10));
 #endif

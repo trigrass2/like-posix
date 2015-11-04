@@ -47,10 +47,14 @@ const text_t text_defaults = {
 };
 
 /**
- * initializes a text box.
+ * initializes a text box, filling all parameters from the default text structure @ref text_defaults.
  *
  * does not implicitly draw the text box, use the text_draw()
  * function after first initializing, then configuring the textbox.
+ *
+ * The text parameter need not be initialized before use, it will be overwritten anyway.
+ *
+ * to customize a text box, use the functions below.
  */
 void text_init(text_t* text, point_t size, const char* buffer, uint16_t radius)
 {

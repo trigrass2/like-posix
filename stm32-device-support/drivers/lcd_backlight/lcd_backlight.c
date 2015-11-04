@@ -31,14 +31,13 @@
  */
 #include "board_config.h"
 #include "lcd_config.h"
-
-#include "FreeRTOS.h"
-#include "queue.h"
-#include "task.h"
 #include "lcd.h"
 #include "touch_panel.h"
 #include "lcd_backlight.h"
 
+/**
+ * initializes lcd backlight pin.
+ */
 void lcd_backlight_init(void)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
@@ -59,7 +58,10 @@ void lcd_backlight_init(void)
 #endif
 }
 
-void lcd_backlight_auto_off(uint8_t enable)
+/**
+ * enable backlight off on inactivity timeout.
+ */
+void lcd_backlight_auto_off(bool enable)
 {
     if(enable)
         touch_panel_set_activity_callbacks(lcd_backlight_enable, lcd_backlight_disable);
@@ -67,17 +69,34 @@ void lcd_backlight_auto_off(uint8_t enable)
         touch_panel_set_activity_callbacks(NULL, NULL);
 }
 
+/**
+ * sets backlight off on inactivity timeout period in milliseconds.
+ */
+void lcd_backlight_timeout(int timeout)
+{
+    touch_panel_set_inactivity_timeout(timeout/TOUCH_TASK_POLL_RATE);
+}
+
+/**
+ * turns the backight off.
+ */
 void lcd_backlight_disable()
 {
     lcd_backlight(false);
 }
 
+/**
+ * turns the backight on.
+ */
 void lcd_backlight_enable()
 {
     lcd_backlight(true);
 }
 
-void lcd_backlight(uint8_t enable)
+/**
+ * turns the backight on or off.
+ */
+void lcd_backlight(bool enable)
 {
 #ifdef LCD_BL_PIN
     if(enable)

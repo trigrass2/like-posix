@@ -43,7 +43,7 @@
 //
 
 // get some memory for a working area
-uint8_t* buf[64];
+uint8_t buf[64];
 config_parser_t cfg;
 if(open_config_file(&cfg, buf, sizeof(buf), (const uint8_t*)"file.conf"))
 {
