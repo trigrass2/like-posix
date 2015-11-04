@@ -843,7 +843,7 @@ int fseek(FILE * stream, long int offset, int origin)
     return _lseek(__get_fileno(stream), offset, origin);
 }
 
-#if MINLIBC_BUILD_FOR_TEST
+#if !MINLIBC_BUILD_FOR_TEST
 size_t fwrite(const void *data, size_t size, size_t count, FILE *stream)
 {
     return _write(__get_fileno(stream), (char*)data, size*count);
