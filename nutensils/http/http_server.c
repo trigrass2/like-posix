@@ -120,7 +120,7 @@ void http_server_connection(sock_conn_t* conn)
 	}
 
 	struct timeval tv;
-	tv.tv_sec = 2;
+	tv.tv_sec = 2000; // take care, lwip sets s as ms
 	tv.tv_usec = 0;
 	setsockopt(conn->connfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(struct timeval));
 
