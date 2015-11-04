@@ -3,7 +3,7 @@ BOARDDIR = $(DEVICE_SUPPORT_DIR)/board
 DEVICEDIR = $(DEVICE_SUPPORT_DIR)/device
 
 ## Supported BOARDS
-BOARDS = stm32f4_discovery HY-STM32_100P uemb1 uemb4 rrcv2 rrcv1
+BOARDS = stm32f4_discovery HY-STM32_100P uemb1 uemb4 rrcv2 rrcv1 t01-01410-aaaa
 
 ## test BOARD againt BOARDS
 ifeq ($(filter $(BOARD),$(BOARDS)), )
@@ -59,6 +59,15 @@ endif
 endif
 
 ifeq ($(BOARD),  HY-STM32_100P)
+HSE_VALUE = 8000000
+FAMILY = STM32F1
+DEVICE = stm32f103ve
+ifeq ($(USE_DRIVER_LWIP_NET), 1)
+USE_DRIVER_ENC28J60_PHY = 1
+endif
+endif
+
+ifeq ($(BOARD),  t01-01410-aaaa)
 HSE_VALUE = 8000000
 FAMILY = STM32F1
 DEVICE = stm32f103ve
