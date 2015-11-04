@@ -41,12 +41,15 @@
 #if USE_DRIVER_USART
 #include "usart.h"
 #endif
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
 #include "syscalls.h"
 #endif
 #if USE_LOGGER
 #include <unistd.h>
 #include "cutensils.h"
+#endif
+#if USE_MINLIBC
+#include "minlibc/stdio.h"
 #endif
 
 void init_services()
@@ -67,8 +70,11 @@ void init_services()
 #if USE_DRIVER_LEDS
     init_leds();
 #endif
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
     init_likeposix();
+#endif
+#if USE_MINLIBC
+    init_minlibc();
 #endif
 }
 

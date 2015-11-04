@@ -31,30 +31,29 @@
  */
 
 /**
- * @addtogroup minstdio
- *
- * @file minstdio.h
+ * @addtogroup minstdlib
+ * @file minstdlib.h
  * @{
  */
 
-#ifndef MINSTDIO_H_
-#define MINSTDIO_H_
+#ifndef MINSTDLIB_H_
+#define MINSTDLIB_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stdio.h>
+#include <stdint.h>
+#include <float.h>
 
-#ifndef USE_MINSTDIO_FLOAT_SUPPORT
-#define USE_MINSTDIO_FLOAT_SUPPORT 1
-#endif
+
+#include <stdlib.h>
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* MINSTDIO_H_ */
+#endif /* MINSTDLIB_H_ */
 
 /**
  * @}

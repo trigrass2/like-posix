@@ -31,14 +31,15 @@
  */
 
 
-#include "os_cmds.h"
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "shell.h"
 #include "FreeRTOS.h"
 #include "task.h"
+
+#include "shell.h"
+#include "os_cmds.h"
 
 #define TOP_LINE_BUFFER_SIZE            512
 #define TOP_HEADER                      "       PID      State       HWM   RUNTIME\tNAME"SHELL_NEWLINE
@@ -57,7 +58,7 @@ int sh_top(int fdes, const char** args, unsigned char nargs)
     int n = 1;
     int rate = 2;
     char code;
-    int ret;
+    int ret = 0;
     int length;
     unsigned long uptime;
     int i;

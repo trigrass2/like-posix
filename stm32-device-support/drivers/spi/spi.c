@@ -30,7 +30,7 @@
  *
  */
 
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
 #include "syscalls.h"
 #endif
 
@@ -41,7 +41,7 @@
 #include "cutensils.h"
 
 
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
 static int spi_ioctl(dev_ioctl_t* dev);
 static int spi_close_ioctl(dev_ioctl_t* dev);
 static int spi_open_ioctl(dev_ioctl_t* dev);
@@ -60,7 +60,7 @@ static void spi_init_interrupt(SPI_TypeDef* spi, uint8_t priority, FunctionalSta
 
 /**
  * call this function to initialize an SPI port in polled mode,
- * or to install an SPI port as a device file (requires USE_POSIX_STYLE_IO=1 in the Makefile).
+ * or to install an SPI port as a device file (requires USE_LIKEPOSIX=1 in the Makefile).
  *
  * when installed as device file, posix system calls amy be made including open, close, read, write, etc.
  * termios functions are also available (tcgetattr, tcsetattr, etc)
@@ -83,7 +83,7 @@ bool spi_init(SPI_TypeDef* spi, char* filename, bool enable)
 
     if(filename)
     {
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
         // installed SPI can only work with interrupt enabled
         spi_init_interrupt(spi, SPI_INTERRUPT_PRIORITY, true);
         spi_dev_ioctls[spi_devno] = (void*)install_device(filename,
@@ -416,7 +416,7 @@ void spi_init_interrupt(SPI_TypeDef* spi, uint8_t priority, FunctionalState enab
 	NVIC_Init(&nvic_init);
 }
 
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
 static int spi_enable_rx_ioctl(dev_ioctl_t* dev)
 {
     SPI_TypeDef* spi = (SPI_TypeDef*)(dev->ctx);

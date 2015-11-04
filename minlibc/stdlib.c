@@ -31,24 +31,22 @@
  */
 
 /**
- * @addtogroup strutils
- * @file strutils.h
+ * @defgroup minstdlib minimal stdlib
+ *
+ * tiny versions of some stdlib functions.
+ *
+ * @file minstdlib.c
  * @{
  */
 
-#ifndef STRUTILS_H_
-#define STRUTILS_H_
+//#include <stdint.h>
+//#include <stddef.h>
+//#include <math.h>
+//
+//#include "_stdlib.h"
+//#include "_string.h"
 
-#include <stdbool.h>
-#include <string.h>
 
-char* strtoupper(char* s);
-char* strtolower(char* s);
-int ahtoi(char* s);
-char adtoi(char d);
-int string_in_list(const char* str, unsigned short str_len, const char** list);
-
-#endif // STRUTILS_H_
 
 /**
  * @}

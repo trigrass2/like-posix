@@ -1,0 +1,14 @@
+
+
+#ifndef DS1820_CONF_H_
+#define DS1820_CONF_H_
+
+#define DS1820_TIMER           4
+#define DS1820_TIMER_PERIPH    TIM4
+#define DS1820_TIMER_CLOCK     RCC_APB1Periph_TIM4
+#define DS1820_PORT            GPIOA
+#define DS1820_PIN_NUM         2 // plain pin offset value, converted to GPIO_Pin_x by ds1820.c
+
+#define MAX_SENSORS      10
+
+#endif // DS1820_CONF_H_

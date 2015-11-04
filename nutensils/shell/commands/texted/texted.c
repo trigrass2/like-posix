@@ -31,8 +31,8 @@
  */
 
 
-#include "minstdlib.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -41,6 +41,7 @@
 #include <string.h>
 #include "shell.h"
 #include "fs_cmds.h"
+#include "strutils.h"
 
 #define TEXTED_PAGESIZE     2048
 

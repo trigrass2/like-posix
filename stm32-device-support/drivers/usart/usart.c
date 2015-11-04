@@ -61,7 +61,7 @@
 \endcode
  *
  *
- * Supports the like-posix device backend API. When compiled together with USE_POSIX_STYLE_IO set to 1,
+ * Supports the like-posix device backend API. When compiled together with USE_LIKEPOSIX set to 1,
  * the following posix functions are available for USARTS:
  *
  * open, close, read, write, fstat, stat, isatty, tcgetattr, tcsetattr, cfgetispeed,
@@ -73,7 +73,7 @@
  * @{
  */
 
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
 #include <termios.h>
 #include "syscalls.h"
 #endif
@@ -89,7 +89,7 @@
 
 static USART_TypeDef* console_usart;
 
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
 static int usart_ioctl(dev_ioctl_t* dev);
 static int usart_close_ioctl(dev_ioctl_t* dev);
 static int usart_open_ioctl(dev_ioctl_t* dev);
@@ -327,7 +327,7 @@ bool usart_init(USART_TypeDef* usart, char* install, bool enable)
 
     if(install)
     {
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
     	// installed USART can only work with interrupt enabled
     	usart_init_interrupt(usart, USART_INTERRUPT_PRIORITY, true);
     	usart_dev_ioctls[usart_devno] = (void*)install_device(install,
@@ -462,7 +462,7 @@ uint32_t usart_get_baudrate(USART_TypeDef* usart)
     return ((pclock * 25) / div) / 16;
 }
 
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
 static int usart_enable_rx_ioctl(dev_ioctl_t* dev)
 {
     USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);

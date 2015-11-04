@@ -40,7 +40,7 @@
 #include "usart_it.h"
 #include "board_config.h"
 #include "asserts.h"
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
 #include "syscalls.h"
 #endif
 
@@ -57,7 +57,7 @@ inline void usart_rx_isr(USART_TypeDef* usart, void* usart_dev)
 {
 	if(USART_GetITStatus(usart, USART_IT_RXNE) == SET)
 	{
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		xQueueSendFromISR(((dev_ioctl_t*)usart_dev)->pipe.read, (char*)&(usart->DR), &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -77,7 +77,7 @@ inline void usart_tx_isr(USART_TypeDef* usart, void* usart_dev)
 {
 	if(USART_GetITStatus(usart, USART_IT_TXE) == SET)
 	{
-#if USE_POSIX_STYLE_IO
+#if USE_LIKEPOSIX
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		if(xQueueReceiveFromISR(((dev_ioctl_t*)usart_dev)->pipe.write, (char*)&(usart->DR), &xHigherPriorityTaskWoken) == pdFALSE)
 			USART_ITConfig(usart, USART_IT_TXE, DISABLE);

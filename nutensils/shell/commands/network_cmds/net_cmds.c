@@ -33,7 +33,7 @@
 
 #include "net_cmds.h"
 
-#include "minstdlib.h"
+#include <stdlib.h>
 #include <libgen.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -43,6 +43,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include "shell.h"
+#include "strutils.h"
 
 #include "lwip/inet.h"
 #include "net.h"

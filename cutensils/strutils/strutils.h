@@ -31,115 +31,40 @@
  */
 
 /**
- * @defgroup minstring minimal string
- *
- * tiny versions of some standard string functions.
- *
- * @file minstring.c
+ * @addtogroup strutils
+ * @file strutils.h
  * @{
  */
 
-#include <stdlib.h>
+#ifndef STRUTILS_H_
+#define STRUTILS_H_
+
 #include <stdint.h>
-#include "strutils.h"
-#include "minstring.h"
+#include <stdbool.h>
+#include <string.h>
 
-size_t strlen(const char* str)
-{
-	size_t len = 0;
-	while(*str)
-	{
-		len++;
-		str++;
-	}
-	return len;
-}
+char* strtoupper(char* s);
+char* strtolower(char* s);
+int ahtoi(char* s);
+char adtoi(char d);
+int string_in_list(const char* str, unsigned short str_len, const char** list);
 
-int strcmp(const char* str1, const char* str2)
-{
-	int res = *str1-*str2;
+#ifndef itoa
+char* itoa(int value, char* str, int base);
+#endif
+#ifndef ditoa
+char* ditoa(int64_t value, char* str, int base);
+#endif
 
-	while(*str1 && *str2 && !res)
-	{
-		str1++;
-		str2++;
-		res = *str1-*str2;
-	}
+#define DEFAULT_FTOA_PRECISION 0.00000001
+//#define DEFAULT_FTOA_PRECISION 9
 
-	return res;
-}
+#ifndef ftoa
+//char* ftoa(char *dst, float num, unsigned int precision);
+char* ftoa(char *dst, float num, float precision);
+#endif
 
-int strncmp(const char* str1, const char* str2, size_t num)
-{
-	int res = 0;
-	do
-	{
-		res = *str1-*str2;
-		num--;
-	}while(*str1++ && *str2++ && !res && num);
-
-	return res;
-}
-
-char* strcat(char* dst, const char* src)
-{
-	char* d = dst;
-	while(*d)
-		d++;
-	while(*src)
-		*d++ = *src++;
-	*d = 0;
-	return dst;
-}
-
-char* strcpy(char* dst, const char* src)
-{
-	char* d = dst;
-	while(*src)
-		*d++ = *src++;
-	*d = 0;
-	return dst;
-}
-
-char* strncpy(char* dst, const char* src, size_t len)
-{
-	char* d = dst;
-	while(*src && len--)
-		*d++ = *src++;
-	*d = 0;
-	return dst;
-}
-
-void* memcpy(void* dst, const void* src, size_t len)
-{
-	char* d = (char*)dst;
-	char* s = (char*)src;
-	while(len--)
-		*d++ = *s++;
-	return dst;
-}
-
-void* memset(void* dst, int num, size_t len)
-{
-	char* d = (char*)dst;
-	while(len--)
-		*d++ = (char)num;
-	return dst;
-}
-
-int memcmp(const void* p1, const void* p2, size_t len)
-{
-	const char* tp1 = (const char*)p1;
-	const char* tp2 = (const char*)p2;
-	while(len--)
-	{
-		if(*tp1 != *tp2)
-			return (int)(*tp1 - *tp2);
-		tp1++;
-		tp2++;
-	}
-	return 0;
-}
+#endif // STRUTILS_H_
 
 /**
  * @}

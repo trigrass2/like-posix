@@ -887,7 +887,7 @@ int _read(int file, char *buffer, int count)
 	return n;
 }
 
-int fsync(int file)
+int _fsync(int file)
 {
 	int res = EOF;
 	if(file == STDIN_FILENO ||
@@ -918,6 +918,17 @@ int fsync(int file)
 }
 
 /**
+ * todo - move to unistd
+ */
+int fsync(int file)
+{
+    return _fsync(file);
+}
+
+/**
+ * todo - move to unistd
+ */
+/**
  * gets the current working directory - follows the GNU version
  * in that id buffer is set to NULL, a buffer of size bytes is allocated
  * to hold the cwd string. it must be freed afterward by the user...
@@ -945,6 +956,9 @@ char* getcwd(char* buffer, size_t size)
 }
 
 /**
+ * todo - move to dirent
+ */
+/**
  * allocates and populates a DIR info struct.
  * returns NULL if there was no memory allocated or the directory specified didnt exist.
  * the directory must be closed with closedir() by the user.
@@ -964,6 +978,10 @@ DIR* opendir(const char *name)
 
     return dir;
 }
+
+/**
+ * todo - move to dirent
+ */
 /**
  * closes a directory opened with opendir.
  * returns 0 on success, or -1 on error.
@@ -979,6 +997,9 @@ int closedir(DIR *dir)
     return 0;
 }
 
+/**
+ * todo - move to dirent
+ */
 /**
  * reads directory info. returns a pointer to a struct dirent,
  * as long as there are entries in the directory.
@@ -1006,15 +1027,26 @@ struct dirent* readdir(DIR *dirp)
     return &_dirent;
 }
 
+/**
+ * todo - move to unistd
+ */
 int chdir(const char *path)
 {
     return f_chdir((TCHAR*)path) == FR_OK ? 0 : -1;
 }
 
-int mkdir(const char *pathname, mode_t mode)
+int _mkdir(const char *pathname, mode_t mode)
 {
     (void)mode;
     return f_mkdir(pathname) == FR_OK ? 0 : -1;
+}
+
+/**
+ * todo - move to stat
+ */
+int mkdir(const char *pathname, mode_t mode)
+{
+    return _mkdir(pathname, mode);
 }
 
 /**
@@ -1157,6 +1189,9 @@ int _lseek(int file, int offset, int whence)
 			else if(whence == SEEK_END)
 				offset = f_size(&fte->file) - offset;
 
+			if(offset < 0)
+			    offset = 0;
+
 			if(f_lseek(&fte->file, offset) == FR_OK)
 				res = 0;
 		}
@@ -1172,7 +1207,7 @@ int _unlink(char *name)
 	return res == FR_OK ? 0 : EOF;
 }
 
-int rename(const char *oldname, const char *newname)
+int _rename(const char *oldname, const char *newname)
 {
 	FRESULT res = f_rename((const TCHAR*)oldname, (const TCHAR*)newname);
 	return res == FR_OK ? 0 : EOF;

@@ -39,11 +39,12 @@
  * @{
  */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include "misc.h"
 #include "board_config.h"
 #include "system.h"
-#include "minstdlib.h"
+#include "strutils.h"
 
 volatile int32_t ITM_RxBuffer;
 extern uint32_t ___SVECTOR_OFFSET; // defined in linker script, must be multiple of 0x200?

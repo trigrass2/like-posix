@@ -31,35 +31,28 @@
  */
 
 /**
- * @addtogroup minstdlib
- * @file minstdlib.h
+ * @addtogroup minlibc
+ *
+ * @file config.h
  * @{
  */
 
-#ifndef MINSTDLIB_H_
-#define MINSTDLIB_H_
+#ifndef MINLIBC_CONFIG_H_
+#define MINLIBC_CONFIG_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stdint.h>
-#include <float.h>
-
-#define DEFAULT_FTOA_PRECISION FLT_MIN
-
-void strreverse(char* begin, char* end);
-char* itoa(int value, char* str, int base);
-char* ditoa(int64_t value, char* str, int base);
-char* ftoa(char *dst, float num, float prescision);
-
-#include <stdlib.h>
+#ifndef MINLIBC_BUILD_FOR_TEST
+#define MINLIBC_BUILD_FOR_TEST 0
+#endif
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* MINSTDLIB_H_ */
+#endif /* MINLIBC_CONFIG_H_ */
 
 /**
  * @}

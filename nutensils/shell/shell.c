@@ -50,7 +50,7 @@
  * these may be regular files or sockets, or devices, and may be different or the same.
  * typical arguments are: commandset=NULL, configfile=NULL, threaded=true, exit_on_eof=false, rdfd=<device-fdes>, wrfd=<device-fdes>
  * the socket connection and shell instance will exit when read() returns a value < 0, or if the exit command is issued.
- * note: in this mode exit kills stops the shell thread.
+ * note: in this mode exit stops the shell thread.
  *
  * in blocking instance operation, a shell is started and runs locally, within the calling thread. an example of this is in the
  * startup_script module.
@@ -69,7 +69,7 @@
  * Note:
  *
  * 	- the system calls read, write, open, fdopen, fclose, getcwd, stat are used. if run under appleseed,
- * 	   requires USE_POSIX_STYLE_IO set to 1 is a must among other things.
+ * 	   requires USE_LIKEPOSIX set to 1 is a must among other things.
  * 	- to use the threaded server ENABLE_LIKEPOSIX_SOCKETS must be set to 1 in likeposix_config.h
  * 	- shells share the global current working directory
  * 	- the shell_instance() function allocates a shell_instance_t which will be around 768bytes
@@ -105,11 +105,10 @@
 
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <stdint.h>
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -169,6 +168,9 @@ static char close_input_file(shell_instance_t* shell_inst, char input_char);
  * starts a shell server, or single shell instance.
  *
  * @param   shell is a pointer to a shell server structure, its contents will be fully initialized.
+ * @param   commandset is a pointer to a presumably pre initialized command set. this would have been obtained
+ *              from another pre-existing shell, or from a shell that has had register_command() called on it previously.
+ *              if set to NULL, the shell command set is not modified.
  * @param   configfile is a filepath to a configuration file. it must contain port and conns settings.
  * 			if specified, a threaded server is started.
  * @param   threaded enables threaded server or threaded instance operation when set to true.

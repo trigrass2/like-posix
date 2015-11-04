@@ -82,7 +82,7 @@ pwm_set_duty(&pwm2, 100);
 void pwm_init(pwm_t* pwm, const char* name, uint32_t frequency, uint16_t resolution)
 {
 #if FAMILY == STM32F4
-    uint8_t altfunc;
+    uint8_t altfunc = 0;
 #endif
     uint32_t apbclock;
     uint32_t prescaler;
@@ -197,6 +197,7 @@ void pwm_init(pwm_t* pwm, const char* name, uint32_t frequency, uint16_t resolut
 #if FAMILY == STM32F1
     pwm_pin_config.GPIO_Mode = GPIO_Mode_AF_PP;
 #elif FAMILY == STM32F4
+    assert_true(altfunc);
     pwm_pin_config.GPIO_Mode = GPIO_Mode_AF;
     pwm_pin_config.GPIO_OType = GPIO_OType_PP;
     pwm_pin_config.GPIO_PuPd = GPIO_PuPd_NOPULL;

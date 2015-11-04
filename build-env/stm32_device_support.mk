@@ -65,6 +65,13 @@ SOURCE += $(DRIVERSDIR)/lcd_backlight/lcd_backlight.c
 CFLAGS += -I $(DRIVERSDIR)/lcd_backlight
 endif
 
+## 1 wire
+CFLAGS += -DUSE_DRIVER_1WIRE=$(USE_DRIVER_1WIRE)
+ifeq ($(USE_DRIVER_1WIRE), 1)
+CFLAGS += -I$(DRIVERSDIR)/onewire
+SOURCE += $(DRIVERSDIR)/onewire/ds1820.c
+endif
+
 ## USART
 CFLAGS += -DUSE_DRIVER_USART=$(USE_DRIVER_USART)
 CFLAGS += -DUSE_STDIO_USART=$(USE_STDIO_USART)
