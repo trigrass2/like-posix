@@ -33,9 +33,12 @@
 #ifndef LCD_BACKLIGHT_H_
 #define LCD_BACKLIGHT_H_
 
+#include <stdbool.h>
+
 void lcd_backlight_init(void);
-void lcd_backlight_auto_off(uint8_t enable);
-void lcd_backlight(uint8_t enable);
+void lcd_backlight_auto_off(bool enable);
+void lcd_backlight_timeout(int timeout);
+void lcd_backlight(bool enable);
 void lcd_backlight_disable();
 void lcd_backlight_enable();
 
