@@ -233,47 +233,25 @@ struct termios
   _IOT (_IOTS (cflag_t), 4, _IOTS (cc_t), NCCS, _IOTS (speed_t), 2)
 
 
-/* Return the output baud rate stored in *TERMIOS_P.  */
-extern speed_t cfgetospeed (const struct termios *__termios_p);
-
-/* Return the input baud rate stored in *TERMIOS_P.  */
-extern speed_t cfgetispeed (const struct termios *__termios_p);
-
-/* Set the output baud rate stored in *TERMIOS_P to SPEED.  */
-extern int cfsetospeed (struct termios *__termios_p, speed_t __speed);
-
-/* Set the input baud rate stored in *TERMIOS_P to SPEED.  */
-extern int cfsetispeed (struct termios *__termios_p, speed_t __speed);
-
-/* Set both the input and output baud rates in *TERMIOS_OP to SPEED.  */
-extern int cfsetspeed (struct termios *__termios_p, speed_t __speed);
-
-/* Put the state of FD into *TERMIOS_P.  */
-extern int tcgetattr (int __fd, struct termios *__termios_p);
-
-/* Set the state of FD to *TERMIOS_P.
-   Values for OPTIONAL_ACTIONS (TCSA*) are in <bits/termios.h>.  */
-extern int tcsetattr (int __fd, int __optional_actions,
+speed_t cfgetospeed (const struct termios *__termios_p);
+speed_t cfgetispeed (const struct termios *__termios_p);
+int cfsetospeed (struct termios *__termios_p, speed_t __speed);
+int cfsetispeed (struct termios *__termios_p, speed_t __speed);
+int cfsetspeed (struct termios *__termios_p, speed_t __speed);
+int tcgetattr (int __fd, struct termios *__termios_p);
+int tcsetattr (int __fd, int __optional_actions,
               const struct termios *__termios_p);
+void cfmakeraw (struct termios *__termios_p);
+int tcsendbreak (int __fd, int __duration);
+int tcdrain (int __fd);
+int tcflush (int __fd, int __queue_selector);
+int tcflow (int __fd, int __action);
 
-/* Set *TERMIOS_P to indicate raw mode.  */
-extern void cfmakeraw (struct termios *__termios_p);
 
-/* Send zero bits on FD.  */
-extern int tcsendbreak (int __fd, int __duration);
-
-/* Wait for pending output to be written on FD.
-
-   This function is a cancellation point and therefore not marked with
-  .  */
-extern int tcdrain (int __fd);
-
-/* Flush pending data on FD.
-   Values for QUEUE_SELECTOR (TC{I,O,IO}FLUSH) are in <bits/termios.h>.  */
-extern int tcflush (int __fd, int __queue_selector);
-
-/* Suspend or restart transmission on FD.
-   Values for ACTION (TC[IO]{OFF,ON}) are in <bits/termios.h>.  */
-extern int tcflow (int __fd, int __action);
+extern int _tcgetattr(int fildes, struct termios *termios_p);
+extern int _tcsetattr(int fildes, int when, const struct termios *termios_p);
+extern int _tcdrain(int file);
+extern int _tcflush(int file, int flags);
+extern int _tcflow(int file, int flags);
 
 #endif /* termios.h  */

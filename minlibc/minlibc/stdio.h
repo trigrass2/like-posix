@@ -30,12 +30,6 @@
  *
  */
 
-/**
- * @addtogroup minlibc
- *
- * @{
- */
-
 #ifndef MINSTDIO_H_
 #define MINSTDIO_H_
 
@@ -197,6 +191,4 @@ extern int _fsync(int file);
 
 #endif /* MINSTDIO_H_ */
 
-/**
- * @}
- */
+

@@ -41,74 +41,13 @@
  *
  * The API given on the newlib site was used as a basis: https://sourceware.org/newlib/
  *
- * The implementation of _realloc_r was taken from Stefano Oliveri's syscalls_minimal.c
- *
  * The result is Device, File and Socket IO, all avaliable under an almost standard C
  * API, including open, close, read, write, fsync, flseek, etc.
  *
  * relies upon:
  * - FreeRTOS
- * - minstlibs
  * - FatFs
  * - cutensils
- *
- * The following system calls are available:
- *
- * int open(const char *name, int flags, int mode)
- * int close(int file)
- * int write(int file, char *buffer, unsigned int count)
- * int read(int file, char *buffer, int count)
- * int fsync(int file)
- * int fstat(int file, struct stat *st)
- * int stat(char *file, struct stat *st)
- * int isatty(int file)
- * int lseek(int file, int offset, int whence)
- * int unlink(char *name)
- * int rename(const char *oldname, const char *newname)
- * void exit(int i)
- * void init(void)
- * void fini(void)
- * char* getcwd(char* buffer, size_t size)
- * DIR* opendir(const char *name)
- * int closedir(DIR *dirp)
- * struct dirent* readdir(DIR *dirp)
- * int chdir(const char *path)
- * int mkdir(const char *pathname, mode_t mode)
- * int gettimeofday(struct timeval *tp, struct timezone *tzp)
- * time_t time(time_t* time)
- * unsigned int sleep(unsigned int secs)
- * int usleep(useconds_t usecs)
- *
- * termios functions supported:
- *
- * int tcgetattr(int fildes, struct termios *termios_p)
- * int tcsetattr(int fildes, int when, struct termios *termios_p)
- * speed_t cfgetispeed(const struct termios* termios)
- * speed_t cfgetospeed(const struct termios* termios)
- * int cfsetispeed(struct termios* termios, speed_t ispeed)
- * int cfsetospeed(struct termios* termios, speed_t ospeed)
- * int tcdrain(int file)
- * int tcflow(int file, int flags)
- * int tcflush(int file, int flags)
- *
- * socket funcions supported:
- *
- * int socket(int namespace, int style, int protocol);
- * int closesocket(int socket);
- * int accept(int socket, struct sockaddr *addr, socklen_t *length_ptr);
- * int connect(int socket, struct sockaddr *addr, socklen_t length);
- * int bind(int socket, struct sockaddr *addr, socklen_t length);
- * int shutdown(int socket, int how);
- * int getsockname(int socket, struct sockaddr *addr, socklen_t *length);
- * int getpeername(int socket, struct sockaddr *addr, socklen_t *length);
- * int setsockopt(int socket, int level, int optname, void *optval, socklen_t optlen);
- * int getsockopt(int socket, int level, int optname, void *optval, socklen_t *optlen);
- * int listen(int socket, int n);
- * int recv(int socket, void *buffer, size_t size, int flags);
- * int recvfrom(int socket, void *buffer, size_t size, int flags, struct sockaddr *addr, socklen_t *length);
- * int send(int socket, const void *buffer, size_t size, int flags);
- * int sendto(int socket, const void *buffer, size_t size, int flags, struct sockaddr *addr, socklen_t length);
- * int ioctlsocket(int socket, int cmd, void* argp);
  *
  * @file syscalls.c
  * @{
@@ -128,16 +67,7 @@
 #include "cutensils.h"
 #include "strutils.h"
 #include "systime.h"
-#include "dirent.h"
 
-/**
- *  definition of block structure, copied from heap2 allocator
- */
-typedef struct A_BLOCK_LINK
-{
-	struct A_BLOCK_LINK *pxNextFreeBlock;	///< The next free block in the list
-	size_t xBlockSize;						///< The size of the free block
-} xBlockLink;
 
 /**
  * filetable entry definition
@@ -151,6 +81,7 @@ typedef struct {
 	unsigned int size;		///< size, used only for queues
 	SemaphoreHandle_t read_lock; 	///< file read lock, mutex
 	SemaphoreHandle_t write_lock; 	///< file write lock, mutex
+	unsigned char dupcount;	///< increments for every dup / dup2
 }filtab_entry_t;
 
 /**
@@ -181,14 +112,7 @@ typedef struct {
 extern int errno;
 char *__env[1] = {0};
 char **__environ = __env;
-extern unsigned int _heap;
-extern unsigned int _eheap;
-caddr_t heap = NULL;
-static const unsigned short heapSTRUCT_SIZE	=
- 		( sizeof( xBlockLink ) + portBYTE_ALIGNMENT -
- 		( sizeof( xBlockLink ) % portBYTE_ALIGNMENT ) );
 static _filtab_t filtab;
-struct dirent _dirent;
 
 /**
  * to make STDIO work with serial IO,
@@ -235,35 +159,40 @@ inline filtab_entry_t* __get_entry(int file)
  */
 inline void __delete_filtab_item(filtab_entry_t* fte)
 {
-    if((fte->mode == S_IFREG) || (fte->mode == S_IFIFO))
-    {
-        // #1 close the file
-        f_close(&fte->file);
-        // # 2 remove pipe
-        if(fte->device)
-        {
-            // remove read & write queues
-            if(fte->device->pipe.read)
-                vQueueDelete(fte->device->pipe.read);
-            if(fte->device->pipe.write)
-                vQueueDelete(fte->device->pipe.write);
-        }
-    }
-#if ENABLE_LIKEPOSIX_SOCKETS
-    else if(fte->mode == S_IFSOCK)
-    {
-        if(fte->fdes != -1)
-            lwip_close(fte->fdes);
-    }
-#endif
+	if(fte->dupcount > 0)
+		fte->dupcount--;
+	else
+	{
+		if((fte->mode == S_IFREG) || (fte->mode == S_IFIFO))
+		{
+			// #1 close the file
+			f_close(&fte->file);
+			// # 2 remove pipe
+			if(fte->device)
+			{
+				// remove read & write queues
+				if(fte->device->pipe.read)
+					vQueueDelete(fte->device->pipe.read);
+				if(fte->device->pipe.write)
+					vQueueDelete(fte->device->pipe.write);
+			}
+		}
+	#if ENABLE_LIKEPOSIX_SOCKETS
+		else if(fte->mode == S_IFSOCK)
+		{
+			if(fte->fdes != -1)
+				lwip_close(fte->fdes);
+		}
+	#endif
 
-    if(fte->read_lock != NULL)
-    	 vSemaphoreDelete(fte->read_lock);
-    if(fte->write_lock != NULL)
-    	 vSemaphoreDelete(fte->write_lock);
+		if(fte->read_lock != NULL)
+			 vSemaphoreDelete(fte->read_lock);
+		if(fte->write_lock != NULL)
+			 vSemaphoreDelete(fte->write_lock);
 
-	// #3 delete file table node
-	vPortFree(fte);
+		// #3 delete file table node
+		vPortFree(fte);
+	}
 }
 
 /**
@@ -313,6 +242,7 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 		fte->size = length;
 		fte->read_lock = NULL;
 		fte->write_lock = NULL;
+		fte->dupcount = 0;
 
 		/**********************************
 		 * create file
@@ -469,6 +399,35 @@ inline int __insert_entry(filtab_entry_t* fte)
 				ret = file + FILE_TABLE_OFFSET;
 				break;
 			}
+		}
+		unlock_filtab();
+	}
+
+	return ret;
+}
+
+/**
+ * put a file table entry into file table at the specified file index.
+ * NOTE: locks the file table. may not be called within a function that locks the file table.
+ *
+ * @param 	fte is a pointer to a file table entry, which NEEDS to have been pre initialized.
+ * @param 	file is a file descriptor.
+ * @retval 	the file descriptor if successful, or -1 on error.
+ */
+inline int __insert_entry_at(filtab_entry_t* fte, int file)
+{
+	int ret = EOF;
+	if(lock_filtab())
+	{
+		file -= FILE_TABLE_OFFSET;
+
+		if(filtab.tab[file] == NULL)
+		{
+			filtab.tab[file] = fte;
+			filtab.count++;
+			if(filtab.hwm < filtab.count)
+				filtab.hwm = filtab.count;
+			ret = file + FILE_TABLE_OFFSET;
 		}
 		unlock_filtab();
 	}
@@ -668,6 +627,10 @@ int _open(const char *name, int flags, int mode)
 /**
  * close the specified file descriptor.
  *
+ * Note: this will wait for DEFAULT_FILE_LOCK_TIMEOUT before closing a file that is currently reading or writing.
+ * if wait times out, an attempt will be made to close the file. The safety of this behaviour is dependent on the
+ * behavior of the underlying file technology (socket, device, disk, etc)
+ *
  * @param	file is the file descriptor to close.
  * @retval 	0 on success, -1 on error.
  */
@@ -675,7 +638,7 @@ int _close(int file)
 {
 	int res = EOF;
 
-	if(file == STDOUT_FILENO || file == STDERR_FILENO || file == (intptr_t)stdout || file == (intptr_t)stderr)
+	if(file == STDOUT_FILENO || file == STDERR_FILENO)
 	{
 
 	}
@@ -709,6 +672,51 @@ int _close(int file)
 			res = 0;
 		}
 		unlock_filtab();
+	}
+
+	return res;
+}
+
+/**
+ * TODO: doesnt work for STDIN_FILENO, STDOUTFILENO, STDERR_FILENO
+ * TODO: not thread safe
+ */
+int _dup(int file)
+{
+	int res = EOF;
+	filtab_entry_t* fte = __get_entry(file);
+	if(fte)
+	{
+		res = __insert_entry(fte);
+		if(res != EOF)
+			fte->dupcount++;
+	}
+	return res;
+}
+
+/**
+ * TODO: doesnt work for STDIN_FILENO, STDOUTFILENO, STDERR_FILENO
+ * TODO: not thread safe
+ */
+int _dup2(int old, int new)
+{
+	int res = EOF;
+
+	filtab_entry_t* fteold = __get_entry(old);
+
+	if(fteold)
+	{
+		if(old == new)
+			res = new;
+		else
+		{
+			if(__get_entry(new))
+				_close(new);
+
+			res = __insert_entry_at(fteold, new);
+			if(res != EOF)
+				fteold->dupcount++;
+		}
 	}
 
 	return res;
@@ -761,7 +769,7 @@ int _write(int file, char *buffer, unsigned int count)
 	if(count == 0)
 		return 0;
 
-	if(file == STDOUT_FILENO || file == STDERR_FILENO || file == (intptr_t)stdout || file == (intptr_t)stderr)
+	if(file == STDOUT_FILENO || file == STDERR_FILENO)
 	{
 		for(n = 0; n < (int)count; n++)
 			phy_putc(*buffer++);
@@ -845,7 +853,7 @@ int _read(int file, char *buffer, int count)
 	if(count == 0)
 		return 0;
 
-	if(file == STDIN_FILENO || file == (intptr_t)stdin)
+	if(file == STDIN_FILENO)
 	{
 		for(n = 0; n < count; n++)
 			*buffer++ = phy_getc();
@@ -892,10 +900,7 @@ int _fsync(int file)
 	int res = EOF;
 	if(file == STDIN_FILENO ||
 			file == STDOUT_FILENO ||
-			file == STDERR_FILENO ||
-			file == (intptr_t)stdout ||
-			file == (intptr_t)stderr ||
-			file == (intptr_t)stdin)
+			file == STDERR_FILENO)
 	{
 		res = 0;
 	}
@@ -918,138 +923,6 @@ int _fsync(int file)
 }
 
 /**
- * todo - move to unistd
- */
-int fsync(int file)
-{
-    return _fsync(file);
-}
-
-/**
- * todo - move to unistd
- */
-/**
- * gets the current working directory - follows the GNU version
- * in that id buffer is set to NULL, a buffer of size bytes is allocated
- * to hold the cwd string. it must be freed afterward by the user...
- */
-char* getcwd(char* buffer, size_t size)
-{
-    bool alloc = false;
-    if(buffer == NULL)
-    {
-        alloc = true;
-        buffer = malloc(size);
-    }
-
-    if(buffer)
-    {
-        if(f_getcwd((TCHAR*)buffer, (UINT)size) != FR_OK)
-        {
-            if(alloc)
-                free(buffer);
-            buffer = NULL;
-        }
-    }
-
-    return buffer;
-}
-
-/**
- * todo - move to dirent
- */
-/**
- * allocates and populates a DIR info struct.
- * returns NULL if there was no memory allocated or the directory specified didnt exist.
- * the directory must be closed with closedir() by the user.
- */
-DIR* opendir(const char *name)
-{
-    DIR* dir = malloc(sizeof(DIR));
-
-    if(dir)
-    {
-        if(f_opendir(dir, (const TCHAR*)name) != FR_OK)
-        {
-            free(dir);
-            dir = NULL;
-        }
-    }
-
-    return dir;
-}
-
-/**
- * todo - move to dirent
- */
-/**
- * closes a directory opened with opendir.
- * returns 0 on success, or -1 on error.
- */
-int closedir(DIR *dir)
-{
-    if(dir)
-    {
-//        f_closedir(dir);
-        free(dir);
-    }
-
-    return 0;
-}
-
-/**
- * todo - move to dirent
- */
-/**
- * reads directory info. returns a pointer to a struct dirent,
- * as long as there are entries in the directory.
- * returns NULL when there are no other entries in the directory.
- */
-struct dirent* readdir(DIR *dirp)
-{
-    FILINFO info;
-
-    info.lfname = _dirent.d_name;
-    info.lfsize = sizeof(_dirent.d_name);
-
-    _dirent.d_name[0] = '\0';
-    _dirent.d_type = DT_REG;
-
-    if(f_readdir(dirp, &info) != FR_OK || !info.fname[0])
-        return NULL;
-
-    if(_dirent.d_name[0] == '\0')
-        strcpy(_dirent.d_name, info.fname);
-
-    if(info.fattrib & AM_DIR)
-        _dirent.d_type = DT_DIR;
-
-    return &_dirent;
-}
-
-/**
- * todo - move to unistd
- */
-int chdir(const char *path)
-{
-    return f_chdir((TCHAR*)path) == FR_OK ? 0 : -1;
-}
-
-int _mkdir(const char *pathname, mode_t mode)
-{
-    (void)mode;
-    return f_mkdir(pathname) == FR_OK ? 0 : -1;
-}
-
-/**
- * todo - move to stat
- */
-int mkdir(const char *pathname, mode_t mode)
-{
-    return _mkdir(pathname, mode);
-}
-
-/**
  * populates a struct stat type with:
  *
  *  - st_size	- the size of the file
@@ -1062,10 +935,7 @@ int _fstat(int file, struct stat *st)
 	int res = EOF;
 	if(file == STDIN_FILENO ||
 			file == STDOUT_FILENO ||
-			file == STDERR_FILENO ||
-			file == (intptr_t)stdout ||
-			file == (intptr_t)stderr ||
-			file == (intptr_t)stdin)
+			file == STDERR_FILENO)
 	{
 		if(st)
 		{
@@ -1148,10 +1018,7 @@ int _isatty(int file)
 
 	if(file == STDIN_FILENO ||
 			file == STDOUT_FILENO ||
-			file == STDERR_FILENO ||
-			file == (intptr_t)stdout ||
-			file == (intptr_t)stderr ||
-			file == (intptr_t)stdin)
+			file == STDERR_FILENO)
 		res = 1;
 	else
 	{
@@ -1199,6 +1066,38 @@ int _lseek(int file, int offset, int whence)
 	}
 
 	return res;
+}
+
+int _chdir(const char *path)
+{
+    return f_chdir((TCHAR*)path) == FR_OK ? 0 : -1;
+}
+
+/**
+ * gets the current working directory - follows the GNU version
+ * in that id buffer is set to NULL, a buffer of size bytes is allocated
+ * to hold the cwd string. it must be freed afterward by the user...
+ */
+char* _getcwd(char* buffer, size_t size)
+{
+    bool alloc = false;
+    if(buffer == NULL)
+    {
+        alloc = true;
+        buffer = malloc(size);
+    }
+
+    if(buffer)
+    {
+        if(f_getcwd((TCHAR*)buffer, (UINT)size) != FR_OK)
+        {
+            if(alloc)
+                free(buffer);
+            buffer = NULL;
+        }
+    }
+
+    return buffer;
 }
 
 int _unlink(char *name)
@@ -1289,74 +1188,7 @@ int _wait(int *status)
 	return -1;
 }
 
-_PTR _realloc_r(struct _reent *re, _PTR oldAddr, size_t newSize)
-{
-	(void)re;
-
-	xBlockLink *block;
-	size_t toCopy;
-	void *newAddr;
-
-	newAddr = pvPortMalloc(newSize);
-
-	if (newAddr == NULL)
-		return NULL;
-
-	/* We need the block struct pointer to get the current size */
-	block = oldAddr;
-	block -= heapSTRUCT_SIZE;
-
-	/* determine the size to be copied */
-	toCopy = (newSize<block->xBlockSize)?(newSize):(block->xBlockSize);
-
-	/* copy old block into new one */
-	memcpy((void *)newAddr, (void *)oldAddr, (size_t)toCopy);
-
-	vPortFree(oldAddr);
-
-	return newAddr;
-}
-
-_PTR _calloc_r(struct _reent *re, size_t num, size_t size) {
-	(void)re;
-	size *= num;
-    _PTR m = pvPortMalloc(size);
-    if(m)
-        memset(m, 0, size);
-    return m;
-}
-
-_PTR _malloc_r(struct _reent *re, size_t size) {
-	(void)re;
-	return pvPortMalloc(size);
-}
-
-_VOID _free_r(struct _reent *re, _PTR ptr) {
-	(void)re;
-	vPortFree(ptr);
-}
-
-speed_t cfgetispeed(const struct termios* termios)
-{
-    return termios->c_ispeed;
-}
-speed_t cfgetospeed(const struct termios* termios)
-{
-    return termios->c_ospeed;
-}
-
-int cfsetispeed(struct termios* termios, speed_t ispeed)
-{
-    termios->c_ispeed = ispeed;
-    return 0;
-}
-int cfsetospeed(struct termios* termios, speed_t ospeed)
-{
-    termios->c_ospeed = ospeed;
-    return 0;
-}
-
-int _tcflush(filtab_entry_t* fte, int flags)
+int __tcflush(filtab_entry_t* fte, int flags)
 {
     int res = EOF;
 	if(fte->mode == S_IFIFO)
@@ -1383,7 +1215,7 @@ int _tcflush(filtab_entry_t* fte, int flags)
     return res;
 }
 
-int _tcdrain(filtab_entry_t* fte)
+int __tcdrain(filtab_entry_t* fte)
 {
     unsigned long timeout;
     int res = EOF;
@@ -1401,7 +1233,7 @@ int _tcdrain(filtab_entry_t* fte)
     return res;
 }
 
-int tcgetattr(int fildes, struct termios *termios_p)
+int _tcgetattr(int fildes, struct termios *termios_p)
 {
     int ret = -1;
     if(termios_p == NULL || isatty(fildes) == 0)
@@ -1409,12 +1241,12 @@ int tcgetattr(int fildes, struct termios *termios_p)
 
     memset(termios_p, 0, sizeof(struct termios));
 
-    if(fildes == STDOUT_FILENO || fildes == STDERR_FILENO || fildes == (intptr_t)stdout || fildes == (intptr_t)stderr)
+    if(fildes == STDOUT_FILENO || fildes == STDERR_FILENO)
     {
         termios_p->c_cflag = B115200|CS8;
         ret = 0;
     }
-    else if(fildes == STDIN_FILENO || fildes == (intptr_t)stdin)
+    else if(fildes == STDIN_FILENO)
     {
         termios_p->c_cflag = B115200|CS8;
         ret = 0;
@@ -1438,17 +1270,17 @@ int tcgetattr(int fildes, struct termios *termios_p)
     return ret;
 }
 
-int tcsetattr(int fildes, int when, const struct termios *termios_p)
+int _tcsetattr(int fildes, int when, const struct termios *termios_p)
 {
     int ret = -1;
     if(termios_p == NULL || isatty(fildes) == 0)
         return ret;
 
-    if(fildes == STDOUT_FILENO || fildes == STDERR_FILENO || fildes == (intptr_t)stdout || fildes == (intptr_t)stderr)
+    if(fildes == STDOUT_FILENO || fildes == STDERR_FILENO)
     {
 
     }
-    else if(fildes == STDIN_FILENO || fildes == (intptr_t)stdin)
+    else if(fildes == STDIN_FILENO)
     {
 
     }
@@ -1462,9 +1294,9 @@ int tcsetattr(int fildes, int when, const struct termios *termios_p)
 			{
 				fte->device->termios = (struct termios *)termios_p;
 				if(when == TCSADRAIN)
-		        	_tcdrain(fte);
+		        	__tcdrain(fte);
 				else if(when == TCSAFLUSH)
-					_tcflush(fte, TCIOFLUSH);
+					__tcflush(fte, TCIOFLUSH);
 				ret = fte->device->ioctl(fte->device);
 				fte->device->termios = NULL;
 			}
@@ -1475,15 +1307,15 @@ int tcsetattr(int fildes, int when, const struct termios *termios_p)
     return ret;
 }
 
-int tcdrain(int file)
+int _tcdrain(int file)
 {
     int res = EOF;
 
-    if(file == STDOUT_FILENO || file == STDERR_FILENO || file == (intptr_t)stdout || file == (intptr_t)stderr)
+    if(file == STDOUT_FILENO || file == STDERR_FILENO)
     {
         res = 0;
     }
-    else if(file == STDIN_FILENO || file == (intptr_t)stdin)
+    else if(file == STDIN_FILENO)
     {
         res = 0;
     }
@@ -1493,7 +1325,7 @@ int tcdrain(int file)
 
         if(fte)
         {
-        	res = _tcdrain(fte);
+        	res = __tcdrain(fte);
             __unlock(fte, false, true);
         }
     }
@@ -1502,15 +1334,15 @@ int tcdrain(int file)
 }
 
 
-int tcflush(int file, int flags)
+int _tcflush(int file, int flags)
 {
     int res = EOF;
 
-    if(file == STDOUT_FILENO || file == STDERR_FILENO || file == (intptr_t)stdout || file == (intptr_t)stderr)
+    if(file == STDOUT_FILENO || file == STDERR_FILENO)
     {
         res = 0;
     }
-    else if(file == STDIN_FILENO || file == (intptr_t)stdin)
+    else if(file == STDIN_FILENO)
     {
         res = 0;
     }
@@ -1520,7 +1352,7 @@ int tcflush(int file, int flags)
 
         if(fte)
         {
-        	res = _tcflush(fte, flags);
+        	res = __tcflush(fte, flags);
         	__unlock(fte, false, true);
         }
     }
@@ -1530,15 +1362,15 @@ int tcflush(int file, int flags)
 /**
  * not implemented....
  */
-int tcflow(int file, int flags)
+int _tcflow(int file, int flags)
 {
     int res = EOF;
 
-    if(file == STDOUT_FILENO || file == STDERR_FILENO || file == (intptr_t)stdout || file == (intptr_t)stderr)
+    if(file == STDOUT_FILENO || file == STDERR_FILENO)
     {
         res = 0;
     }
-    else if(file == STDIN_FILENO || file == (intptr_t)stdin)
+    else if(file == STDIN_FILENO)
     {
         res = 0;
     }
