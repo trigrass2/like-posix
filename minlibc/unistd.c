@@ -41,7 +41,6 @@
 #include "minlibc/config.h"
 #include "minlibc/stdlib.h"
 #include "minlibc/unistd.h"
-#include "ff.h"
 
 int dup(int fdes)
 {
