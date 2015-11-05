@@ -41,7 +41,6 @@
 #include "minlibc/string.h"
 #include "minlibc/stdlib.h"
 #include "dirent.h"
-#include "ff.h"
 
 static struct dirent _dirent;
 
