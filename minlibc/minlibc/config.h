@@ -30,13 +30,6 @@
  *
  */
 
-/**
- * @addtogroup minlibc
- *
- * @file config.h
- * @{
- */
-
 #ifndef MINLIBC_CONFIG_H_
 #define MINLIBC_CONFIG_H_
 
@@ -53,7 +46,3 @@ extern "C" {
 #endif
 
 #endif /* MINLIBC_CONFIG_H_ */
-
-/**
- * @}
- */

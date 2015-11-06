@@ -30,13 +30,6 @@
  *
  */
 
-/**
- * @addtogroup minstring
- *
- * @file minstring.h
- * @{
- */
-
 #ifndef MINSTRING_H_
 #define MINSTRING_H_
 
@@ -51,7 +44,3 @@ extern "C" {
 #endif
 
 #endif /* MINSTRING_H_ */
-
-/**
- * @}
- */

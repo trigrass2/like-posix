@@ -30,8 +30,8 @@
  *
  */
 
-#ifndef UNISTD_H_
-#define UNISTD_H_
+#ifndef MINUNISTD_H_
+#define MINUNISTD_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,4 +56,4 @@ char* _getcwd(char* buffer, size_t size);
 }
 #endif
 
-#endif /* UNISTD_H_ */
+#endif /* MINUNISTD_H_ */

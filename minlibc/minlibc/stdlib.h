@@ -30,12 +30,6 @@
  *
  */
 
-/**
- * @addtogroup minstdlib
- * @file minstdlib.h
- * @{
- */
-
 #ifndef MINSTDLIB_H_
 #define MINSTDLIB_H_
 
@@ -46,15 +40,12 @@ extern "C" {
 #include <stdint.h>
 #include <float.h>
 
-
 #include <stdlib.h>
+
+extern int _system(const char *command);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* MINSTDLIB_H_ */
-
-/**
- * @}
- */
