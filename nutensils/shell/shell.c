@@ -287,7 +287,7 @@ void shell_server_thread(sock_conn_t* conn)
 	shellserver_t* shell = (shellserver_t*)conn->ctx;
 	shell->rdfd = conn->connfd;
 	shell->wrfd = conn->connfd;
-	shell_instance(shell);
+	shell_instance(shell, NULL);
 }
 #endif
 
