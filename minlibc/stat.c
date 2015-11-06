@@ -41,10 +41,29 @@
 #include <sys/stat.h>
 #include "ff.h"
 
+extern int _fstat(int file, struct stat *st);
+extern int _stat(const char *file, struct stat *st);
+
+
 int mkdir(const char *pathname, mode_t mode)
 {
     (void)mode;
     return f_mkdir(pathname) == FR_OK ? 0 : -1;
+}
+
+int fstat(int file, struct stat *st)
+{
+    return _fstat(file, st);
+}
+
+int stat(const char *file, struct stat *st)
+{
+    return _stat(file, st);
+}
+
+int lstat(const char *file, struct stat *st)
+{
+    return _stat(file, st);
 }
 
 /**

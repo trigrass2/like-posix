@@ -309,6 +309,7 @@ char* ftoa(char *dst, float num, float prescision)
     return dst;
 }
 
+//printf("%d.%.6d", (int)x, (int)((x-(int)x)*1000000));
 //char* ftoa(char *dst, float num, unsigned int precision)
 //{
 //

@@ -1166,20 +1166,20 @@ int times(struct tm *buf)
 	return -1;
 }
 
-#ifdef __cplusplus
-#ifndef _init()
+//#ifdef __cplusplus
+//#ifndef _init()
 void _init()
 {
 
 }
-#endif
-#ifndef _fini
+//#endif
+//#ifndef _fini
 void _fini()
 {
 
 }
-#endif
-#endif
+//#endif
+//#endif
 
 int _wait(int *status)
 {
