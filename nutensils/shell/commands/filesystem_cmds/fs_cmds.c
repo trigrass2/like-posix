@@ -43,6 +43,13 @@
 #include "fs_cmds.h"
 #include "shell.h"
 #include "sdfs.h"
+#include "fs_cmds.h"
+#if USE_CONFPARSE
+#include "confparse.h"
+#pragma message "building shell::fs_cmds with config parser support"
+#else
+#pragma message "building shell::fs_cmds without config parser support"
+#endif
 
 #define IS_NOT_A_DIRECTORY          " is not a directory"
 #define FORMATTING_SDCARD           "formatting sdcard"
@@ -67,6 +74,7 @@ const char* units[] = {
 
 shell_cmd_t* install_fs_cmds(shellserver_t* sh)
 {
+    shell_cmd_t* head;
     register_command(sh, &sh_ls_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_cd_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_rm_cmd, NULL, NULL, NULL);
@@ -74,8 +82,11 @@ shell_cmd_t* install_fs_cmds(shellserver_t* sh)
     register_command(sh, &sh_cat_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_mv_cmd, NULL, NULL, NULL);
     register_command(sh, &sh_cp_cmd, NULL, NULL, NULL);
-    register_command(sh, &sh_df_cmd, NULL, NULL, NULL);
-    return register_command(sh, &sh_config_cmd, NULL, NULL, NULL);
+    head = register_command(sh, &sh_df_cmd, NULL, NULL, NULL);
+    #if USE_CONFPARSE
+    head = register_command(sh, &sh_config_cmd, NULL, NULL, NULL);
+#endif
+    return head;
 }
 
 int sh_ls(int fdes, const char** args, unsigned char nargs)
@@ -283,6 +294,7 @@ int sh_cp(int fdes, const char** args, unsigned char nargs)
     return SHELL_CMD_EXIT;
 }
 
+#if USE_CONFPARSE
 int sh_config(int fdes, const char** args, unsigned char nargs)
 {
     const char* file = arg_by_index(0, args, nargs);
@@ -327,6 +339,7 @@ int sh_config(int fdes, const char** args, unsigned char nargs)
 
     return SHELL_CMD_EXIT;
 }
+#endif
 
 int sh_df(int fdes, const char** args, unsigned char nargs)
 {
