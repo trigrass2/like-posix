@@ -152,8 +152,8 @@ typedef struct {
 #if INCLUDE_REMOTE_SHELL_SUPPORT
 static void shell_server_thread(sock_conn_t* conn);
 #endif
-void shell_instance(shellserver_t* shell);
-static void prompt(shell_instance_t* shell_inst);
+static void shell_instance(shellserver_t* shell, const char* inputstr);
+static void prompt(shell_instance_t* shell_inst, const char* inputstr);
 static void historic_prompt(shell_instance_t* shell_inst);
 static void clear_prompt(shell_instance_t* shell_inst);
 static void put_prompt(shell_instance_t* shell_inst, const char* argstr, bool newline);
@@ -207,10 +207,26 @@ int start_shell(shellserver_t* shell, shell_cmd_t* commandset, const char* confi
     }
     else
     {
-    	shell_instance(shell);
+    	shell_instance(shell, NULL);
     	return 0;
     }
     return -1;
+}
+
+/**
+ * starts a shell server, executing only the command sequence contained in inputstr, then exiting.
+ * the shell output is not captured.
+ * used to implement the system() system call.
+ */
+int _system(const char* inputstr)
+{
+    shellserver_t shell;
+    shell.head_cmd = NULL;
+    shell.rdfd = -1;
+    shell.wrfd = -1;
+    shell.exit_on_eof = true;
+    shell_instance(&shell, inputstr);
+    return 0;
 }
 
 /**
@@ -280,7 +296,7 @@ void shell_server_thread(sock_conn_t* conn)
  * when exit_on_eof is true, blocks till the file descriptors become invalid, or timeout occurs, or until the exit command is issued (used for shell server)
  * when exit_on_eof is true, blocks till the file descriptors become invalid, or the exit command is issued (used for single instance, local shell)
  */
-void shell_instance(shellserver_t* shell)
+void shell_instance(shellserver_t* shell, const char* inputstr)
 {
 	shell_instance_t* shell_inst = calloc(sizeof(shell_instance_t), 1);
 
@@ -302,7 +318,7 @@ void shell_instance(shellserver_t* shell)
 		shell_inst->sstat.st_mode = 0;
 		shell_inst->exit_on_eof = shell->exit_on_eof;
 
-		prompt(shell_inst);
+		prompt(shell_inst, inputstr);
 		free(shell_inst);
 	}
 }
@@ -313,17 +329,28 @@ void shell_instance(shellserver_t* shell)
  * the exit flag is set when the user runs the built in command "exit",
  * or when the client connection closes.
  */
-void prompt(shell_instance_t* shell_inst)
+void prompt(shell_instance_t* shell_inst, const char* inputstr)
 {
 	int code;
 	unsigned char input_char = 0;
 	unsigned char inject = '\0';
 	unsigned char i = 0;
-	int ret;
+	int ret = 1;
 
 	while(!shell_inst->exitflag)
 	{
-		ret = read(shell_inst->rdfd, &input_char, 1);
+	    if(inputstr)
+	    {
+	        if(*inputstr)
+	        {
+	            input_char = *inputstr;
+	            inputstr++;
+	        }
+	        else
+	            ret = -1;
+	    }
+	    else
+	        ret = read(shell_inst->rdfd, &input_char, 1);
 
 		if(inject == '\0' && ret < 0)
 			shell_inst->exitflag = true;
