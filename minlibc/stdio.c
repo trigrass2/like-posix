@@ -775,61 +775,63 @@ int fputs(const char* str, FILE* stream)
     return _write(__get_fileno(stream), (char*)str, strlen(str));;
 }
 
-//char* fgets(char* str, int num, FILE* stream)
-//{
-//    char* sptr = str;
-//    int i;
-//    int len;
-//    for(i = 0; i < num-1; )
-//    {
-//        len = _read(__get_fileno(stream), str, 1);
-//
-//        if(len == -1)
-//            break;
-//        else if(len)
-//        {
-//            if(*str == '\n')
-//            {
-//                i++;
-//                str++;
-//                break;
-//            }
-//            str++;
-//            i++;
-//        }
-//    }
-//    *str = 0;
-//
-//    return sptr == str ? NULL : sptr;
-//}
-
-
 char* fgets(char* str, int num, FILE* stream)
 {
     char* sptr = str;
-    int fd = __get_fileno(stream);
-    long int pos = _ftell(fd);
-    int ret = _read(fd, str, num-1);
-
-    // ensure the string is terminated somewhere...
-    if(ret > 0)
+    int i;
+    int len;
+    for(i = 0; i < num-1; )
     {
-        sptr[ret] = '\0';
+        len = _read(__get_fileno(stream), str, 1);
 
-        while((*sptr != '\n') && (*sptr != '\0'))
-            sptr++;
-
-        if(*sptr == '\n')
+        if(len == -1)
+            break;
+        else if(len)
         {
-            sptr++;
-            *sptr = '\0';
+            if(*str == '\n')
+            {
+                i++;
+                str++;
+                break;
+            }
+            str++;
+            i++;
         }
-        // set file pointer to the end of the read line
-        _lseek(fd, pos + (sptr - str), SEEK_SET);
     }
+    *str = 0;
 
-    return (sptr - str) > 0 ? str : NULL;
+    printf(sptr);
+
+    return sptr == str ? NULL : sptr;
 }
+
+
+//char* fgets(char* str, int num, FILE* stream)
+//{
+//    char* sptr = str;
+//    int fd = __get_fileno(stream);
+//    long int pos = _ftell(fd);
+//    int ret = _read(fd, str, num-1);
+//
+//    // ensure the string is terminated somewhere...
+//    if(ret > 0)
+//    {
+//        sptr[ret] = '\0';
+//
+//        while((*sptr != '\n') && (*sptr != '\0'))
+//            sptr++;
+//
+//        if(*sptr == '\n')
+//        {
+//            sptr++;
+//            *sptr = '\0';
+//        }
+//        // set file pointer to the end of the read line
+//        _lseek(fd, pos + (sptr - str), SEEK_SET);
+//    }
+//
+//    return (sptr - str) > 0 ? str : NULL;
+//}
 
 long int ftell(FILE* stream)
 {
@@ -881,7 +883,7 @@ FILE* tmpfile(void)
 
     if(i != -1)
     {
-        _mkdir(P_tmpdir, 0777);
+        mkdir(P_tmpdir, 0777);
         sprintf(__tmpnambuf, P_tmpdir P_tmpfilename, i);
         __tmpfs[i] = (fake__FILE*)fopen(__tmpnambuf, "w+");
         return (FILE*)__tmpfs[i];
