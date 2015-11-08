@@ -56,13 +56,10 @@ char* itoa(int value, char* str, int base);
 char* ditoa(int64_t value, char* str, int base);
 #endif
 
-#define DEFAULT_FTOA_PRECISION 0.00000001
-//#define DEFAULT_FTOA_PRECISION 9
+#define DEFAULT_FTOA_DECIMAL_PLACES 6
 
-#ifndef ftoa
-//char* ftoa(char *dst, float num, unsigned int precision);
-char* ftoa(char *dst, float num, float precision);
-#endif
+char* ftoascii(char *dst, float num, int dp);
+char* dtoascii(char *dst, double num, int dp);
 
 #endif // STRUTILS_H_
 

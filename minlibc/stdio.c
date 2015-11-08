@@ -167,7 +167,7 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
 {
     float d;
 #if MINLIBC_INCLUDE_FLOAT_SUPPORT
-    float precision = DEFAULT_FTOA_PRECISION;
+    float dps = DEFAULT_FTOA_DECIMAL_PLACES;
 #endif
     int ret = -1;
     char* start = *dst;
@@ -269,10 +269,7 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
                         case 'f':
 #if MINLIBC_INCLUDE_FLOAT_SUPPORT
                             if(padding)
-                            {
-                                precision = 1 / pow(10, padding);
-//                              precision = padding;
-                            }
+                                dps = padding;
 #endif
                         break;
                     }
@@ -441,10 +438,10 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
                         break;
 
                         case 'f':
-                            d = (float)va_arg(argp, double);
+                            d = va_arg(argp, double);
                             plusflag(fd, _put_char, flags, dst);
 #if MINLIBC_INCLUDE_FLOAT_SUPPORT
-                            _put_str(fd, dst, ftoa(intbuf, d, precision));
+                            _put_str(fd, dst, dtoascii(intbuf, d, dps));
 #else
                             _put_str(fd, dst, itoa((int)d, intbuf, 10));
 #endif

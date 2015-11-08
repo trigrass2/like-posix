@@ -223,129 +223,47 @@ char* ditoa(int64_t value, char* str, int base)
     return str;
 }
 
-/**
- * convert long long/int64_t type to ascii.
- */
-char* ftoa(char *dst, float num, float prescision)
+char* ftoascii(char *dst, float num, int dp)
 {
-    // handle special cases
     if(isnan(num))
         strcpy(dst, "nan");
     else if(isinf(num))
         strcpy(dst, "inf");
-    else if(num == 0.0)
-        strcpy(dst, "0");
-    else if(num < 0 && -num <= prescision)
-        strcpy(dst, "0");
-    else if(num > 0 && num <= prescision)
+    else if(num == (float)0.0)
         strcpy(dst, "0");
     else
     {
-        int digit, m, m1 = 0;
-        char *c = dst;
-        int neg = (num < 0);
-        if (neg)
-            num = -num;
-        // calculate magnitude
-        m = (float)log10(num);
-        int useExp = (m >= 14 || (neg && m >= 9) || m <= -9);
-        if(neg)
-            *(c++) = '-';
-        // set up for scientific notation
-        if(useExp)
-        {
-            if(m < 0)
-                m -= 1.0;
-            num = num / (float)pow(10.0, m);
-            m1 = m;
-            m = 0;
-        }
-        if(m < 1.0)
-            m = 0;
-
-        // convert the number
-        while(num > prescision || m >= 0) {
-            float weight = (float)pow(10.0, m);
-            if(weight > 0 && !isinf(weight))
-            {
-                digit = (float)floor(num / weight);
-                num -= (digit * weight);
-                *(c++) = '0' + digit;
-            }
-            if (m == 0 && num > 0)
-                *(c++) = '.';
-            m--;
-        }
-        if(useExp) {
-            // convert the exponent
-            int i, j;
-            *(c++) = 'e';
-            if(m1 > 0)
-                *(c++) = '+';
-            else
-            {
-                *(c++) = '-';
-                m1 = -m1;
-            }
-            m = 0;
-            while(m1 > 0)
-            {
-                *(c++) = '0' + m1 % 10;
-                m1 /= 10;
-                m++;
-            }
-            c -= m;
-            for (i = 0, j = m-1; i<j; i++, j--)
-            {
-                // swap without temporary
-                c[i] ^= c[j];
-                c[j] ^= c[i];
-                c[i] ^= c[j];
-            }
-            c += m;
-        }
-        *c = '\0';
+        char fmt[9];
+        unsigned int pres = 1;
+        int i;
+        for(i = 0; i < dp; i++)
+            pres *= 10;
+        sprintf(fmt, "%%d.%%.%dd", dp);
+        sprintf(dst, fmt, (int)num, (int)((num-(int)num)*pres));
     }
     return dst;
 }
 
-//printf("%d.%.6d", (int)x, (int)((x-(int)x)*1000000));
-//char* ftoa(char *dst, float num, unsigned int precision)
-//{
-//
-//    char fmt[32] = "%d.";
-//    unsigned int p = pow(10, precision);
-//    int i;
-//
-//    if(isnan(num))
-//        strcpy(dst, "nan");
-//    else if(isinf(num))
-//        strcpy(dst, "inf");
-//    else if(num < 1/p)
-//        strcpy(dst, "0");
-//    else
-//    {
-//
-//        int hi = num;
-//        if(hi > num)
-//            hi--;
-//        num = num - hi;
-//        num = num * p;
-//        unsigned int lo = (unsigned int)num;
-//
-//        i = 0;
-//        while(num < 1.00000000000000 && i < 26)
-//        {
-//            strcat(fmt, "0");
-//            num *= 10;
-//            i++;
-//        }
-//        strcat(fmt, "%u");
-//        sprintf(dst, fmt, hi, lo);
-//    }
-//
-//    return dst;
-//}
+char* dtoascii(char *dst, double num, int dp)
+{
+    if(isnan(num))
+        strcpy(dst, "nan");
+    else if(isinf(num))
+        strcpy(dst, "inf");
+    else if(num == (double)0.0)
+        strcpy(dst, "0");
+    else
+    {
+        char fmt[13];
+        unsigned int pres = 1;
+        int i;
+        for(i = 0; i < dp; i++)
+            pres *= 10;
+        sprintf(fmt, "%%lld.%%.%dlld", dp);
+        sprintf(dst, fmt, (long long int)num, (long long int)((num-(long long int)num)*pres));
+    }
+    return dst;
+}
 
 
 /**
