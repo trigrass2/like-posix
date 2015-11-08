@@ -868,7 +868,8 @@ int _read(int file, char *buffer, int count)
 			{
 				if(fte->mode == S_IFREG)
 				{
-					f_read(&fte->file, (void*)buffer, (UINT)count, (UINT*)&n);
+					if(f_read(&fte->file, (void*)buffer, (UINT)count, (UINT*)&n) != FR_OK)
+						n = EOF;
 				}
 				else if((fte->mode == S_IFIFO) && fte->device)
 				{
