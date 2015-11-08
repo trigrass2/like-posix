@@ -244,6 +244,9 @@ char* ftoascii(char *dst, float num, int dp)
     return dst;
 }
 
+/**
+ * todo - should be "%%lld.%%.%dlld" and cast to (long long int), but appleseed printf cant do lld yet.
+ */
 char* dtoascii(char *dst, double num, int dp)
 {
     if(isnan(num))
@@ -259,8 +262,8 @@ char* dtoascii(char *dst, double num, int dp)
         int i;
         for(i = 0; i < dp; i++)
             pres *= 10;
-        sprintf(fmt, "%%lld.%%.%dlld", dp);
-        sprintf(dst, fmt, (long long int)num, (long long int)((num-(long long int)num)*pres));
+        sprintf(fmt, "%%lld.%%.%dllu", dp);
+        sprintf(dst, fmt, (int)num, (int64_t)((num-(int64_t)num)*pres));
     }
     return dst;
 }
