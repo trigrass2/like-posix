@@ -104,7 +104,7 @@ fake__FILE* __tmpfs[TMP_MAX];
 #define ZERO_FLAG 16
 #define LONG_FLAG 32
 #define SHORT_FLAG 64
-#define FLOAT_FLAG 128
+#define DOT_FLAG 128
 
 typedef char*(*putx_t)(int, char**, const char*);
 
@@ -166,9 +166,9 @@ static inline void hashflag(int fd, putx_t _put_str, unsigned int flags, char** 
 
 static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, const char * fmt, va_list argp)
 {
-    float d;
+    double d;
 #if MINLIBC_INCLUDE_FLOAT_SUPPORT
-    float dps = DEFAULT_FTOA_DECIMAL_PLACES;
+    int dps = DEFAULT_FTOA_DECIMAL_PLACES;
 #endif
     int ret = -1;
     char* start = *dst;
@@ -211,7 +211,7 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
                             fmt++;
                         break;
                         case '.':
-                            flags |= FLOAT_FLAG;
+                            flags |= DOT_FLAG;
                             fmt++;
                         break;
                     }
@@ -233,8 +233,16 @@ static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, 
                         default:
                             if(isdigit((int)*fmt))
                             {
-                                padchar = ' ';
-                                flags |= SPACE_FLAG;
+                                if(flags & DOT_FLAG)
+                                {
+                                    padchar = '0';
+                                    flags |= ZERO_FLAG;
+                                }
+                                else
+                                {
+                                    padchar = ' ';
+                                    flags |= SPACE_FLAG;
+                                }
                             }
                         break;
                     }

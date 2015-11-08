@@ -811,16 +811,18 @@ TEST(test_printf, percent_hhx)
 TEST(test_printf, percent_f)
 {
     int ret;
-    float fl = 1.0;
     int i;
 
-    for(i = 0; i < 10; i += 1)
-    {
-        reset_fixture();
-        ret = printf("hello %f", fl);
-        ASSERT_STREQ((char*)"hello 1.1", get_buffer());
-//        ASSERT_EQ(ret, 16);
-
-        fl += 0.1;
-    }
+    reset_fixture();
+    ret = printf("hello %.1f", 1.0);
+    ASSERT_STREQ((char*)"hello 1.0", get_buffer());
+    reset_fixture();
+    ret = printf("hello %.5f", 34435.535435);
+    ASSERT_STREQ((char*)"hello 34435.53543", get_buffer());
+    reset_fixture();
+    ret = printf("hello %.4f", 1.324234);
+    ASSERT_STREQ((char*)"hello 1.3242", get_buffer());
+    reset_fixture();
+    ret = printf("hello %.8f", 353354354.0001);
+    ASSERT_STREQ((char*)"hello 353354354.00010001", get_buffer());
 }
