@@ -109,400 +109,400 @@ typedef char*(*putx_t)(int, char**, const char*);
 
 static inline char* __minlibc_putc(int fd, char** dst, const char*src)
 {
-	if(*src)
-	{
-		_write(fd, (char*)src, 1);
-		(*dst)++;
-	}
-	return *dst;
+    if(*src)
+    {
+        _write(fd, (char*)src, 1);
+        (*dst)++;
+    }
+    return *dst;
 }
 
 static inline char* __minlibc_puts(int fd, char** dst, const char*src)
 {
-	int l = strlen(src);
-	if(l > 0)
-	{
-		_write(fd, (char*)src, l);
-		*dst += l;
-	}
-	return *dst;
+    int l = strlen(src);
+    if(l > 0)
+    {
+        _write(fd, (char*)src, l);
+        *dst += l;
+    }
+    return *dst;
 }
 
 static inline char* memputc(int fd, char** dst, const char*src)
 {
-	(void)fd;
-	**dst = *src;
-	(*dst)++;
-	return *dst;
+    (void)fd;
+    **dst = *src;
+    (*dst)++;
+    return *dst;
 }
 
 static inline char* memputs(int fd, char** dst, const char*src)
 {
-	(void)fd;
-	while(*src)
-	{
-		**dst = *src;
-		(*dst)++;
-		src++;
-	}
-	return *dst;
+    (void)fd;
+    while(*src)
+    {
+        **dst = *src;
+        (*dst)++;
+        src++;
+    }
+    return *dst;
 }
 
 static inline void plusflag(int fd, putx_t _put_char, unsigned int flags, char** dst)
 {
-	if(flags&PLUS_FLAG)
-	{
-		char c = '+';
-		_put_char(fd, dst, &c);
-	}
+    if(flags&PLUS_FLAG)
+    {
+        char c = '+';
+        _put_char(fd, dst, &c);
+    }
 }
 
 static inline void hashflag(int fd, putx_t _put_str, unsigned int flags, char** dst)
 {
-	if(flags&HASH_FLAG)
-		_put_str(fd, dst, (const char*)"0x");
+    if(flags&HASH_FLAG)
+        _put_str(fd, dst, (const char*)"0x");
 }
 
 static inline int strfmt(int fd, putx_t _put_char, putx_t _put_str, char** dst, const char * fmt, va_list argp)
 {
-	float d;
+    float d;
 #if MINLIBC_INCLUDE_FLOAT_SUPPORT
     float precision = DEFAULT_FTOA_PRECISION;
 #endif
-	int ret = -1;
-	char* start = *dst;
-	void* v;
-	unsigned int u;
-	int i;
-	int padding;
-	char padchar;
-	const char* s;
-	char c;
-	char intbuf[28];
-	unsigned int flags;
+    int ret = -1;
+    char* start = *dst;
+    void* v;
+    unsigned int u;
+    int i;
+    int padding;
+    char padchar;
+    const char* s;
+    char c;
+    char intbuf[28];
+    unsigned int flags;
 
-	if(fmt)
-	{
-		for(;*fmt;fmt++)
-		{
-			flags = 0;
+    if(fmt)
+    {
+        for(;*fmt;fmt++)
+        {
+            flags = 0;
 
-			// print fmt chars
-			switch(*fmt)
-			{
-				// print va_args
-				case '%':
-					fmt++;
-					// handle sign and #
-					switch(*fmt)
-					{
-						case '-':
-							// ignore left justification for now
-							// flags |= MINUS_FLAG;
-							fmt++;
-						break;
-						case '+':
-							flags |= PLUS_FLAG;
-							fmt++;
-						break;
-						case '#':
-							flags |= HASH_FLAG;
-							fmt++;
-						break;
+            // print fmt chars
+            switch(*fmt)
+            {
+                // print va_args
+                case '%':
+                    fmt++;
+                    // handle sign and #
+                    switch(*fmt)
+                    {
+                        case '-':
+                            // ignore left justification for now
+                            // flags |= MINUS_FLAG;
+                            fmt++;
+                        break;
+                        case '+':
+                            flags |= PLUS_FLAG;
+                            fmt++;
+                        break;
+                        case '#':
+                            flags |= HASH_FLAG;
+                            fmt++;
+                        break;
                         case '.':
                             flags |= FLOAT_FLAG;
                             fmt++;
                         break;
-					}
+                    }
 
-					// handle padding
-					padchar = 0;
-					switch(*fmt)
-					{
-						case ' ':
-							padchar = ' ';
-							flags |= SPACE_FLAG;
-							fmt++;
-						break;
-						case '0':
-							padchar = '0';
-							fmt++;
-							flags |= ZERO_FLAG;
-						break;
-						default:
-							if(isdigit((int)*fmt))
-							{
-								padchar = ' ';
-								flags |= SPACE_FLAG;
-							}
-						break;
-					}
+                    // handle padding
+                    padchar = 0;
+                    switch(*fmt)
+                    {
+                        case ' ':
+                            padchar = ' ';
+                            flags |= SPACE_FLAG;
+                            fmt++;
+                        break;
+                        case '0':
+                            padchar = '0';
+                            fmt++;
+                            flags |= ZERO_FLAG;
+                        break;
+                        default:
+                            if(isdigit((int)*fmt))
+                            {
+                                padchar = ' ';
+                                flags |= SPACE_FLAG;
+                            }
+                        break;
+                    }
 
-					// determine overall padded length
-					// use intbuf as working area
-					padding = 0;
-					if(padchar)
-					{
-						while(isdigit((int)*fmt))
-						{
-							intbuf[padding] = *fmt;
-							padding++;
-							fmt++;
-						}
-						intbuf[padding] = '\0';
-						padding = atoi(intbuf);
-					}
+                    // determine overall padded length
+                    // use intbuf as working area
+                    padding = 0;
+                    if(padchar)
+                    {
+                        while(isdigit((int)*fmt))
+                        {
+                            intbuf[padding] = *fmt;
+                            padding++;
+                            fmt++;
+                        }
+                        intbuf[padding] = '\0';
+                        padding = atoi(intbuf);
+                    }
 
-					// handle long/short
-					switch(*fmt)
-					{
-						case 'h':
-						case 'l':
-							// flags |= LONG_FLAG;
-							// flags |= SHORT_FLAG;
-							// ignore length sub specifiers for now
-							c = *fmt;
-							fmt++;
-							while(*fmt == c)
-								fmt++;
-						break;
-						case 'f':
+                    // handle long/short
+                    switch(*fmt)
+                    {
+                        case 'h':
+                        case 'l':
+                            // flags |= LONG_FLAG;
+                            // flags |= SHORT_FLAG;
+                            // ignore length sub specifiers for now
+                            c = *fmt;
+                            fmt++;
+                            while(*fmt == c)
+                                fmt++;
+                        break;
+                        case 'f':
 #if MINLIBC_INCLUDE_FLOAT_SUPPORT
-						    if(padding)
-						    {
-						        precision = 1 / pow(10, padding);
-//						        precision = padding;
-						    }
+                            if(padding)
+                            {
+                                precision = 1 / pow(10, padding);
+//                              precision = padding;
+                            }
 #endif
-						break;
-					}
+                        break;
+                    }
 
-					// handle type
-					switch(*fmt)
-					{
-						case 'c':
-							c = (char)va_arg(argp, int);
-							_put_char(fd, dst, &c);
-						break;
+                    // handle type
+                    switch(*fmt)
+                    {
+                        case 'c':
+                            c = (char)va_arg(argp, int);
+                            _put_char(fd, dst, &c);
+                        break;
 
-						case 's':
-							s = (char*)va_arg(argp, char*);
-							if(!s)
-								s = (const char*)"(null)";
-							if(flags&SPACE_FLAG)
-							{
-								padding -= strlen(s);
-								if(padding > 0)
-								{
-									char padbuf[padding+1];
-									padbuf[padding] = '\0';
-									while(padding)
-									{
-										padding--;
-										padbuf[padding] = padchar;
-									}
-									_put_str(fd, dst, padbuf);
-								}
-							}
-							_put_str(fd, dst, s);
-						break;
+                        case 's':
+                            s = (char*)va_arg(argp, char*);
+                            if(!s)
+                                s = (const char*)"(null)";
+                            if(flags&SPACE_FLAG)
+                            {
+                                padding -= strlen(s);
+                                if(padding > 0)
+                                {
+                                    char padbuf[padding+1];
+                                    padbuf[padding] = '\0';
+                                    while(padding)
+                                    {
+                                        padding--;
+                                        padbuf[padding] = padchar;
+                                    }
+                                    _put_str(fd, dst, padbuf);
+                                }
+                            }
+                            _put_str(fd, dst, s);
+                        break;
 
-						case 'i':
-						case 'd':
-							i = (int)va_arg(argp, int);
-							if(i >= 0)
-								plusflag(fd, _put_char, flags, dst);
+                        case 'i':
+                        case 'd':
+                            i = (int)va_arg(argp, int);
+                            if(i >= 0)
+                                plusflag(fd, _put_char, flags, dst);
 
-							itoa(i, intbuf, 10);
-							if((flags&ZERO_FLAG) || (flags&SPACE_FLAG))
-							{
-								padding -= strlen(intbuf);
-								if(padding > 0)
-								{
-									char padbuf[padding+1];
-									padbuf[padding] = '\0';
-									while(padding)
-									{
-										padding--;
-										padbuf[padding] = padchar;
-									}
-									_put_str(fd, dst, padbuf);
-								}
-							}
-							_put_str(fd, dst, intbuf);
-						break;
+                            itoa(i, intbuf, 10);
+                            if((flags&ZERO_FLAG) || (flags&SPACE_FLAG))
+                            {
+                                padding -= strlen(intbuf);
+                                if(padding > 0)
+                                {
+                                    char padbuf[padding+1];
+                                    padbuf[padding] = '\0';
+                                    while(padding)
+                                    {
+                                        padding--;
+                                        padbuf[padding] = padchar;
+                                    }
+                                    _put_str(fd, dst, padbuf);
+                                }
+                            }
+                            _put_str(fd, dst, intbuf);
+                        break;
 
-						case 'u':
-							u = (unsigned int)va_arg(argp, unsigned int);
-							plusflag(fd, _put_char, flags, dst);
+                        case 'u':
+                            u = (unsigned int)va_arg(argp, unsigned int);
+                            plusflag(fd, _put_char, flags, dst);
 
-							ditoa((int64_t)u, intbuf, 10);
+                            ditoa((int64_t)u, intbuf, 10);
 
-							if((flags&ZERO_FLAG) || (flags&SPACE_FLAG))
-							{
-								padding -= strlen(intbuf);
-								if(padding > 0)
-								{
-									char padbuf[padding+1];
-									padbuf[padding] = '\0';
-									while(padding)
-									{
-										padding--;
-										padbuf[padding] = padchar;
-									}
-									_put_str(fd, dst, padbuf);
-								}
-							}
+                            if((flags&ZERO_FLAG) || (flags&SPACE_FLAG))
+                            {
+                                padding -= strlen(intbuf);
+                                if(padding > 0)
+                                {
+                                    char padbuf[padding+1];
+                                    padbuf[padding] = '\0';
+                                    while(padding)
+                                    {
+                                        padding--;
+                                        padbuf[padding] = padchar;
+                                    }
+                                    _put_str(fd, dst, padbuf);
+                                }
+                            }
 
-							_put_str(fd, dst, intbuf);
-						break;
+                            _put_str(fd, dst, intbuf);
+                        break;
 
-						case 'x':
-							u = (unsigned int)va_arg(argp, unsigned int);
-							hashflag(fd, _put_str, flags, dst);
+                        case 'x':
+                            u = (unsigned int)va_arg(argp, unsigned int);
+                            hashflag(fd, _put_str, flags, dst);
 
-							ditoa((int64_t)u, intbuf, 16);
+                            ditoa((int64_t)u, intbuf, 16);
 
-							if((flags&ZERO_FLAG) || (flags&SPACE_FLAG))
-							{
-								padding -= strlen(intbuf);
-								if(padding > 0)
-								{
-									char padbuf[padding+1];
-									padbuf[padding] = '\0';
-									while(padding)
-									{
-										padding--;
-										padbuf[padding] = padchar;
-									}
-									_put_str(fd, dst, padbuf);
-								}
-							}
+                            if((flags&ZERO_FLAG) || (flags&SPACE_FLAG))
+                            {
+                                padding -= strlen(intbuf);
+                                if(padding > 0)
+                                {
+                                    char padbuf[padding+1];
+                                    padbuf[padding] = '\0';
+                                    while(padding)
+                                    {
+                                        padding--;
+                                        padbuf[padding] = padchar;
+                                    }
+                                    _put_str(fd, dst, padbuf);
+                                }
+                            }
 
-							_put_str(fd, dst, intbuf);
-						break;
+                            _put_str(fd, dst, intbuf);
+                        break;
 
-						case 'X':
-							u = (unsigned int)va_arg(argp, unsigned int);
-							hashflag(fd, _put_str, flags, dst);
+                        case 'X':
+                            u = (unsigned int)va_arg(argp, unsigned int);
+                            hashflag(fd, _put_str, flags, dst);
 
-							ditoa((int64_t)u, intbuf, 16);
-							// TODO this causes liker error in the test cases!! fix that
-	//						strtoupper(intbuf);
+                            ditoa((int64_t)u, intbuf, 16);
+                            // TODO this causes liker error in the test cases!! fix that
+    //                      strtoupper(intbuf);
 
-							i = 0;
-							while(intbuf[i])
-							{
-								intbuf[i] = toupper((int)intbuf[i]);
-								i++;
-							}
+                            i = 0;
+                            while(intbuf[i])
+                            {
+                                intbuf[i] = toupper((int)intbuf[i]);
+                                i++;
+                            }
 
-							if((flags&ZERO_FLAG) || (flags&SPACE_FLAG))
-							{
-								padding -= strlen(intbuf);
-								if(padding > 0)
-								{
-									char padbuf[padding+1];
-									padbuf[padding] = '\0';
-									while(padding)
-									{
-										padding--;
-										padbuf[padding] = padchar;
-									}
-									_put_str(fd, dst, padbuf);
-								}
-							}
+                            if((flags&ZERO_FLAG) || (flags&SPACE_FLAG))
+                            {
+                                padding -= strlen(intbuf);
+                                if(padding > 0)
+                                {
+                                    char padbuf[padding+1];
+                                    padbuf[padding] = '\0';
+                                    while(padding)
+                                    {
+                                        padding--;
+                                        padbuf[padding] = padchar;
+                                    }
+                                    _put_str(fd, dst, padbuf);
+                                }
+                            }
 
-							_put_str(fd, dst, intbuf);
+                            _put_str(fd, dst, intbuf);
 
-						break;
+                        break;
 
-						case 'p':
-							v = (void*)va_arg(argp, void*);
-							_put_str(fd, dst, (const char*)"0x");
+                        case 'p':
+                            v = (void*)va_arg(argp, void*);
+                            _put_str(fd, dst, (const char*)"0x");
 
-							ditoa((intptr_t)v, intbuf, 16);
-							if((flags&ZERO_FLAG) || (flags&SPACE_FLAG))
-							{
-								padding -= strlen(intbuf);
-								if(padding > 0)
-								{
-									char padbuf[padding+1];
-									padbuf[padding] = '\0';
-									while(padding)
-									{
-										padding--;
-										padbuf[padding] = padchar;
-									}
-									_put_str(fd, dst, padbuf);
-								}
-							}
-							_put_str(fd, dst, intbuf);
-						break;
+                            ditoa((intptr_t)v, intbuf, 16);
+                            if((flags&ZERO_FLAG) || (flags&SPACE_FLAG))
+                            {
+                                padding -= strlen(intbuf);
+                                if(padding > 0)
+                                {
+                                    char padbuf[padding+1];
+                                    padbuf[padding] = '\0';
+                                    while(padding)
+                                    {
+                                        padding--;
+                                        padbuf[padding] = padchar;
+                                    }
+                                    _put_str(fd, dst, padbuf);
+                                }
+                            }
+                            _put_str(fd, dst, intbuf);
+                        break;
 
-						case 'f':
-							d = (float)va_arg(argp, double);
-							plusflag(fd, _put_char, flags, dst);
+                        case 'f':
+                            d = (float)va_arg(argp, double);
+                            plusflag(fd, _put_char, flags, dst);
 #if MINLIBC_INCLUDE_FLOAT_SUPPORT
-							_put_str(fd, dst, ftoa(intbuf, d, precision));
+                            _put_str(fd, dst, ftoa(intbuf, d, precision));
 #else
-							_put_str(fd, dst, itoa((int)d, intbuf, 10));
+                            _put_str(fd, dst, itoa((int)d, intbuf, 10));
 #endif
-						break;
+                        break;
 
-						case '%':
-							c = '%';
-							_put_char(fd, dst, &c);
-						break;
-					}
-				break;
+                        case '%':
+                            c = '%';
+                            _put_char(fd, dst, &c);
+                        break;
+                    }
+                break;
 
-				// all other charcters
-				default:
-					_put_char(fd, dst, fmt);
-				break;
-			}
-		}
+                // all other charcters
+                default:
+                    _put_char(fd, dst, fmt);
+                break;
+            }
+        }
 
-		// null terminate
-		c = '\0';
-		_put_char(fd, dst, &c);
+        // null terminate
+        c = '\0';
+        _put_char(fd, dst, &c);
 
-		ret = (int)(*dst - start);
-	}
+        ret = (int)(*dst - start);
+    }
 
-	return ret;
+    return ret;
 }
 
 int vsprintf(char* dst, const char * fmt, va_list argp)
 {
-	return strfmt(-1, memputc, memputs, &dst, fmt, argp) -1;
+    return strfmt(-1, memputc, memputs, &dst, fmt, argp) -1;
 }
 
 int sprintf(char* dst, const char* fmt, ...)
 {
-	va_list argp;
-	va_start(argp, fmt);
-	int ret = strfmt(-1, memputc, memputs, &dst, fmt, argp) -1;
-	va_end(argp);
+    va_list argp;
+    va_start(argp, fmt);
+    int ret = strfmt(-1, memputc, memputs, &dst, fmt, argp) -1;
+    va_end(argp);
 
-	return ret;
+    return ret;
 }
 
 int vprintf(const char * fmt, va_list argp)
 {
-	char* dst = NULL;
-	return strfmt(STDOUT_FILENO, __minlibc_putc, __minlibc_puts, &dst, fmt, argp);
+    char* dst = NULL;
+    return strfmt(STDOUT_FILENO, __minlibc_putc, __minlibc_puts, &dst, fmt, argp);
 }
 
 int printf(const char * fmt, ...)
 {
-	char* dst = NULL;
-	va_list argp;
-	va_start(argp, fmt);
+    char* dst = NULL;
+    va_list argp;
+    va_start(argp, fmt);
     int ret = strfmt(STDOUT_FILENO, __minlibc_putc, __minlibc_puts, &dst, fmt, argp);
-	va_end(argp);
-	return ret;
+    va_end(argp);
+    return ret;
 }
 
 
@@ -718,14 +718,11 @@ int fprintf(FILE* stream, const char * fmt, ...)
     return ret;
 }
 
-#ifndef getc
+#undef getc
 int getc(FILE* stream)
 {
     return fgetc(stream);
 }
-#else
-#pragma message("getc is defined outside minlibc - it is probably not safe to use it")
-#endif
 
 int fgetc(FILE* stream)
 {
@@ -761,14 +758,11 @@ int fputc(int character, FILE* stream)
     return _write(__get_fileno(stream), (char*)&character, 1) != EOF ? character : EOF;
 }
 
-#ifndef putc
+#undef putc
 int putc(int character, FILE* stream)
 {
     return _write(__get_fileno(stream), (char*)&character, 1);;
 }
-#else
-#pragma message("putc is defined outside minlibc - it is probably not safe to use it")
-#endif
 
 int fputs(const char* str, FILE* stream)
 {
