@@ -79,6 +79,7 @@ FILE_TABLE_LENGTH: specified in like_posix_config.h (per project).
  */
 
 
+#include <sys/stat.h> //mkdir
 #include <stdarg.h>
 #include <stdint.h>
 #include <math.h>

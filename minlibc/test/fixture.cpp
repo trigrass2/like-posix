@@ -28,7 +28,7 @@ int _rename(const char *oldname, const char *newname)
     return oldname == NULL ? EOF : 0;
 }
 
-int _mkdir(const char *pathname, mode_t mode)
+int mkdir(const char *pathname, mode_t mode)
 {
     return pathname == NULL ? EOF : 0;
 }

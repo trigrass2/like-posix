@@ -24,7 +24,7 @@ extern "C" int _open(const char *name, int flags, int mode);
 extern "C" int _close(int file);
 extern "C" int _unlink(char *name);
 extern "C" int _rename(const char *oldname, const char *newname);
-extern "C" int _mkdir(const char *pathname, mode_t mode);
+//extern "C" int mkdir(const char *pathname, mode_t mode);
 extern "C" int _fsync(int file);
 
 
