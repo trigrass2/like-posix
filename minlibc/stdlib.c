@@ -45,39 +45,39 @@
 #include <minlibc/stdlib.h>
 #include <string.h>
 
-double atof(const char* string)
-{
-    const char* mantissa = strchr(string, '.');
-    const char* characteristic = string;
-
-    float result = atoi(characteristic);
-    if(mantissa)
-    {
-        mantissa++;
-        result += atoi(mantissa) / (strlen(mantissa) * 10);
-    }
-    return (double)result;
-}
-
-float strtof(const char *string, char **tailptr)
-{
-    float result = NAN;
-    while(*string == ' ' || *string == '\t')
-        string++;
-
-    if(*string)
-    {
-        result = atof(string);
-        if(tailptr && *tailptr)
-        {
-            while(*string == ' ' || *string == '\t')
-                string++;
-            *tailptr = (char*)string;
-        }
-    }
-
-    return result;
-}
+//double atof(const char* string)
+//{
+//    const char* mantissa = strchr(string, '.');
+//    const char* characteristic = string;
+//
+//    float result = atoi(characteristic);
+//    if(mantissa)
+//    {
+//        mantissa++;
+//        result += atoi(mantissa) / (strlen(mantissa) * 10);
+//    }
+//    return (double)result;
+//}
+//
+//float strtof(const char *string, char **tailptr)
+//{
+//    float result = NAN;
+//    while(*string == ' ' || *string == '\t')
+//        string++;
+//
+//    if(*string)
+//    {
+//        result = atof(string);
+//        if(tailptr && *tailptr)
+//        {
+//            while(*string == ' ' || *string == '\t')
+//                string++;
+//            *tailptr = (char*)string;
+//        }
+//    }
+//
+//    return result;
+//}
 
 char* getenv(const char* name)
 {
