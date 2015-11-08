@@ -80,6 +80,7 @@ FILE_TABLE_LENGTH: specified in like_posix_config.h (per project).
 
 
 #include <sys/stat.h> //mkdir
+#include <errno.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <math.h>
@@ -543,6 +544,12 @@ void init_minlibc()
     __fstab[FILE_STREAM_TABLE_INDEX_STDERR]._flags = __SWR|__SNBF;
 }
 
+#define __eval_io_return(ret, stream) 	if(ret == 0){(((fake__FILE*)stream)->_flags) |= __SEOF;} 	\
+										else if(ret < 0){(((fake__FILE*)stream)->_flags) |= __SERR;}
+
+#define __eval_err_return(ret, stream) 	if(ret < 0){(((fake__FILE*)stream)->_flags) |= __SERR;}
+
+
 static inline FILE* __get_stream_descriptor(int fdes, int flags)
 {
     short i;
@@ -658,17 +665,12 @@ int setvbuf(FILE *stream, char *buf, int mode, size_t size)
  */
 FILE* fopen(const char * filename, const char * mode)
 {
-    FILE* file = NULL;
     int flags = __stream_mode(mode);
-
     int fd = _open(filename, flags, MINLIBC_STDIO_BUFFER_SIZE);
 
-    if(fd != EOF)
-    {
-        file = __get_stream_descriptor(fd, flags);
-        if(!file)
-            _close(fd);
-    }
+    FILE* file = __get_stream_descriptor(fd, flags);
+	if(!file)
+		_close(fd);
 
     return file;
 }
@@ -688,28 +690,25 @@ FILE* freopen(const char* filename, const char* mode, FILE* stream)
 int fclose(FILE* stream)
 {
     char buf[16];
-    int i = 0;
+    int i;
     int res = EOF;
 
-    if(stream)
-    {
-        if(stream != stdin && stream != stdout && stream != stderr)
-            res = _close(__get_fileno(stream));
+	if(stream != stdin && stream != stdout && stream != stderr)
+		res = _close(__get_fileno(stream));
+    __eval_err_return(res, stream);
 
-        __release_stream_descriptor(stream);
+	__release_stream_descriptor(stream);
 
-        while(i < TMP_MAX)
-        {
-            if(__tmpfs[i] == (fake__FILE*)stream)
-            {
-                __tmpfs[i] = NULL;
-                sprintf(buf, P_tmpdir P_tmpfilename, i);
-                _unlink(buf);
-                break;
-            }
-            i++;
-        }
-    }
+	for(i=0; stream && i < TMP_MAX; i++)
+	{
+		if(__tmpfs[i] == (fake__FILE*)stream)
+		{
+			__tmpfs[i] = NULL;
+			sprintf(buf, P_tmpdir P_tmpfilename, i);
+			_unlink(buf);
+			stream = NULL;
+		}
+	}
 
     return res;
 }
@@ -720,6 +719,7 @@ int fprintf(FILE* stream, const char * fmt, ...)
     va_list argp;
     va_start(argp, fmt);
     int ret = strfmt(__get_fileno(stream), __minlibc_putc, __minlibc_puts, &dst, fmt, argp);
+    __eval_err_return(ret, stream);
     va_end(argp);
     return ret;
 }
@@ -740,7 +740,9 @@ int fgetc(FILE* stream)
         c = s->_ub._base[s->_ub._size];
     }
     else
-        _read(__get_fileno(stream), (char*)&c, 1);
+    {
+    	__eval_io_return(_read(__get_fileno(stream), (char*)&c, 1), stream);
+    }
     return c;
 }
 
@@ -761,18 +763,35 @@ int ungetc(int c, FILE* stream)
 
 int fputc(int character, FILE* stream)
 {
-    return _write(__get_fileno(stream), (char*)&character, 1) != EOF ? character : EOF;
+    int ret = _write(__get_fileno(stream), (char*)&character, 1);
+    __eval_io_return(ret, stream);
+    return ret != EOF ? character : EOF;
 }
 
 #undef putc
 int putc(int character, FILE* stream)
 {
-    return _write(__get_fileno(stream), (char*)&character, 1);;
+	int ret = _write(__get_fileno(stream), (char*)&character, 1);
+	__eval_io_return(ret, stream);
+	return ret != EOF ? character : EOF;
 }
 
 int fputs(const char* str, FILE* stream)
 {
-    return _write(__get_fileno(stream), (char*)str, strlen(str));;
+	int ret = _write(__get_fileno(stream), (char*)str, strlen(str));
+	__eval_io_return(ret, stream);
+	return ret;
+}
+
+int puts(const char * str)
+{
+	int ret = fputs(str, stdout);
+	if(ret >= 0)
+	{
+		if(fputc((int)'\n', stdout) == (int)'\n')
+			return ret + 1;
+	}
+	return ret;
 }
 
 char* fgets(char* str, int num, FILE* stream)
@@ -784,8 +803,11 @@ char* fgets(char* str, int num, FILE* stream)
     {
         len = _read(__get_fileno(stream), str, 1);
 
-        if(len == -1)
+        if(len <= 0)
+        {
+        	__eval_io_return(len, stream);
             break;
+        }
         else if(len)
         {
             if(*str == '\n')
@@ -800,66 +822,80 @@ char* fgets(char* str, int num, FILE* stream)
     }
     *str = 0;
 
-    printf(sptr);
-
     return sptr == str ? NULL : sptr;
 }
 
+char* gets(char* str)
+{
+	if(fgets(str, 65535*32767, stdin))
+	{
+		char* nl = strchr((const char*)str, (int)'\n');
+		if(nl)
+			*nl = '\0';
+		return str;
+	}
+	return NULL;
+}
 
-//char* fgets(char* str, int num, FILE* stream)
-//{
-//    char* sptr = str;
-//    int fd = __get_fileno(stream);
-//    long int pos = _ftell(fd);
-//    int ret = _read(fd, str, num-1);
-//
-//    // ensure the string is terminated somewhere...
-//    if(ret > 0)
-//    {
-//        sptr[ret] = '\0';
-//
-//        while((*sptr != '\n') && (*sptr != '\0'))
-//            sptr++;
-//
-//        if(*sptr == '\n')
-//        {
-//            sptr++;
-//            *sptr = '\0';
-//        }
-//        // set file pointer to the end of the read line
-//        _lseek(fd, pos + (sptr - str), SEEK_SET);
-//    }
-//
-//    return (sptr - str) > 0 ? str : NULL;
-//}
+#undef feof
+int feof(FILE* stream)
+{
+	return (((fake__FILE*)stream)->_flags) & __SEOF;
+}
+
+#undef ferror
+int ferror(FILE* stream)
+{
+	return (((fake__FILE*)stream)->_flags) & __SERR;
+}
+
+#undef clearerr
+void clearerr(FILE* stream)
+{
+	(((fake__FILE*)stream)->_flags) &= ~(__SEOF|__SERR);
+}
+
+void perror(const char* message)
+{
+	fprintf(stderr, "%s%s %s\n", message ? message : "", message ? ": " : "", strerror(errno));
+}
 
 long int ftell(FILE* stream)
 {
-    return _ftell(__get_fileno(stream));
+    int ret = _ftell(__get_fileno(stream));
+    __eval_err_return(ret, stream);
+    return ret;
 }
 
 int fseek(FILE * stream, long int offset, int origin)
 {
     fake__FILE* s = (fake__FILE*)stream;
     s->_ub._size = 0;
-    return _lseek(__get_fileno(stream), offset, origin);
+    int ret = _lseek(__get_fileno(stream), offset, origin);
+    __eval_err_return(ret, stream);
+    return ret;
 }
 
 #if !MINLIBC_BUILD_FOR_TEST
 size_t fwrite(const void *data, size_t size, size_t count, FILE *stream)
 {
-    return _write(__get_fileno(stream), (char*)data, size*count);
+	int ret = _write(__get_fileno(stream), (char*)data, size*count);
+    return ret >= 0 ? ret : 0;
 }
 
 size_t fread(void *data, size_t size, size_t count, FILE *stream)
 {
-    return _read(__get_fileno(stream), (char*)data, size*count);
+    int ret = _read(__get_fileno(stream), (char*)data, size*count);
+    __eval_io_return(ret, stream);
+    return ret >= 0 ? ret : 0;
 }
 #endif
 
 int _fflush(FILE* stream)
 {
-    return _fsync(__get_fileno(stream));
+    int ret = _fsync(__get_fileno(stream));
+    __eval_err_return(ret, stream);
+    return ret;
 }
 
 int fileno(FILE* stream)
