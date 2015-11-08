@@ -42,42 +42,129 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <math.h>
+#include <ctype.h>
 #include <minlibc/stdlib.h>
 #include <string.h>
 
-//double atof(const char* string)
-//{
-//    const char* mantissa = strchr(string, '.');
-//    const char* characteristic = string;
-//
-//    float result = atoi(characteristic);
-//    if(mantissa)
-//    {
-//        mantissa++;
-//        result += atoi(mantissa) / (strlen(mantissa) * 10);
-//    }
-//    return (double)result;
-//}
-//
-//float strtof(const char *string, char **tailptr)
-//{
-//    float result = NAN;
-//    while(*string == ' ' || *string == '\t')
-//        string++;
-//
-//    if(*string)
-//    {
-//        result = atof(string);
-//        if(tailptr && *tailptr)
-//        {
-//            while(*string == ' ' || *string == '\t')
-//                string++;
-//            *tailptr = (char*)string;
-//        }
-//    }
-//
-//    return result;
-//}
+int atoi(const char* string)
+{
+    const char* s = string;
+    int mult;
+    int n;
+    int result = 0;
+    for(n=-1; isdigit((int)*s); s++, n++);
+    for(mult = 1; n>=0; n--, mult*=10)
+        result += (string[n]-'0') * mult;
+
+    return result;
+}
+
+double atof(const char* string)
+{
+    double mandiv = 1;
+    const char* mantissa = strchr(string, '.');
+
+    double result = atoi(string);
+    double manint;
+    if(mantissa)
+    {
+        mantissa++;
+        for(;*mantissa == '0';mantissa++)
+            mandiv *= (double)10;
+
+        manint = (double)atoi(mantissa);
+
+        for(;*mantissa; mantissa++)
+            mandiv *= (double)10;
+
+        result += manint / mandiv;
+    }
+    return result;
+}
+
+double strtod(const char *string, char **tailptr)
+{
+    double result = NAN;
+    int mandiv = 1;
+    double manint;
+    const char* mantissa;
+
+    while(isspace((int)*string))
+        string++;
+
+    if(*string)
+    {
+        mantissa = strchr(string, '.');
+        result = (double)atoi(string);
+
+        if(mantissa)
+        {
+            mantissa++;
+            for(;*mantissa == '0';mantissa++)
+                mandiv *= 10;
+
+            manint = (double)atoi(mantissa);
+
+            for(;*mantissa && !isspace((int)*mantissa); mantissa++)
+                mandiv *= 10;
+
+            result += manint / mandiv;
+
+            string = mantissa;
+
+            if(tailptr && *string)
+            {
+                while(isspace((int)*string))
+                    string++;
+                *tailptr = (char*)string;
+            }
+        }
+    }
+
+    return result;
+}
+
+float strtof(const char *string, char **tailptr)
+{
+    float result = NAN;
+    int mandiv = 1;
+    float manint;
+    const char* mantissa;
+
+    while(isspace((int)*string))
+        string++;
+
+    if(*string)
+    {
+        mantissa = strchr(string, '.');
+        result = (float)atoi(string);
+
+        if(mantissa)
+        {
+            mantissa++;
+            for(;*mantissa == '0';mantissa++)
+                mandiv *= 10;
+
+            manint = (float)atoi(mantissa);
+
+            for(;*mantissa && !isspace((int)*mantissa); mantissa++)
+                mandiv *= 10;
+
+            result += manint / mandiv;
+
+            string = mantissa;
+
+            if(tailptr && *string)
+            {
+                while(isspace((int)*string))
+                    string++;
+                *tailptr = (char*)string;
+            }
+        }
+    }
+
+    return result;
+}
 
 char* getenv(const char* name)
 {
