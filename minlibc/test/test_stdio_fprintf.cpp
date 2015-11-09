@@ -9,6 +9,11 @@ TESTSUITE(test_fprintf)
 
 }
 
+TEST(test_fprintf, test_init)
+{
+	init_minlibc();
+}
+
 TEST(test_fprintf, percent_d)
 {
     int ret;
@@ -26,7 +31,7 @@ TEST(test_fprintf, percent_d_with_positive)
     int ret;
     FILE* f = fopen("test.txt", "w");
 
-    ASSERT_NEQ((int)f, (int)NULL);
+    ASSERT_NEQ((intptr_t)f, (intptr_t)NULL);
 
     reset_fixture();
     ret = fprintf(f, "hello %+d", 12345);
@@ -929,7 +934,7 @@ TEST(test_fprintf, percent_lx)
     FILE* f = fopen("test.txt", "w");
 
     reset_fixture();
-    ret = fprintf(f, "hello %lx", 12345);
+    ret = fprintf(f, "hello %lx", (long unsigned int)12345);
     ASSERT_STREQ((char*)"hello 3039", get_buffer());
     ASSERT_EQ(ret, 10);
 
@@ -942,7 +947,7 @@ TEST(test_fprintf, percent_llx)
     FILE* f = fopen("test.txt", "w");
 
     reset_fixture();
-    ret = fprintf(f, "hello %llx", 12345);
+    ret = fprintf(f, "hello %llx", (long long unsigned int)12345);
     ASSERT_STREQ((char*)"hello 3039", get_buffer());
     ASSERT_EQ(ret, 10);
 

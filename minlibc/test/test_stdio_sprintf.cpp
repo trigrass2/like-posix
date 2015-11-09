@@ -771,7 +771,7 @@ TEST(test_sprintf, percent_lx)
     int ret;
 
     reset_fixture();
-    ret = sprintf(get_buffer(), "hello %lx", 12345);
+    ret = sprintf(get_buffer(), "hello %lx", (long unsigned int)12345);
     ASSERT_STREQ((char*)"hello 3039", get_buffer());
     ASSERT_EQ(ret, 10);
 }
@@ -781,7 +781,7 @@ TEST(test_sprintf, percent_llx)
     int ret;
 
     reset_fixture();
-    ret = sprintf(get_buffer(), "hello %llx", 12345);
+    ret = sprintf(get_buffer(), "hello %llx", (long long unsigned int)12345);
     ASSERT_STREQ((char*)"hello 3039", get_buffer());
     ASSERT_EQ(ret, 10);
 }

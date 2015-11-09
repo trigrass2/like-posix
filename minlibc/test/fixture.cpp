@@ -64,7 +64,7 @@ int _read(int file, char *buf, unsigned int count)
     if(i >= sizeof(buffer))
         return EOF;
 
-    int n = EOF;
+    int n;
 
     for(n = 0; n < (int)count &&  i < sizeof(buffer); n++, i++) {
         *buf = buffer[i];
@@ -100,7 +100,10 @@ extern int _lseek(int file, int offset, int whence)
     return n;
 }
 
-
+void force_eof()
+{
+	i = sizeof(buffer);
+}
 void reset_fixture()
 {
     memset(buffer, 0, sizeof(buffer));

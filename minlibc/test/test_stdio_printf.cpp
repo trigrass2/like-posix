@@ -742,7 +742,7 @@ TEST(test_printf, percent_llu)
     int ret;
 
     reset_fixture();
-    ret = printf("hello %llu", 12345);
+    ret = printf("hello %llu", (long long unsigned int)12345);
     ASSERT_STREQ((char*)"hello 12345", get_buffer());
     ASSERT_EQ(ret, 11);
 }
@@ -773,7 +773,7 @@ TEST(test_printf, percent_lx)
     int ret;
 
     reset_fixture();
-    ret = printf("hello %lx", 12345);
+    ret = printf("hello %lx", (long unsigned int)12345);
     ASSERT_STREQ((char*)"hello 3039", get_buffer());
     ASSERT_EQ(ret, 10);
 }
@@ -783,7 +783,7 @@ TEST(test_printf, percent_llx)
     int ret;
 
     reset_fixture();
-    ret = printf("hello %llx", 12345);
+    ret = printf("hello %llx", (long long unsigned int)12345);
     ASSERT_STREQ((char*)"hello 3039", get_buffer());
     ASSERT_EQ(ret, 10);
 }
@@ -810,19 +810,16 @@ TEST(test_printf, percent_hhx)
 
 TEST(test_printf, percent_f)
 {
-    int ret;
-    int i;
-
     reset_fixture();
-    ret = printf("hello %.1f", 1.0);
+    printf("hello %.1f", 1.0);
     ASSERT_STREQ((char*)"hello 1.0", get_buffer());
     reset_fixture();
-    ret = printf("hello %.5f", 34435.535435);
+    printf("hello %.5f", 34435.535435);
     ASSERT_STREQ((char*)"hello 34435.53543", get_buffer());
     reset_fixture();
-    ret = printf("hello %.4f", 1.324234);
+    printf("hello %.4f", 1.324234);
     ASSERT_STREQ((char*)"hello 1.3242", get_buffer());
     reset_fixture();
-    ret = printf("hello %.8f", 353354354.0001);
+    printf("hello %.8f", 353354354.0001);
     ASSERT_STREQ((char*)"hello 353354354.00010001", get_buffer());
 }

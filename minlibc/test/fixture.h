@@ -28,6 +28,7 @@ extern "C" int _rename(const char *oldname, const char *newname);
 extern "C" int _fsync(int file);
 
 
+extern "C" void force_eof();
 extern "C" void reset_fixture();
 extern "C" char* get_buffer();
 

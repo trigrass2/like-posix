@@ -8,6 +8,11 @@ TESTSUITE(test_ffunc)
 
 }
 
+TEST(test_ffunc, test_init)
+{
+	init_minlibc();
+}
+
 TEST(test_ffunc, test_fclose_stdout)
 {
     int ret;
@@ -80,7 +85,7 @@ TEST(test_ffunc, test_fgets_null_fd)
     char* ret;
     reset_fixture();
     ret = fgets(get_buffer(), BUFFER_SIZE, NULL);
-    ASSERT_EQ((int)ret, NULL);
+    ASSERT_EQ((intptr_t)ret, NULL);
 }
 
 TEST(test_ffunc, test_fgets_no_newline)
@@ -89,14 +94,14 @@ TEST(test_ffunc, test_fgets_no_newline)
     const char* expect = "hello 1234hello 1234hello 1234hello 1234hello 1234hello 1234hello 1234hello 1234hello 1234hello 1234hello 1234hello 1234";
 
     char* ret;
-    FILE* fd = fopen("test2.txt", "w");
+    FILE* fd = fopen("test2.txt", "r");
 
     reset_fixture();
     strcpy(get_buffer(), expect);
 
     ret = fgets(buf, sizeof(buf), fd);
 
-    ASSERT_EQ((int)ret, (int)buf);
+    ASSERT_EQ((intptr_t)ret, (intptr_t)buf);
 //  ASSERT_STREQ(expect, buf); // buf is truncated to 99 chars long
     ASSERT_EQ((int)strlen(buf), (int)(sizeof(buf)-1));
 
@@ -109,14 +114,14 @@ TEST(test_ffunc, test_fgets_with_newline)
     const char* expect = "hello 123\nwerwerwerwerwer";
 
     char* ret;
-    FILE* fd = fopen("test3.txt", "w");
+    FILE* fd = fopen("test3.txt", "r");
 
     reset_fixture();
     strcpy(get_buffer(), expect);
 
     ret = fgets(buf, sizeof(buf), fd);
 
-    ASSERT_EQ((int)ret, (int)buf);
+    ASSERT_EQ((intptr_t)ret, (intptr_t)buf);
     ASSERT_STREQ((char*)"hello 123\n", buf);
     ASSERT_EQ((int)strlen(buf), (int)strlen("hello 123\n"));
 
@@ -125,18 +130,38 @@ TEST(test_ffunc, test_fgets_with_newline)
 
 TEST(test_ffunc, test_fgetc)
 {
-    char expect = '5';
     int ret;
-    FILE* fd = fopen("test4.txt", "w");
+    FILE* fd = fopen("test4.txt", "r");
+
+    ASSERT_EQ((int)(((fake__FILE*)fd)->_file), (int)3);
+    ASSERT_NEQ((intptr_t)fd, (intptr_t)NULL);
 
     reset_fixture();
+    force_eof();
     ret = fgetc(fd);
-    ASSERT_EQ(get_buffer()[0], '\0');
+    ASSERT_EQ(EOF, ret);
 
     reset_fixture();
-    get_buffer()[0] = expect;
+    get_buffer()[0] = '5';
     ret = fgetc(fd);
-    ASSERT_EQ(expect, (char)ret);
+    ASSERT_EQ((int)'5', ret);
+
+    fclose(fd);
+}
+
+TEST(test_ffunc, test_fgetc_ungetc)
+{
+    int ret;
+    FILE* fd = fopen("test4.txt", "r");
+
+    ASSERT_NEQ((intptr_t)fd, (intptr_t)NULL);
+    reset_fixture();
+    get_buffer()[0] = '5';
+    ret = fgetc(fd);
+    ASSERT_EQ((int)'5', ret);
+    ungetc('6', fd);
+    ret = fgetc(fd);
+    ASSERT_EQ((int)'6', ret);
 
     fclose(fd);
 }
