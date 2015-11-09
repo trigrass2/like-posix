@@ -66,7 +66,7 @@ int _close(int file)
 	return -1;
 }
 
-int fsync(int file)
+int _fsync(int file)
 {
     (void)file;
     return -1;

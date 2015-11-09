@@ -23,9 +23,9 @@ ifeq ($(USE_MINLIBC), 1)
 SOURCE += $(MINLIBCDIR)/string.c
 SOURCE += $(MINLIBCDIR)/stdio.c
 SOURCE += $(MINLIBCDIR)/stdlib.c
+SOURCE += $(MINLIBCDIR)/unistd.c
 ifeq ($(USE_LIKEPOSIX), 1)
 SOURCE += $(MINLIBCDIR)/termios.c
-SOURCE += $(MINLIBCDIR)/unistd.c
 endif
 ifeq ($(USE_DRIVER_FAT_FILESYSTEM), 1)
 SOURCE += $(MINLIBCDIR)/dirent.c
