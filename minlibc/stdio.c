@@ -544,10 +544,10 @@ void init_minlibc()
     __fstab[FILE_STREAM_TABLE_INDEX_STDERR]._flags = __SWR|__SNBF;
 }
 
-#define __eval_io_return(ret, stream) 	if(ret == 0){(((fake__FILE*)stream)->_flags) |= __SEOF;} 	\
-										else if(ret < 0){(((fake__FILE*)stream)->_flags) |= __SERR;}
+#define __eval_io_return(ret, stream) 	if(stream && ret == 0){(((fake__FILE*)stream)->_flags) |= __SEOF;} 	\
+										else if(stream && ret < 0){(((fake__FILE*)stream)->_flags) |= __SERR;}
 
-#define __eval_err_return(ret, stream) 	if(ret < 0){(((fake__FILE*)stream)->_flags) |= __SERR;}
+#define __eval_err_return(ret, stream) 	if(stream && ret < 0){(((fake__FILE*)stream)->_flags) |= __SERR;}
 
 
 static inline FILE* __get_stream_descriptor(int fdes, int flags)
@@ -733,17 +733,20 @@ int getc(FILE* stream)
 int fgetc(FILE* stream)
 {
     fake__FILE* s = (fake__FILE*)stream;
-    int c = EOF;
+    char c;
     if(s->_ub._size > 0)
     {
         s->_ub._size--;
         c = s->_ub._base[s->_ub._size];
+        return (int)c;
     }
     else
     {
-    	__eval_io_return(_read(__get_fileno(stream), (char*)&c, 1), stream);
+    	int ret = _read(__get_fileno(stream), (char*)&c, 1);
+    	__eval_io_return(ret, stream);
+    	return ret > 0 ? (int)c : EOF;
     }
-    return c;
+    return EOF;
 }
 
 int ungetc(int c, FILE* stream)
@@ -829,7 +832,7 @@ char* gets(char* str)
 {
 	if(fgets(str, 65535*32767, stdin))
 	{
-		char* nl = strchr((const char*)str, (int)'\n');
+		char* nl = strchr(str, (int)'\n');
 		if(nl)
 			*nl = '\0';
 		return str;
