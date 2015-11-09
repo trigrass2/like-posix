@@ -3,73 +3,34 @@
 
 <h2>introduction</h2>
 
-Appleseed is an application framework for devices based on STM32Fx microcontrollers.
+Appleseed is a mini POSIX like operating system for small microcontroller devices.
 
-It provides a set of tools and services and for growing powerful applications on small targets.
+Appleseed is designed to present a development flow similar to writing c programs for Linux, for platforms that are too low on memory to run Linux.
 
-Application development is made easy, in posix style, on platforms that are too low on memory to run Linux.
+Multi threading kernel (FreeRTOS), networking (LwIP), filesystem (Chans FF), Serial device IO, Shell, are connected under a subset of the posix system calls and a minimal libc implementation. The File IO part of stdio is (almost fully) implemented.
 
-Includes support for multi tasking (freertos), networking (lwip), filesystem (chans fat filesystem), posix system calls (like-posix), graphical/touch lcd, audio streaming and many other things.
+Hardware device drivers for Display, I2S, ADC's, DAC's, One Wire, PWM, and others are also included.
 
-Each folder in this repository holds a module or a category of modules. These are described below....
+Presently STM32F1, STM32F4 devices are supported.
 
-<h3>Including appleseed in a project</h3>
 
-This repository may sit anywhere releative to a particular project, but a nice way to do it is with git submodule.
+<h3>Including Appleseed in a project</h3>
 
-Assume that the project is called "myproject", the following step is required once only, to add the submodule.
-```bash
-## things to do once
-# get a copy of myproject
-git clone url-of-myproject-repo
-# add appleseed as a submodule
-git submodule add https://github.com/drmetal/applseed.git
-# initialise and update
-git submodule init
-git submodule update
-# commit and push the new submodule
-git commit .gitmodules applseed -m "adding appleseed"
-git push
-
-# from now on pulls on the myproject repo may be done to include the submodukes as well
-git pull --recurse-submodules
-
-# pushes are done separately, since myproject and appleed are still two different repos
-git commit ...
-git push ...
-cd appleseed
-git commit ...
-git push ...
-```
-
-Future clones of "myproject" can be made including  appleseed.
+This repository may sit anywhere releative to a particular project.
 
 ```bash
-#this will recursively bring all submodules in
-git clone --recursive url-of-myproject-repo
-# pull myproject and all submodules
-git pull --recurse-submodules
-# pull just myproject
-git pull
-# pull just appleseed
-cd appleseed
-git pull
-# commit and push as above...
-git commit ...
-git push ...
-cd appleseed
-git commit ...
-git push ...
+# get a copy of Appleseed
+git clone https://github.com/drmetal/appleseed.git
 ```
 
-Once you have the code on disk, include appleseed in your project makefile, this is outlined in the next section which describes the build-env folder.
+Once you have the code on disk, include Appleseed in your project makefile, this is outlined in the next section which describes the **build-env** folder.
 
 
 <h2>build-env</h2>
 
 <h3>Overview</h3>
 
-this module collects up a bunch of makefiles and scripts that can be used to build STM32 projects.
+this module collects up a bunch of makefiles and scripts that can be used to build Appleseed projects.
 
 Both STM32F1 and STM32F4 are supported, as well as multiple boards. Chip and board support is implemented in 
 stm32-device-support/board and stm32-device-support/device.
@@ -82,7 +43,7 @@ There are many options that may be specified in the project makefile. these are 
 All of the settings in **setup.mk** may be overridden in your project makefile, or as envirponment variables, or from the command line.
 
 Project configuration makes up the first section of the project makefile. **setup.mk** must be included at the end of you Makefile,
-to enable building with appleseed.
+to enable building with Appleseed.
 
 Here is an example:
 
@@ -106,16 +67,16 @@ PROJECT_NAME ?= demo-project
 SOURCE = main.c
 
 # the following are modules to enable - see setup.mk for a complete list of options.
-USE_MINSTDLIBS = 1
+USE_MINLIBC = 1
 USE_LOGGER = 1
-USE_POSIX_STYLE_IO = 1
+USE_LIKEPOSIX = 1
 USE_DRIVER_LEDS = 1
 USE_DRIVER_USART = 1
 USE_DRIVER_SDCARD = 1
 USE_DRIVER_FAT_FILESYSTEM = 1
 
 ## be sure to include the other makefiles
-include appleseed/build-env/setup.mk
+include ../appleseed/build-env/setup.mk
 ```
 
 <h3>build options</h3>
@@ -666,10 +627,10 @@ These at least would be needed in the makefile:
 
 ``` make 
 
-USE_MINSTDLIBS = 1
+USE_MINLIBC = 1
 USE_CONFPARSE = 1
 USE_LOGGER = 1
-USE_POSIX_STYLE_IO = 1
+USE_LIKEPOSIX = 1
 USE_SOCK_UTILS = 1
 USE_HTTP_UTILS = 1
 USE_THREADED_SERVER = 1
@@ -1015,7 +976,7 @@ void test_json_object_of_arrays()
 
 <h2>Third Party</h2>
 
-There are several third party libraries used by appleseed.
+There are several third party libraries used by Appleseed.
 
 <h3>LwIP</h3>
 obtained from:
@@ -1029,9 +990,9 @@ currently at V1.4.1
 
 obtained from: http://elm-chan.org/fsw/ff/00index_e.html
 
- - appleseed adds a diskio interface for stm32 microcontrollers.
- - appleseed additions rely upon the cutensils module 
- - appleseed additions rely upon the stm32-device-support module, for sdcard.h and sdcard driver implementation(s)
+ - Appleseed adds a diskio interface for stm32 microcontrollers.
+ - Appleseed additions rely upon the cutensils module 
+ - Appleseed additions rely upon the stm32-device-support module, for sdcard.h and sdcard driver implementation(s)
  
 currently at V0.11
 
@@ -1049,7 +1010,7 @@ obtained from:
 
 bitbucket.org/zserge/jsmn
 
-Note: can be used in conjunction with the appleseed JSON API  **jsmn_extensions**.
+Note: can be used in conjunction with the Appleseed JSON API  **jsmn_extensions**.
 
 
 
