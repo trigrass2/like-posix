@@ -65,19 +65,41 @@ jsmnerr_t json_init(json_t* json, jsmntok_t* tokens, int ntokens, char* input, i
 }
 
 /**
- * resets the json iterator.
+ * checks that a token is iterable.
+ *
+ * @param   iterable - pointer to the particular json token to check is an iterable type.
+ * @retval	returns the iterable if it is an iterable, or NULL if not.
+ */
+jsmntok_t* json_token_is_iterable(jsmntok_t* iterable)
+{
+	return iterable && (iterable->type == JSMN_ARRAY || iterable->type == JSMN_OBJECT) ? iterable : NULL;
+}
+
+/**
+ * checks that an iterable token contains the specified subtoken.
+ *
+ * @param   token - pointer to the json token to check.
+ * @param   iterable - pointer to the json iterable token.
+ * @retval	returns the token if it is inside the iterable, or NULL if not.
+ */
+jsmntok_t* json_token_in_iterable(jsmntok_t* token, jsmntok_t* iterable)
+{
+	return iterable && (token >= iterable) && (token <= (iterable + iterable->size)) ? token : NULL;
+}
+
+/**
+ * resets the json iterator, on the specified iterable.
  *
  * this function must be called prior to using json_iterator().
  *
  * @param   json - pointer to the initialized json structure to work with.
- * @param   container - pointer to the particular json array or object to iterate on with within the token array.
- * @retval  returns 'container'.
- *
- *          the return value may also be accessed by the function json_get_current_item().
+ * @param   iterable - pointer to the particular json array or object to iterate on with within the token array.
+ * @retval  returns the iterable if it is iterable, or NULL if not. *
+ *          the return value may be accessed by the function json_get_current_item().
  */
-jsmntok_t* json_reset_iterator(json_t* json, jsmntok_t* container)
+jsmntok_t* json_reset_iterator(json_t* json, jsmntok_t* iterable)
 {
-    json->current_item = json->current_iterable = container;
+    json->current_item = json->current_iterable = json_token_is_iterable(iterable);
     return json->current_item;
 }
 
@@ -96,11 +118,13 @@ jsmntok_t* json_reset_iterator(json_t* json, jsmntok_t* container)
  */
 jsmntok_t* json_iterator(json_t* json)
 {
-    if(json->current_iterable && json->current_iterable->type != JSMN_PRIMITIVE && json->current_iterable->type != JSMN_STRING)
+    if(json_token_is_iterable(json->current_iterable))
     {
-        if(json->current_item < json->current_iterable || json->current_item > (json->current_iterable + json->current_iterable->size))
+    	// if we are not currently within the iterable, set the current to the iterable itself
+        if(!json_token_in_iterable(json->current_item, json->current_iterable))
            json->current_item = json->current_iterable;
 
+        // if we are already inside the iterable
         if(json->current_item != json->current_iterable)
         {
             json->current_item += json->current_item->size;
@@ -108,11 +132,8 @@ jsmntok_t* json_iterator(json_t* json)
                 json->current_item++;
         }
 
-        // advance to next item
-        json->current_item++;
-        // return NULL if we hit the end of the parent container
-        if(&json->tokens[json->current_item->parent] != json->current_iterable)
-            json->current_item = NULL;
+        // advance to next item, return NULL if we hit the end of the parent container
+        json->current_item = json_token_in_iterable(json->current_item + 1, json->current_iterable);
     }
     else
         json->current_item = NULL;
@@ -128,12 +149,9 @@ jsmntok_t* json_iterator(json_t* json)
  */
 jsmntok_t* json_iterator_get_object_value(json_t* json)
 {
-    if(json->current_iterable && json->current_item &&
-       json->current_iterable->type == JSMN_OBJECT &&
-       json->current_iterable == (json->tokens + json->current_item->parent))
-    {
+    if(json_token_in_iterable(json->current_item, json->current_iterable) && json->current_iterable->type == JSMN_OBJECT)
         return json->current_item + 1;
-    }
+
     return NULL;
 }
 
@@ -154,15 +172,14 @@ jsmntok_t* json_object_value_iterator(json_t* json)
 {
     if(json->current_iterable && json->current_iterable->type == JSMN_OBJECT && json->current_iterable->size >= 2)
     {
-        if(json->current_item < json->current_iterable || json->current_item > (json->current_iterable + json->current_iterable->size))
+        if(!json_token_in_iterable(json->current_item, json->current_iterable))
             json->current_item = json->current_iterable;
         else if(json->current_item != json->current_iterable)
             json->current_item += json->current_item->size;
 
         json->current_item += 2;
 
-        if(&json->tokens[json->current_item->parent] != json->current_iterable)
-            json->current_item = NULL;
+        json->current_item = json_token_in_iterable(json->current_item, json->current_iterable);
     }
 
     return json->current_item;
@@ -316,7 +333,7 @@ int json_token_integer_value(json_t* json, jsmntok_t* token)
  *
  *          warning - this function modifies the input buffer, zero terminating the float representation.
  */
-float json_token_float_value(json_t* json, jsmntok_t* token)
+double json_token_float_value(json_t* json, jsmntok_t* token)
 {
     if(token && token->type == JSMN_PRIMITIVE)
     {

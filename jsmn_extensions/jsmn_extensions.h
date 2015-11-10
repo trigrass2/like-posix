@@ -59,8 +59,10 @@ jsmntok_t* json_get_current_iterable(json_t* json);
 
 bool json_token_value_match(json_t* json, jsmntok_t* token, const char* value);
 
+jsmntok_t* json_token_is_iterable(jsmntok_t* iterable);
+jsmntok_t* json_token_in_iterable(jsmntok_t* token, jsmntok_t* iterable);
 int json_token_integer_value(json_t* json, jsmntok_t* token);
-float json_token_float_value(json_t* json, jsmntok_t* token);
+double json_token_float_value(json_t* json, jsmntok_t* token);
 char* json_token_string_value(json_t* json, jsmntok_t* token);
 
 bool json_value_match(json_t* json, const char* value);
