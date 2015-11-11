@@ -82,6 +82,10 @@ USE_LOGGER ?= 0
 USE_UDP_LOGGER ?= 0
 USE_LOGGER_TIMESTAMP ?= 1
 
+## to use pthreads, freertos is required.
+# set to 1 to enable
+USE_PTHREADS ?= 0
+
 ## to use many of the facilities, posix style IO is required.
 # set to 1 to enable
 USE_LIKEPOSIX ?= 0
@@ -180,6 +184,8 @@ GRAPHICSDIR ?= $(STM32DEVSUPPORTDIR)/graphics
 JSMNDIR ?= $(STM32DEVSUPPORTDIR)/jsmn
 ## specify location of jsmn_extensions
 JSMN_EXTENSIONS_DIR ?= $(STM32DEVSUPPORTDIR)/jsmn_extensions
+## specify location of pthreads
+PTHREADS_DIR ?= $(STM32DEVSUPPORTDIR)/pthreads
 
 ## relocate application
 # set appropriately if there is a bootloader in the low flash pages
