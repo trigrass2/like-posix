@@ -1,18 +1,34 @@
 
 <h1>Appleseed</h1>
 
-<h2>introduction</h2>
 
 Appleseed is a mini POSIX like operating system for small microcontroller devices.
 
 Appleseed is designed to present a development flow similar to writing c programs for Linux, for platforms that are too low on memory to run Linux.
 
-Multi threading kernel (FreeRTOS), networking (LwIP), filesystem (Chans FF), Serial device IO, Shell, are connected under a subset of the posix system calls and a minimal libc implementation. The File IO part of stdio is (almost fully) implemented.
+Multi threading kernel (FreeRTOS), networking (LwIP), filesystem (Chans FF), Serial device IO, Shell, are connected under a subset of the posix system calls and a minimal libc implementation. 
 
-Hardware device drivers for Display, I2S, ADC's, DAC's, One Wire, PWM, and others are also included.
+OS and libc level features:
+ - pthreads api 
+ - posix system call api (Eg termios, unistd)
+ - fully integrated file oriented IO for files, devices and sockets
+ - minimal standard libraries (stdlib, stdio)
+ - stdio file stream api, (Eg fopen, fprintf, perror, tmpfile etc)
+ - powerful shell with IO redirection
 
-Presently STM32F1, STM32F4 devices are supported.
+Many hardware peripheral drivers are also included:
+ - TFT Display, graphic widgets and smooth fonts
+ - I2S
+ - ADC's
+ - DAC's
+ - One Wire
+ - PWM
+ - Serial (raw and via /dev/ttyXX)
+ - SPI (raw and via /dev/ttyXX)
 
+Presently STM32F1, STM32F4 devices are supported. Any board with almost any STM32 device on it can be supported.
+
+Demo projects are located here [Absolute README link](https://github.com/drmetal/stm32-demos/blob/master/README.md)
 
 <h4>Including Appleseed in a project</h4>
 
