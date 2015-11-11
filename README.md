@@ -28,7 +28,7 @@ Many hardware peripheral drivers are also included:
 
 Presently STM32F1, STM32F4 devices are supported. Any board with almost any STM32 device on it can be supported.
 
-Demo projects are located here [Absolute README link](https://github.com/drmetal/stm32-demos/blob/master/README.md)
+Demo projects are located here [Appleseed Demos](https://github.com/drmetal/stm32-demos/blob/master/README.md).
 
 <h4>Including Appleseed in a project</h4>
 
