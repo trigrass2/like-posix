@@ -172,7 +172,7 @@ size_t xBlockSize;                                                              
     pxIterator->pxNextFreeBlock = pxBlockToInsert;                                  \
 }
 /*-----------------------------------------------------------*/
-void *pvPortMalloc_ccram( size_t xWantedSize )
+void *malloc_ccram( size_t xWantedSize )
 {
 ccramBlockLink_t *pxBlock, *pxPreviousBlock, *pxNewBlockLink;
 static BaseType_t xHeapHasBeenInitialised = pdFALSE;
@@ -264,7 +264,7 @@ void *pvReturn = NULL;
 }
 /*-----------------------------------------------------------*/
 
-void vPortFree_ccram( void *pv )
+void free_ccram( void *pv )
 {
 uint8_t *puc = ( uint8_t * ) pv;
 ccramBlockLink_t *pxLink;

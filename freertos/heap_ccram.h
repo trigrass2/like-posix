@@ -67,12 +67,10 @@
 #ifndef HEAP_CCRAM_H_
 #define HEAP_CCRAM_H_
 
-void *pvPortMalloc_ccram( size_t xWantedSize );
-void vPortFree_ccram( void *pv );
-size_t xPortGetFreeHeapSize_ccram( void );
-
-#define malloc_ccram(size) pvPortMalloc_ccram(size)
-#define free_ccram(ptr) vPortFree_ccram(ptr)
 void* calloc_ccram(size_t num, size_t size);
+void* malloc_ccram(size_t xWantedSize);
+void free_ccram(void* pv);
+size_t xPortGetFreeHeapSize_ccram(void);
+
 
 #endif  //HEAP_CCRAM_H_
