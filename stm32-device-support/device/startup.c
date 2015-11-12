@@ -39,6 +39,19 @@
 #include "board_config.h"
 #include "services.h"
 
+#if USE_FREERTOS
+#if USE_PTHREADS
+#include <pthread.h>
+typedef void*(*threadfunc)(void*);
+#else
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+typedef TaskHandle_t threadfunc;
+#endif
+#endif
+
+
 
 #define WEAK        __attribute__ ((weak))
 #define BSS_FILL    0
@@ -107,7 +120,22 @@ void Reset_Handler()
     init_services();
 
 	/* Call the application's entry point.*/
+#if USE_FREERTOS
+#if USE_PTHREADS
+	pthread_t main_thread;
+	pthread_attr_t main_attr;
+	pthread_attr_init(&main_attr);
+	pthread_attr_setstacksize(&main_attr, configMAIN_STACK_SIZE);
+	pthread_attr_setdetachstate(&main_attr, PTHREAD_CREATE_DETACHED);
+	pthread_create(&main_thread, &main_attr, (threadfunc)main, NULL);
+	pthread_attr_destroy(&main_attr);
+#else
+    xTaskCreate((threadfunc)main, "main", configMAIN_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
+#endif
+	vTaskStartScheduler();
+#else
 	main();
+#endif
 
 	while(1);
 }
