@@ -1,20 +1,36 @@
 
 <h1>Appleseed</h1>
 
-<h2>introduction</h2>
 
 Appleseed is a mini POSIX like operating system for small microcontroller devices.
 
 Appleseed is designed to present a development flow similar to writing c programs for Linux, for platforms that are too low on memory to run Linux.
 
-Multi threading kernel (FreeRTOS), networking (LwIP), filesystem (Chans FF), Serial device IO, Shell, are connected under a subset of the posix system calls and a minimal libc implementation. The File IO part of stdio is (almost fully) implemented.
+Multi threading kernel (FreeRTOS), networking (LwIP), filesystem (Chans FF), Serial device IO, Shell, are connected under a subset of the posix system calls and a minimal libc implementation. 
 
-Hardware device drivers for Display, I2S, ADC's, DAC's, One Wire, PWM, and others are also included.
+OS and libc level features:
+ - pthreads api 
+ - posix system call api (Eg termios, unistd)
+ - fully integrated file oriented IO for files, devices and sockets
+ - minimal standard libraries (stdlib, stdio)
+ - stdio file stream api, (Eg fopen, fprintf, perror, tmpfile etc)
+ - powerful shell with IO redirection
 
-Presently STM32F1, STM32F4 devices are supported.
+Many hardware peripheral drivers are also included:
+ - TFT Display, graphic widgets and smooth fonts
+ - I2S
+ - ADC's
+ - DAC's
+ - One Wire
+ - PWM
+ - Serial (raw and via /dev/ttyXX)
+ - SPI (raw and via /dev/ttyXX)
 
+Presently STM32F1, STM32F4 devices are supported. Any board with almost any STM32 device on it can be supported.
 
-<h4>Including Appleseed in a project</h4>
+Demo projects are located here [Appleseed Demos](https://github.com/drmetal/stm32-demos/blob/master/README.md).
+
+<h2>Including Appleseed in a project</h2>
 
 This repository may sit anywhere releative to a particular project.
 
@@ -26,24 +42,18 @@ git clone https://github.com/drmetal/appleseed.git
 Once you have the code on disk, include Appleseed in your project makefile, this is outlined in the next section which describes the **build-env** folder.
 
 
-<h2>build-env</h2>
+<h4>build-env</h4>
 
-<h4>Overview</h4>
-
-this module collects up a bunch of makefiles and scripts that can be used to build Appleseed projects.
+appleseed/build-env contains a bunch of makefiles and scripts that can be used to build Appleseed projects.
 
 Both STM32F1 and STM32F4 are supported, as well as multiple boards. Chip and board support is implemented in 
-stm32-device-support/board and stm32-device-support/device.
+appleseed/stm32-device-support/board and appleseed/stm32-device-support/device.
  
- 
-<h4>Options in project Makefiles</h4>
+The project build environment may be specified in the project makefile, by including appleseed/build-env/setup.mk in the project makefile. setup.mk contains the full set of configuration options.
 
-There are many options that may be specified in the project makefile. these are set to defaults in the file **setup.mk**.
+All of the settings in **setup.mk** may be overridden in your project makefile, or as environment variables, or from the command line.
 
-All of the settings in **setup.mk** may be overridden in your project makefile, or as envirponment variables, or from the command line.
-
-Project configuration makes up the first section of the project makefile. **setup.mk** must be included at the end of you Makefile,
-to enable building with Appleseed.
+Project configuration makes up the first section of the project makefile. **setup.mk** must be included at the end of your Makefile, to enable building with Appleseed.
 
 Here is an example:
 
