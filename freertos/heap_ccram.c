@@ -152,10 +152,10 @@ static size_t xFreeBytesRemaining = configADJUSTED_CCRAM_HEAP_SIZE;
  * the block.  Small blocks at the start of the list and large blocks at the end
  * of the list.
  */
-#define prvInsertBlockIntoFreeList_ccram( pxBlockToInsert )                               \
+#define prvInsertBlockIntoFreeList_ccram( pxBlockToInsert )                         \
 {                                                                                   \
-ccramBlockLink_t *pxIterator;                                                                \
-size_t xBlockSize;                                                                  \
+	ccramBlockLink_t *pxIterator;                                                   \
+	size_t xBlockSize;                                                              \
                                                                                     \
     xBlockSize = pxBlockToInsert->xBlockSize;                                       \
                                                                                     \
@@ -174,9 +174,9 @@ size_t xBlockSize;                                                              
 /*-----------------------------------------------------------*/
 void *malloc_ccram( size_t xWantedSize )
 {
-ccramBlockLink_t *pxBlock, *pxPreviousBlock, *pxNewBlockLink;
-static BaseType_t xHeapHasBeenInitialised = pdFALSE;
-void *pvReturn = NULL;
+	ccramBlockLink_t *pxBlock, *pxPreviousBlock, *pxNewBlockLink;
+	static BaseType_t xHeapHasBeenInitialised = pdFALSE;
+	void *pvReturn = NULL;
 
     vTaskSuspendAll();
     {
@@ -266,8 +266,8 @@ void *pvReturn = NULL;
 
 void free_ccram( void *pv )
 {
-uint8_t *puc = ( uint8_t * ) pv;
-ccramBlockLink_t *pxLink;
+	uint8_t *puc = ( uint8_t * ) pv;
+	ccramBlockLink_t *pxLink;
 
     if( pv != NULL )
     {
@@ -305,8 +305,8 @@ void vPortInitialiseBlocks_ccram( void )
 
 static void prvHeapInit_ccram( void )
 {
-ccramBlockLink_t *pxFirstFreeBlock;
-uint8_t *pucAlignedHeap;
+	ccramBlockLink_t *pxFirstFreeBlock;
+	uint8_t *pucAlignedHeap;
 
     /* Ensure the heap starts on a correctly aligned boundary. */
     pucAlignedHeap = ( uint8_t * ) ( ( ( portPOINTER_SIZE_TYPE ) &uc_CCRAM_Heap[ portBYTE_ALIGNMENT ] ) & ( ( portPOINTER_SIZE_TYPE ) ~portBYTE_ALIGNMENT_MASK ) );
@@ -327,9 +327,10 @@ uint8_t *pucAlignedHeap;
     pxFirstFreeBlock->pxNextFreeBlock = &xEnd;
 }
 
-void* calloc_ccram(size_t num, size_t size) {
+void* calloc_ccram(size_t num, size_t size)
+{
     size *= num;
-    void* m = pvPortMalloc_ccram(size);
+    void* m = malloc_ccram(size);
     if(m)
         memset(m, 0, size);
     return m;
