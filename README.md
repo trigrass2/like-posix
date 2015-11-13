@@ -1,4 +1,4 @@
-<a href="https://drive.google.com/open?id=0B1Zk1jXs2BXaQ1hTSnZKN0ctaGs" target="_blank"><img src="https://drive.google.com/open?id=0B1Zk1jXs2BXaQ1hTSnZKN0ctaGs"/></a><h1>Appleseed</h1>
+<a href="https://drive.google.com/uc?export=view&id=0B1Zk1jXs2BXaQ1hTSnZKN0ctaGs"><img src="https://drive.google.com/uc?export=view&id=0B1Zk1jXs2BXaQ1hTSnZKN0ctaGs" style="width: 300px; max-width: 100%; height: auto; 	transform: rotate(270deg)" title="Click for the larger version." /></a><h1>Appleseed</h1>
 
 Appleseed is a mini POSIX like operating system for small microcontroller devices.
 
