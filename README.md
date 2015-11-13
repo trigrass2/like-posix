@@ -1,4 +1,4 @@
-<img src="https://drive.google.com/uc?export=view&id=0B1Zk1jXs2BXaQ1hTSnZKN0ctaGs" style="text-align: centre;"/>
+<img src="https://drive.google.com/uc?export=view&id=0B1Zk1jXs2BXaQ1hTSnZKN0ctaGs" align="middle" style="text-align: centre;"/>
 
 <h1 style="text-align: centre;">Appleseed</h1>
 
