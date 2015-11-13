@@ -1,6 +1,6 @@
 <img src="https://drive.google.com/uc?export=view&id=0B1Zk1jXs2BXaQ1hTSnZKN0ctaGs" style="text-align: centre;"/>
 
-<h1style="text-align: centre;">Appleseed</h1>
+<h1 style="text-align: centre;">Appleseed</h1>
 
 Appleseed is a mini POSIX like operating system for small microcontroller devices.
 
