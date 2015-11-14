@@ -43,6 +43,7 @@ extern "C" {
 #include <stdlib.h>
 
 extern int _system(const char *command);
+extern void _exit(int i);
 
 #ifdef __cplusplus
 }
