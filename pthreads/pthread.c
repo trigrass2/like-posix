@@ -55,22 +55,23 @@ static const struct _pthread_attr_t __default_pattr = {
 pthread_t __thread_table[PTHREAD_THREADS_MAX];
 SemaphoreHandle_t __thread_table_lock;
 
-static inline void insert_pthread(pthread_t thread)
+static inline pthread_t new_pthread()
 {
 	int i;
 	xSemaphoreTake(__thread_table_lock, portMAX_DELAY);
 	for(i = 0; i < PTHREAD_THREADS_MAX; i++)
 	{
-		if(!__thread_table[i])
+		if(__thread_table[i] == NULL)
 		{
-			__thread_table[i] = thread;
+			__thread_table[i] = malloc(sizeof(struct _pthread_t));
 			break;
 		}
 	}
 	xSemaphoreGive(__thread_table_lock);
+	return __thread_table[i];
 }
 
-static inline void remove_pthread(pthread_t thread)
+static inline void delete_pthread(pthread_t thread)
 {
 	int i;
 	xSemaphoreTake(__thread_table_lock, portMAX_DELAY);
@@ -79,6 +80,7 @@ static inline void remove_pthread(pthread_t thread)
 		if(__thread_table[i] == thread)
 		{
 			__thread_table[i] = NULL;
+			free(thread);
 			break;
 		}
 	}
@@ -108,7 +110,7 @@ int pthread_create(pthread_t* thread, const pthread_attr_t* attr, void* (*start_
 {
 	int ret = -1;
 	BaseType_t ok = pdFALSE;
-	pthread_t pthread = malloc(sizeof(struct _pthread_t));
+	pthread_t pthread;
 	pthread_attr_t pattr;
 	if(attr)
 		pattr = *attr;
@@ -121,6 +123,7 @@ int pthread_create(pthread_t* thread, const pthread_attr_t* attr, void* (*start_
 		assert_true(__thread_table_lock);
 	}
 
+	pthread = new_pthread();
 	if(pthread)
 	{
 		pthread->__status = NULL;
@@ -132,7 +135,6 @@ int pthread_create(pthread_t* thread, const pthread_attr_t* attr, void* (*start_
 								arg, PTHREAD_TASK_PRIO, &pthread->__taskhandle);
 		if(ok)
 		{
-			insert_pthread(pthread);
 			ret= 0;
 			*thread = pthread;
 		}
@@ -140,7 +142,7 @@ int pthread_create(pthread_t* thread, const pthread_attr_t* attr, void* (*start_
 			vSemaphoreDelete(pthread->__join);
 
 		if(ret != 0)
-			free(pthread);
+			delete_pthread(pthread);
 	}
 
 	return ret;
@@ -154,7 +156,7 @@ void pthread_exit(void* status)
 		thread->__status = status;
 		if(thread->__join)
 			xSemaphoreGive(thread->__join);
-		remove_pthread(thread);
+		delete_pthread(thread);
 		vTaskDelete(NULL);
 	}
 }
@@ -166,7 +168,8 @@ int pthread_join(pthread_t thread, void** status)
 	{
 		ok = xSemaphoreTake(thread->__join, portMAX_DELAY);
 		vSemaphoreDelete(thread->__join);
-		*status = thread->__status;
+		if(status)
+		    *status = thread->__status;
 	}
 	return ok ? 0 : -1;
 }
