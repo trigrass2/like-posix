@@ -39,22 +39,43 @@
 #include "queue.h"
 #include "semphr.h"
 
-#define STATIC_PTHREAD_ATTR			0
-#define PTHREAD_TASK_PRIO			tskIDLE_PRIORITY + 1
-
-#define PTHREAD_THREADS_MAX			32
-#define PTHREAD_KEYS_MAX			0
-#define PTHREAD_STACK_MIN			configMINIMAL_STACK_SIZE
 #define PTHREAD_CREATE_JOINABLE		0
 #define PTHREAD_CREATE_DETACHED		1
 
+#define PTHREAD_MUTEX_DEFAULT       0
+#define PTHREAD_MUTEX_NORMAL        1
+#define PTHREAD_MUTEX_ERRORCHECK    2
+#define PTHREAD_MUTEX_RECURSIVE    3
 
-#if STATIC_PTHREAD_ATTR
-typedef struct _pthread_attr_t pthread_attr_t;
-#else
-typedef struct _pthread_attr_t* pthread_attr_t;
-#endif
+
+#define PTHREAD_THREADS_MAX			32
+
+#define PTHREAD_TASK_PRIO			tskIDLE_PRIORITY + 1
+#define PTHREAD_KEYS_MAX			0
+#define PTHREAD_STACK_MIN			configMINIMAL_STACK_SIZE
+
+
 typedef struct _pthread_t* pthread_t;
+
+typedef struct {
+    size_t  __stacksize;
+    int     __state;
+}pthread_attr_t;
+
+struct _pthread_t {
+    TaskHandle_t __taskhandle;
+    SemaphoreHandle_t __join;
+    void* __status;
+};
+
+typedef struct {
+    char __type;
+}pthread_mutexattr_t;
+
+typedef struct {
+    SemaphoreHandle_t __mutex;
+    pthread_mutexattr_t __attr;
+}pthread_mutex_t;
 
 int pthread_attr_init(pthread_attr_t *attr);
 int pthread_attr_destroy(pthread_attr_t *attr);
@@ -70,11 +91,15 @@ int pthread_equal(pthread_t thread_1, pthread_t thread_2);
 pthread_t pthread_self(void);
 int pthread_detach(pthread_t thread);
 
-//int pthread_mutex_init(pthread_mutex_t * mutex, const pthread_mutex_attr *attr);
-//int pthread_mutex_destroy(pthread_mutex_t * mutex);
-//int pthread_mutex_lock(pthread_mutex_t * mutex);
-//int pthread_mutex_trylock(pthread_mutex_t * mutex);
-//int pthread_mutex_unlock(pthread_mutex_t * mutex);
+int pthread_mutex_init(pthread_mutex_t * mutex, const pthread_mutexattr_t *attr);
+int pthread_mutex_destroy(pthread_mutex_t * mutex);
+int pthread_mutex_lock(pthread_mutex_t * mutex);
+int pthread_mutex_trylock(pthread_mutex_t * mutex);
+int pthread_mutex_unlock(pthread_mutex_t * mutex);
 
+int pthread_mutexattr_init(pthread_mutexattr_t *attr);
+int pthread_mutexattr_destroy(pthread_mutexattr_t *attr);
+int pthread_mutexattr_gettype(const pthread_mutexattr_t *attr, int *type);
+int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type);
 
 #endif /* _PTHREAD_H_ */

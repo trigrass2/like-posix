@@ -204,6 +204,12 @@ int system(const char *command)
 #endif
 }
 
+void exit(int code)
+{
+    _exit(code);
+    while(1);
+}
+
 /**
  * @}
  */
