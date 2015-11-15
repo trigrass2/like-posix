@@ -85,6 +85,7 @@ USE_LOGGER_TIMESTAMP ?= 1
 ## to use pthreads, freertos is required.
 # set to 1 to enable
 USE_PTHREADS ?= 0
+PTHREAD_THREADS_MAX ?= 32
 
 ## to use many of the facilities, posix style IO is required.
 # set to 1 to enable
