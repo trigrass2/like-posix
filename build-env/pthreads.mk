@@ -15,4 +15,5 @@ CFLAGS += -DUSE_PTHREADS=$(USE_PTHREADS)
 ifeq ($(USE_PTHREADS), 1)
 CFLAGS += -I $(PTHREADS_DIR)
 SOURCE += $(PTHREADS_DIR)/pthread.c
+SOURCE += $(PTHREADS_DIR)/pthread_mutex.c
 endif

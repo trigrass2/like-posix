@@ -33,21 +33,9 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 #include "pthread.h"
 
-struct _pthread_attr_t{
-	size_t 	__stacksize;
-	int 	__state;
-};
-
-struct _pthread_t {
-	TaskHandle_t __taskhandle;
-	SemaphoreHandle_t __join;	// used throughout not only to perform joining, but to indicate joinableness.
-	void* __status;
-};
-
-static const struct _pthread_attr_t __default_pattr = {
+static const pthread_attr_t __default_pattr = {
 		.__stacksize = PTHREAD_STACK_MIN,
 		.__state = PTHREAD_CREATE_JOINABLE
 };
@@ -111,11 +99,8 @@ int pthread_create(pthread_t* thread, const pthread_attr_t* attr, void* (*start_
 	int ret = -1;
 	BaseType_t ok = pdFALSE;
 	pthread_t pthread;
-	pthread_attr_t pattr;
-	if(attr)
-		pattr = *attr;
-	else
-		pattr = (pthread_attr_t)&__default_pattr;
+	if(!attr)
+		attr = &__default_pattr;
 
 	if(!__thread_table_lock)
 	{
@@ -128,10 +113,10 @@ int pthread_create(pthread_t* thread, const pthread_attr_t* attr, void* (*start_
 	{
 		pthread->__status = NULL;
 		pthread->__join = NULL;
-		if(pattr->__state == PTHREAD_CREATE_JOINABLE)
+		if(attr->__state == PTHREAD_CREATE_JOINABLE)
 			pthread->__join = xSemaphoreCreateBinary();
 
-		ok = xTaskCreate((TaskFunction_t)start_routine, NULL, pattr->__stacksize,
+		ok = xTaskCreate((TaskFunction_t)start_routine, NULL, attr->__stacksize,
 								arg, PTHREAD_TASK_PRIO, &pthread->__taskhandle);
 		if(ok)
 		{
@@ -199,67 +184,36 @@ pthread_t pthread_self(void)
 
 int pthread_attr_init(pthread_attr_t *attr)
 {
-#if STATIC_PTHREAD_ATTR
-	memcpy(*attr, &__default_pattr, sizeof(__default_pattr));
-#else
-	pthread_attr_t pattr = malloc(sizeof(struct _pthread_attr_t));
-	if(pattr)
-	{
-		memcpy(pattr, &__default_pattr, sizeof(__default_pattr));
-		*attr = pattr;
-		return 0;
-	}
-#endif
+	memcpy(attr, &__default_pattr, sizeof(pthread_attr_t));
 	return -1;
 }
 
 int pthread_attr_destroy(pthread_attr_t *attr)
 {
-#if STATIC_PTHREAD_ATTR
 	(void)attr;
-#else
-	if(*attr)
-		free(*attr);
-#endif
 	return 0;
 }
 
 int pthread_attr_getstacksize(pthread_attr_t *attr, size_t * stacksize)
 {
-#if STATIC_PTHREAD_ATTR
 	*stacksize = attr->__stacksize;
-#else
-	*stacksize = (*attr)->__stacksize;
-#endif
 	return 0;
 }
 
 int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
 {
-#if STATIC_PTHREAD_ATTR
 	attr->__stacksize = stacksize;
-#else
-	(*attr)->__stacksize = stacksize;
-#endif
 	return 0;
 }
 
 int pthread_attr_setdetachstate(pthread_attr_t *attr, int state)
 {
-#if STATIC_PTHREAD_ATTR
 	attr->__state = state;
-#else
-	(*attr)->__state = state;
-#endif
 	return 0;
 }
 
 int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *state)
 {
-#if STATIC_PTHREAD_ATTR
 	*state = attr->__state;
-#else
-	*state = (*attr)->__state;
-#endif
 	return 0;
 }
