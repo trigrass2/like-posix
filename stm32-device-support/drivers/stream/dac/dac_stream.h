@@ -41,9 +41,9 @@
 #define DAC_STREAM_H
 
 #include <stdint.h>
+#include "../../../board/uemb4.bsp/dac_config.h"
 #include "board_config.h"
 #include "cutensils.h"
-#include "dac_config.h"
 #include "dac_stream_config.h"
 #include "stream_common.h"
 

@@ -37,8 +37,8 @@
  * @{
  */
 #include <stdio.h>
+#include "../../board/uemb4.bsp/sdcard_config.h"
 #include "diskio.h"
-#include "sdcard_config.h"
 #include "ff.h"
 #include "sdcard.h"
 

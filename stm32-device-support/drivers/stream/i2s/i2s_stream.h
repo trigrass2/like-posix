@@ -41,10 +41,10 @@
 #define I2S_STREAM_H
 
 #include <stdint.h>
+#include "../../../board/rrcv2.bsp/codec_config.h"
 
 #include "board_config.h"
 #include "cutensils.h"
-#include "codec_config.h"
 #include "i2s_stream_config.h"
 #include "stream_common.h"
 

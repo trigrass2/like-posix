@@ -41,6 +41,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include "../../board/uemb4.bsp/lcd_config.h"
 
 #include "board_config.h"
 
@@ -49,7 +50,6 @@
 #include "task.h"
 #include "semphr.h"
 
-#include "lcd_config.h"
 #include "ili932x.h"
 #include "system.h"
 

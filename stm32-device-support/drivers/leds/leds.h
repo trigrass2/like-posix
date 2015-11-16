@@ -44,7 +44,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #endif
-#include "led_config.h"
+#include "../../board/uemb4.bsp/led_config.h"
 #include "board_config.h"
 
 #ifndef LEDS_H

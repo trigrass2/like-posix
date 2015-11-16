@@ -30,10 +30,10 @@
  *
  */
 
+#include "../../board/uemb4.bsp/net_config.h"
 #include "lwipopts.h"
 #include "lwip/netif.h"
 #include "logger.h"
-#include "net_config.h"
 #include "FreeRTOS.h"
 #include "queue.h"
 #include "semphr.h"

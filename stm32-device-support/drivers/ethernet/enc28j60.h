@@ -43,7 +43,7 @@
 #define ENC28J60_H_
 
 #include <stdint.h>
-#include "net_config.h"
+#include "../../board/uemb4.bsp/net_config.h"
 #include "board_config.h"
 
 

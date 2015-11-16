@@ -33,7 +33,7 @@
 #ifndef BASE_SPI_H_
 #define BASE_SPI_H_
 
-#include "spi_config.h"
+#include "../../board/rrcv1.bsp/spi_config.h"
 
 #define NUM_ONCHIP_SPIS 3
 

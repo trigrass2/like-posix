@@ -32,8 +32,8 @@
  *
  */
 
+#include "../../board/uemb4.bsp/tsc2046_config.h"
 #include "board_config.h"
-#include "tsc2046_config.h"
 
 #ifndef TSC2046_H_
 #define TSC2046_H_

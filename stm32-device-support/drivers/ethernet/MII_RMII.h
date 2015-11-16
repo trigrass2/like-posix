@@ -39,8 +39,8 @@
  * @file MII_RMII.c
  */
 
+#include "../../board/uemb4.bsp/net_config.h"
 #include "board_config.h"
-#include "net_config.h"
 
 #ifndef MII_RMII_H_
 #define MII_RMII_H_

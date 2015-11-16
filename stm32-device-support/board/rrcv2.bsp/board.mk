@@ -1,0 +1,12 @@
+
+BOARD_NAME = rrcv2
+
+## configure BOARD
+ifeq ($(BOARD),  $(BOARD_NAME))
+HSE_VALUE = 25000000
+DEVICE = stm32f407vg
+ifeq ($(USE_DRIVER_LWIP_NET), 1)
+USE_DRIVER_ENC28J60_PHY = 0
+USE_DRIVER_MII_RMII_PHY = 1
+endif
+endif

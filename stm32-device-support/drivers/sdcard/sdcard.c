@@ -52,8 +52,9 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include "board_config.h"
-#include "sdcard_config.h"
 #include "sdcard.h"
+
+#include "../../board/uemb4.bsp/sdcard_config.h"
 #include "cutensils.h"
 
 #ifndef SDCARD_DRIVER_MODE

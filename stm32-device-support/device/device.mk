@@ -1,11 +1,22 @@
 
 DEVICEDIR = $(DEVICE_SUPPORT_DIR)/device
 
+## supported DEVICES
+STM32F1_DEVICES = stm32f103ve stm32f107rc 
+STM32F4_DEVICES = stm32f407ve stm32f407vg
+DEVICES = $(STM32F1_DEVICES) $(STM32F4_DEVICES)
+
 ## supported device FAMILIES
 FAMILIES = STM32F1 STM32F4
 FAMILY_FLAGS = -D STM32F1=1 -D STM32F4=4
-## supported DEVICES
-DEVICES = stm32f103ve stm32f107rc stm32f407ve stm32f407vg
+
+ifeq ($(filter $(DEVICE),$(STM32F1_DEVICES)), $(DEVICE))
+FAMILY = STM32F1
+endif
+
+ifeq ($(filter $(DEVICE),$(STM32F4_DEVICES)), $(DEVICE))
+FAMILY = STM32F4
+endif
 
 ## test FAMILY againt FAMILIES
 ifeq ($(filter $(FAMILY),$(FAMILIES)), )
