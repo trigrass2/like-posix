@@ -30,7 +30,7 @@
  *
  */
 
-#include "../../board/uemb4.bsp/net_config.h"
+#include "net_config.h"
 #include "lwipopts.h"
 #include "lwip/netif.h"
 #include "logger.h"

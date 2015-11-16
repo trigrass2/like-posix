@@ -34,7 +34,7 @@
 #ifndef TSC2046_CONFIG_H_
 #define TSC2046_CONFIG_H_
 
-#include "../uemb4.bsp/lcd_config.h"
+#include "lcd_config.h"
 
 #define TOUCH_PANEL_ROTATION    LCD_ROTATION
 

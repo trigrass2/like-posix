@@ -33,7 +33,7 @@
 #include "lcd.h"
 #include "touch_panel.h"
 #include "lcd_backlight.h"
-#include "../../board/uemb4.bsp/lcd_config.h"
+#include "lcd_config.h"
 
 /**
  * initializes lcd backlight pin.

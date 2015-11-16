@@ -34,7 +34,7 @@
 #include "board_config.h"
 #include "systime.h"
 
-#include "../../board/uemb4.bsp/systime_config.h"
+#include "systime_config.h"
 
 static volatile unsigned long system_seconds;
 

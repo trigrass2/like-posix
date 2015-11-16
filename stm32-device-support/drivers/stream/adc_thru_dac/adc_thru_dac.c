@@ -49,7 +49,7 @@
 #include "dac_stream.h"
 #include "stream_defs.h"
 #include "adc_thru_dac.h"
-#include "../../../board/uemb4.bsp/adc_config.h"
+#include "adc_config.h"
 
 //extern uint16_t adc_stream_buffer[ADC_STREAM_CHANNEL_COUNT * ADC_STREAM_BUFFER_LENGTH];
 //extern stream_connection_t* adc_stream_connections[ADC_STREAM_MAX_CONNECTIONS];

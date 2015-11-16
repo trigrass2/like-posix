@@ -41,7 +41,7 @@
 #ifndef BASE_USART_H_
 #define BASE_USART_H_
 
-#include "../../board/uemb4.bsp/usart_config.h"
+#include "usart_config.h"
 
 
 #if USART1_FULL_REMAP

@@ -40,7 +40,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "../../board/uemb4.bsp/usart_config.h"
+#include "usart_config.h"
 #include "usart_it.h"
 
 #ifndef USART_H_

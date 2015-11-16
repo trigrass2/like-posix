@@ -41,7 +41,7 @@
 #define ADC_STREAM_H
 
 #include <stdint.h>
-#include "../../../board/uemb4.bsp/adc_config.h"
+#include "adc_config.h"
 
 #include "board_config.h"
 #include "adc_stream_config.h"
