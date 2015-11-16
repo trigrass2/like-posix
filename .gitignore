@@ -2,6 +2,9 @@
 .cproject
 bin
 .pyc
+test
+xunit.xml
+*greenlight
 
 # Object files
 *.o
