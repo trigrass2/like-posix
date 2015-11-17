@@ -79,7 +79,7 @@ extern void get_hw_time(unsigned long* secs, unsigned long* usecs);
 #define TIMEZONE_OFFSET 0
 #endif
 
-int _gettimeofday(struct timeval *tp, struct timezone *tzp)
+int gettimeofday(struct timeval *tp, void *tzp)
 {
     (void)tzp;
     get_hw_time((unsigned long*)&tp->tv_sec, (unsigned long*)&tp->tv_usec);
@@ -87,7 +87,7 @@ int _gettimeofday(struct timeval *tp, struct timezone *tzp)
     return 0;
 }
 
-time_t _time(time_t* time)
+time_t time(time_t* time)
 {
     time_t sec = 0;
     time_t usec;
@@ -98,7 +98,7 @@ time_t _time(time_t* time)
     return sec;
 }
 
-double _difftime(time_t time1, time_t time0)
+double difftime(time_t time1, time_t time0)
 {
     return time1 - time0;
 }
@@ -106,7 +106,7 @@ double _difftime(time_t time1, time_t time0)
 /**
  * clock_t defined in milliseconds
  */
-clock_t _clock()
+clock_t clock()
 {
 #if USE_FREERTOS
     return xTaskGetTickCount()/portTICK_RATE_MS;
@@ -139,7 +139,7 @@ const char* __month[] = {
 #define M_PER_HOUR 60
 #define S_PER_MIN 60
 
-time_t _mktime(struct tm *brokentime)
+time_t mktime(struct tm *brokentime)
 {
     int year = brokentime->tm_year + 1900;
     int months = brokentime->tm_mon;
@@ -158,7 +158,7 @@ time_t _mktime(struct tm *brokentime)
     return (60*60*24 * days) + (60*60 * brokentime->tm_hour) + (60 * brokentime->tm_min) + brokentime->tm_sec;
 }
 
-struct tm * _gmtime(const time_t *time)
+struct tm * gmtime(const time_t *time)
 {
     time_t t = *time;
 
@@ -214,9 +214,10 @@ struct tm * _gmtime(const time_t *time)
     return &__localtime;
 }
 
-struct tm * _localtime(const time_t *time)
+struct tm * localtime(const time_t *time)
 {
-    return _gmtime(time + TIMEZONE_OFFSET);
+	time_t t = *time + TIMEZONE_OFFSET;
+    return gmtime(&t);
 }
 
 /**
@@ -261,7 +262,7 @@ If timezone cannot be termined, no characters   +100
 If timezone cannot be termined, no characters   CDT
 %%  A % sign    %
 */
-size_t _strftime(char *s, size_t size, const char *t, const struct tm *brokentime)
+size_t strftime(char *s, size_t size, const char *t, const struct tm *brokentime)
 {
     int length = 0;
     int len = 0;
