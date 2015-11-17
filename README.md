@@ -4,6 +4,8 @@ Appleseed is a mini POSIX like operating system for small microcontroller device
 
 Appleseed is designed to present a development flow similar to writing c programs for Linux, for platforms that are too low on memory to run Linux.
 
+The point of Appleseed? To enable C programs to be written for the tiny embedded platform, that can also run without modification on a PC.
+
 Multi threading kernel (FreeRTOS), networking (LwIP), filesystem (Chans FF), Serial device IO, Shell, are connected under a subset of the posix system calls and a minimal libc implementation. 
 
 OS and libc level features:
