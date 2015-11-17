@@ -6,7 +6,7 @@
 
 
 CFLAGS += -I$(DEVICE_SUPPORT_DIR)
-include $(DEVICE_SUPPORT_DIR)/board/board.mk
+include $(DEVICE_SUPPORT_DIR)/board/boards.mk
 include $(DEVICE_SUPPORT_DIR)/device/device.mk
 
 ###############################################################

@@ -1,10 +1,12 @@
 
+## default board dir is in the appleseed DEVICE_SUPPORT_DIR location
+# override BOARDDIR in custom board configuration board.mk
 BOARDDIR ?= $(DEVICE_SUPPORT_DIR)/board
-DEVICEDIR ?= $(DEVICE_SUPPORT_DIR)/device
 
-## Supported BOARDS
+## default supported BOARDS
+# override BOARDS in custom board configuration board.mk
 BOARDS ?= 
-BOARDS += stm32f4_discovery HY-STM32_100P uemb1 uemb4 rrcv2 rrcv1 t01-01410-aaaa
+BOARDS += stm32f4_discovery HY-STM32_100P uemb1 uemb4 rrcv2 rrcv1
 
 ## test BOARD againt BOARDS
 ifeq ($(filter $(BOARD),$(BOARDS)), )
