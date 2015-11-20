@@ -34,8 +34,6 @@
 #include "board_config.h"
 #include "systime.h"
 
-#include "systime_config.h"
-
 static volatile unsigned long system_seconds;
 
 #define SYSTIMER_TICK_RATE          10000
@@ -43,42 +41,30 @@ static volatile unsigned long system_seconds;
 #define SYSTIMER_PRESCALER			((SYSTIMER_BUS_CLOCK / SYSTIMER_TICK_RATE) - 1)
 #define SYSTIMER_OVERFLOW			(SYSTIMER_TICK_RATE - 1)
 
-
 void init_systime()
 {
     system_seconds = 0;
-    if((SYSTIMER_PERIPH == TIM2)||(SYSTIMER_PERIPH == TIM3)||(SYSTIMER_PERIPH == TIM4)||(SYSTIMER_PERIPH == TIM5))
-        RCC_APB1PeriphClockCmd(SYSTIMER_CLOCK, ENABLE);
-    else if((SYSTIMER_PERIPH == TIM1)||(SYSTIMER_PERIPH == TIM8))
-        RCC_APB2PeriphClockCmd(SYSTIMER_CLOCK, ENABLE);
-    else
-        assert_true(0);
 
-    TIM_TimeBaseInitTypeDef timer_init =
-    {
-            SYSTIMER_PRESCALER,								// prescaler value
-            TIM_CounterMode_Up,				// counter mode
-            SYSTIMER_OVERFLOW,  							// period reload value
-            TIM_CKD_DIV1,		      		// clock divider value (1, 2 or 4) (has no effect on OC/PWM)
-            0						      	// repetition counter
+    TIM_HandleTypeDef htim = {
+		.Instance = SYSTIMER_PERIPH,
+		.Init = {
+			.Prescaler = SYSTIMER_PRESCALER,
+			.CounterMode = TIM_COUNTERMODE_UP,
+			.Period = SYSTIMER_OVERFLOW,
+			.ClockDivision = TIM_CLOCKDIVISION_DIV1,
+			.RepetitionCounter = 0
+		},
+		.Channel = HAL_TIM_ACTIVE_CHANNEL_1,
+		.hdma = NULL,
+		.Lock = HAL_UNLOCKED,
+		.State = HAL_TIM_STATE_READY,
     };
-    TIM_TimeBaseInit(SYSTIMER_PERIPH, &timer_init);
-
-    NVIC_InitTypeDef timer_nvic =
-    {
-        SYSTIMER_IRQ,
-        SYSTIMER_INT_PRIORITY,
-        0,
-        ENABLE
-    };
-    NVIC_Init(&timer_nvic);
-    TIM_ITConfig(SYSTIMER_PERIPH, TIM_IT_Update, ENABLE);
-    TIM_Cmd(SYSTIMER_PERIPH, ENABLE);
+    HAL_TIM_Base_Init(&htim);
+    HAL_TIM_Base_Start_IT(&htim);
 }
 
-void SYSTIMER_INTERRUPT_HANDLER()
+void systimer_interrupt_handler()
 {
-    TIM_ClearITPendingBit(SYSTIMER_PERIPH, TIM_IT_Update);
     system_seconds++;
 }
 

@@ -33,7 +33,10 @@
 #ifndef SYSTIME_H_
 #define SYSTIME_H_
 
+#include "systime_config.h"
+
 void init_systime();
+void systimer_interrupt_handler();
 void set_hw_time(unsigned long secs, unsigned long usecs);
 void get_hw_time(unsigned long* secs, unsigned long* usecs);
 unsigned long get_hw_time_ms();

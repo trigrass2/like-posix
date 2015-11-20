@@ -24,7 +24,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the Appleseed project, <https://github.com/drmetal/app-l-seed>
+ * This file is part of the Appleseed project, <https://github.com/drmetal/appleseed>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
@@ -33,19 +33,39 @@
 #include "board_config.h"
 #include "system.h"
 
-void init_target(void)
-{
-    // clear reset source flags
-    RCC_ClearFlag();
-    enable_bod();
-    // enable all the GPIO ports and alternate functions
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA|RCC_AHB1Periph_GPIOB|RCC_AHB1Periph_GPIOC|
-    						RCC_AHB1Periph_GPIOD|RCC_AHB1Periph_GPIOE|RCC_AHB1Periph_GPIOF|
-							RCC_AHB1Periph_GPIOG|RCC_AHB1Periph_GPIOH|RCC_AHB1Periph_GPIOI|
-							RCC_AHB1Periph_GPIOJ|RCC_AHB1Periph_GPIOK, ENABLE);
 
-    configure_nvic();
+/**
+  * @brief  Initializes the MSP.
+  * @retval None
+  */
+void HAL_MspInit(void)
+{
+	// clear reset source flags
+	__HAL_RCC_CLEAR_RESET_FLAGS();
+	// enable all the GPIO ports and alternate functions
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	__HAL_RCC_GPIOB_CLK_ENABLE();
+	__HAL_RCC_GPIOC_CLK_ENABLE();
+	__HAL_RCC_GPIOD_CLK_ENABLE();
+	__HAL_RCC_GPIOE_CLK_ENABLE();
+	__HAL_RCC_GPIOF_CLK_ENABLE();
+	__HAL_RCC_GPIOG_CLK_ENABLE();
+	__HAL_RCC_GPIOH_CLK_ENABLE();
+	__HAL_RCC_GPIOI_CLK_ENABLE();
+	__HAL_RCC_GPIOJ_CLK_ENABLE();
+	__HAL_RCC_GPIOK_CLK_ENABLE();
+
+	enable_bod();
     enable_fpu();
+}
+
+/**
+  * @brief  DeInitializes the MSP.
+  * @retval None
+  */
+void HAL_MspDeInit(void)
+{
+
 }
 
 

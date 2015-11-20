@@ -30,24 +30,56 @@
  *
  */
 
+#include "board_config.h"
 
+#if USE_DRIVER_SYSTEM_TIMER
+#include "systime.h"
+#endif
 
-#ifndef LED_CONFIG_H_
-#define LED_CONFIG_H_
-
-#define LED_FLASHER_TASK_PRIORITY 1
-#define LED_FLASHER_TASK_STACK	  0
-
-#define LED1 	0
-#define LED2 	1
-
-#define DISK_ACTIVITY_LED LED1
-#define ERROR_LED LED2
-#define BOOT_LED LED2
-
-#define LED_PORT_MAP	{ \
-	{GPIOD, GPIO_PIN_3}, \
-	{GPIOD, GPIO_PIN_6}, \
+void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
+{
+	if(htim->Instance == TIM1)
+		__HAL_RCC_TIM1_CLK_ENABLE();
+	if(htim->Instance == TIM2)
+		__HAL_RCC_TIM2_CLK_ENABLE();
+	if(htim->Instance == TIM3)
+		__HAL_RCC_TIM3_CLK_ENABLE();
+	if(htim->Instance == TIM4)
+		__HAL_RCC_TIM4_CLK_ENABLE();
+	if(htim->Instance == TIM5)
+		__HAL_RCC_TIM5_CLK_ENABLE();
+	if(htim->Instance == TIM6)
+		__HAL_RCC_TIM6_CLK_ENABLE();
+	if(htim->Instance == TIM7)
+		__HAL_RCC_TIM7_CLK_ENABLE();
+	if(htim->Instance == TIM8)
+		__HAL_RCC_TIM8_CLK_ENABLE();
 }
 
-#endif // LED_CONFIG_H_
+void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef *htim)
+{
+	if(htim->Instance == TIM1)
+		__HAL_RCC_TIM1_CLK_DISABLE();
+	if(htim->Instance == TIM2)
+		__HAL_RCC_TIM2_CLK_DISABLE();
+	if(htim->Instance == TIM3)
+		__HAL_RCC_TIM3_CLK_DISABLE();
+	if(htim->Instance == TIM4)
+		__HAL_RCC_TIM4_CLK_DISABLE();
+	if(htim->Instance == TIM5)
+		__HAL_RCC_TIM5_CLK_DISABLE();
+	if(htim->Instance == TIM6)
+		__HAL_RCC_TIM6_CLK_DISABLE();
+	if(htim->Instance == TIM7)
+		__HAL_RCC_TIM7_CLK_DISABLE();
+	if(htim->Instance == TIM8)
+		__HAL_RCC_TIM8_CLK_DISABLE();
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+#if USE_DRIVER_SYSTEM_TIMER
+	if(htim->Instance == SYSTIMER_PERIPH)
+		systimer_interrupt_handler();
+#endif
+}

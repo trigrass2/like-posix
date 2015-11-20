@@ -112,10 +112,11 @@ void Reset_Handler()
 
 	/* Call Clock/RCC init */
 	SystemInit();
+	// init hardware abstraction layer
+	HAL_Init();
 
-	// call init_target (in board_config.c)
-	init_target();
-
+//	// call init_target (in board_config.c)
+//	init_target();
     // call init_services (in services.c)
     init_services();
 

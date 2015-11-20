@@ -1,8 +1,6 @@
 
 STM32_CM3_DIR = $(DEVICE_SUPPORT_DIR)/device/CM3
 
-#SOURCE += $(STM32_CM3_DIR)/cube_drivers/CMSIS/Include/core_cm3.c
-#SOURCE += $(STM32_CM3_DIR)/cube_drivers/CMSIS/Device/ST/STM32F1xx/Source/Templates/system_stm32f1xx.c
 SOURCE += $(STM32_CM3_DIR)/system_stm32f1xx.c
 
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_adc.c
@@ -25,7 +23,7 @@ SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_i
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_i2s.c
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_irda.c
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_iwdg.c
-SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_msp_template.c
+#SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_msp_template.c
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_nand.c
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_nor.c
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_pccard.c

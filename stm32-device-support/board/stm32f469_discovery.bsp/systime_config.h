@@ -34,10 +34,10 @@
 #define SYSTIME_CONFIG_H_
 
 #define SYSTIMER_PERIPH             TIM2
-#define SYSTIMER_CLOCK              RCC_APB1Periph_TIM2
-#define SYSTIMER_IRQ                TIM2_IRQn
-#define SYSTIMER_INT_PRIORITY       2
+//#define SYSTIMER_CLOCK              RCC_APB1Periph_TIM2
+//#define SYSTIMER_IRQ                TIM2_IRQn
+//#define SYSTIMER_INT_PRIORITY       2
 #define SYSTIMER_BUS_CLOCK          (SystemCoreClock/2)
-#define SYSTIMER_INTERRUPT_HANDLER  TIM2_IRQHandler
+//#define SYSTIMER_INTERRUPT_HANDLER  TIM2_IRQHandler
 
 #endif // SYSTIME_CONFIG_H_

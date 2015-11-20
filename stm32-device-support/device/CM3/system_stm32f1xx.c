@@ -110,7 +110,6 @@
 /*!< Uncomment the following line if you need to relocate your vector Table in
      Internal SRAM. */ 
 /* #define VECT_TAB_SRAM */
-// MIKE.S
 extern uint32_t ___SVECTOR_OFFSET; // defined in linker script, must be multiple of 0x200?
 #define VECT_TAB_OFFSET  ((uint32_t)&___SVECTOR_OFFSET) /*!< Vector Table base offset field.
                                   This value must be a multiple of 0x200. */
