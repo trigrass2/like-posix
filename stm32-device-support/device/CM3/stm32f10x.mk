@@ -23,7 +23,6 @@ SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_i
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_i2s.c
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_irda.c
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_iwdg.c
-#SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_msp_template.c
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_nand.c
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_nor.c
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_pccard.c

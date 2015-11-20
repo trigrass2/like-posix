@@ -54,7 +54,6 @@ void HAL_MspInit(void)
 	__HAL_AFIO_REMAP_SWJ_NOJTAG();
 
 	enable_bod();
-    enable_fpu();
 }
 
 /**
