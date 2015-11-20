@@ -131,36 +131,67 @@ char phy_getc(void)
  */
 void usart_init_device(USART_TypeDef* usart, FunctionalState enable)
 {
-	USART_InitTypeDef usart_init;
+    USART_HandleTypeDef husart = {
+    		.Instance = usart,
+			.Init = {
+					.BaudRate = USART_DEFAULT_BAUDRATE,
+					.WordLength = USART_WORDLENGTH_8B,
+					.StopBits = USART_STOPBITS_1,
+					.Parity = USART_PARITY_NONE,
+					.Mode = USART_MODE_TX_RX,
+					.CLKPolarity = USART_POLARITY_LOW,
+					.CLKPhase = USART_PHASE_1EDGE,
+					.CLKLastBit = USART_LASTBIT_ENABLE
+			},
+			.pTxBuffPtr = NULL,
+			.TxXferSize = 0,
+			.TxXferCount = 0,
+			.pRxBuffPtr = NULL,
+			.RxXferSize = 0,
+			.RxXferCount = 0,
+			.hdmatx = NULL,
+			.hdmarx = NULL,
+			.Lock = HAL_UNLOCKED,
+			.State = HAL_USART_STATE_RESET,
+			.ErrorCode = 0
+    };
+    HAL_USART_Init(&husart);
+}
 
-    if(usart == USART1)
-        RCC_APB2PeriphClockCmd(USART1_CLOCK, enable);
-    else if(usart == USART2)
-        RCC_APB1PeriphClockCmd(USART2_CLOCK, enable);
-#if defined(STM32F10X_HD) || defined(STM32F10X_CL) || defined(STM32F4XX)
-    else if (usart == USART3)
-        RCC_APB1PeriphClockCmd(USART3_CLOCK, enable);
-    else if (usart == UART4)
-        RCC_APB1PeriphClockCmd(UART4_CLOCK, enable);
-    else if (usart == UART5)
-        RCC_APB1PeriphClockCmd(UART5_CLOCK, enable);
+void HAL_USART_MspInit(USART_HandleTypeDef *husart)
+{
+	if(husart->Instance == USART1)
+		__HAL_RCC_USART1_CLK_ENABLE();
+	if(husart->Instance == USART2)
+		__HAL_RCC_USART2_CLK_ENABLE();
+	if(husart->Instance == USART3)
+		__HAL_RCC_USART3_CLK_ENABLE();
+	if(husart->Instance == UART4)
+		__HAL_RCC_UART4_CLK_ENABLE();
+	if(husart->Instance == UART5)
+		__HAL_RCC_UART5_CLK_ENABLE();
 #if FAMILY == STM32F4
-    else if (usart == USART6)
-        RCC_APB2PeriphClockCmd(USART6_CLOCK, enable);
+	if(husart->Instance == USART6)
+		__HAL_RCC_USART6_CLK_ENABLE();
 #endif
+}
+
+void HAL_USART_MspDeInit(USART_HandleTypeDef *husart)
+{
+	if(husart->Instance == USART1)
+		__HAL_RCC_USART1_CLK_DISABLE();
+	if(husart->Instance == USART2)
+		__HAL_RCC_USART2_CLK_DISABLE();
+	if(husart->Instance == USART3)
+		__HAL_RCC_USART3_CLK_DISABLE();
+	if(husart->Instance == UART4)
+		__HAL_RCC_UART4_CLK_DISABLE();
+	if(husart->Instance == UART5)
+		__HAL_RCC_UART5_CLK_DISABLE();
+#if FAMILY == STM32F4
+	if(husart->Instance == USART6)
+		__HAL_RCC_USART6_CLK_DISABLE();
 #endif
-
-    usart_init.USART_BaudRate = USART_DEFAULT_BAUDRATE;
-    usart_init.USART_WordLength = USART_WordLength_8b;
-    usart_init.USART_StopBits = USART_StopBits_1;
-    usart_init.USART_Parity = USART_Parity_No;
-    usart_init.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    usart_init.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-
-    usart->CR1 &= ~CR1_OVER8_Set;
-
-    USART_Init((USART_TypeDef*)usart, &usart_init);
-    USART_Cmd((USART_TypeDef*)usart, enable);
 }
 
 /**
