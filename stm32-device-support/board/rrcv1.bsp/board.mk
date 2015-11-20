@@ -1,4 +1,6 @@
 
+BOARD_NAME = rrcv1
+BOARDS += $(BOARD_NAME)
 ## configure BOARD
 HSE_VALUE = 25000000
 DEVICE = stm32f107rc

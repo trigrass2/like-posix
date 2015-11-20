@@ -1,4 +1,6 @@
 
+BOARD_NAME = uemb4
+BOARDS += $(BOARD_NAME)
 ## configure BOARD
 HSE_VALUE = 8000000
 DEVICE = stm32f407ve

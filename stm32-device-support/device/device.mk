@@ -3,7 +3,7 @@ DEVICEDIR = $(DEVICE_SUPPORT_DIR)/device
 
 ## supported DEVICES
 STM32F1_DEVICES = stm32f103ve stm32f107rc 
-STM32F4_DEVICES = stm32f407ve stm32f407vg
+STM32F4_DEVICES = stm32f407ve stm32f407vg stm32f469ni
 DEVICES = $(STM32F1_DEVICES) $(STM32F4_DEVICES)
 
 ## supported device FAMILIES
@@ -109,6 +109,18 @@ DENSITY = STM32F4XX
 RAM_LENGTH ?= 128K
 CCRAM_LENGTH ?= 64K
 FLASH_LENGTH ?= 1024K
+MIN_HEAP_SIZE ?= 0x3000
+MIN_STACK_SIZE ?= 0x10000		# 64kb stack in ccram
+endif
+
+ifeq ($(DEVICE), stm32f469ni)
+# device specification
+INTERRUPT_HANDLER_SOURCE = interrupt_handlers.c
+DENSITY = STM32F4XX
+# stm32f407vg memory setup 
+RAM_LENGTH ?= 256K
+CCRAM_LENGTH ?= 64K
+FLASH_LENGTH ?= 2048K
 MIN_HEAP_SIZE ?= 0x3000
 MIN_STACK_SIZE ?= 0x10000		# 64kb stack in ccram
 endif

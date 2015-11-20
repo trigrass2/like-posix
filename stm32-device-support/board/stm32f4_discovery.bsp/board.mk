@@ -1,4 +1,6 @@
 
+BOARD_NAME = stm32f4_discovery
+BOARDS += $(BOARD_NAME)
 ## configure BOARD
 HSE_VALUE = 8000000
 DEVICE = stm32f407vg

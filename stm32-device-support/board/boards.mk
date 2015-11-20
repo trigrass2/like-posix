@@ -4,19 +4,18 @@
 BOARDDIR ?= $(DEVICE_SUPPORT_DIR)/board
 
 ## default supported BOARDS
-# override BOARDS in custom board configuration board.mk
-BOARDS ?= 
-BOARDS += stm32f4_discovery HY-STM32_100P uemb1 uemb4 rrcv2 rrcv1
-
-## test BOARD againt BOARDS
-ifeq ($(filter $(BOARD),$(BOARDS)), )
-$(error board '$(BOARD)' not supported. supported boards: $(BOARDS))
-endif
+# add to BOARDS in board configuration makefile, board.mk
+BOARDS = 
 
 ## Select DEVICE and FAMILY, by BOARD
 
 ## configure BOARD
 include $(BOARDDIR)/$(BOARD).bsp/board.mk
+
+## test BOARD againt BOARDS
+ifeq ($(filter $(BOARD),$(BOARDS)), )
+$(error board '$(BOARD)' not supported. supported boards: $(BOARDS))
+endif
 
 ## if no network drivers have been enabled then set PHY selection to none
 USE_DRIVER_ENC28J60_PHY ?= 0
