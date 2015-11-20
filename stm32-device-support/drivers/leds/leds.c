@@ -82,20 +82,15 @@ void init_leds()
 {
     GPIO_InitTypeDef GPIO_InitStructure;
 
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-#if FAMILY == STM32F1
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-#elif FAMILY == STM32F4
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-#endif
+    GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStructure.Pull = GPIO_NOPULL;
+    GPIO_InitStructure.Speed = GPIO_SPEED_LOW;
 
     for(uint8_t i = 0; i < sizeof(leds)/sizeof(led_t); i++)
     {
-        GPIO_InitStructure.GPIO_Pin =  leds[i].pin;
-        GPIO_Init(leds[i].port, &GPIO_InitStructure);
-        GPIO_WriteBit(leds[i].port, leds[i].pin, Bit_RESET);
+        GPIO_InitStructure.Pin = leds[i].pin;
+        HAL_GPIO_Init(leds[i].port, &GPIO_InitStructure);
+        HAL_GPIO_WritePin(leds[i].port, leds[i].pin, GPIO_PIN_RESET);
     }
 }
 
@@ -117,10 +112,7 @@ void flash_led(uint8_t led)
 
 void toggle_led(uint8_t led)
 {
-    if(GPIO_ReadOutputDataBit(leds[led].port, leds[led].pin))
-        clear_led(led);
-    else
-        set_led(led);
+    HAL_GPIO_TogglePin(leds[led].port, leds[led].pin);
 }
 
 void set_led(uint8_t led)
@@ -135,7 +127,7 @@ void clear_led(uint8_t led)
 
 void switch_led(uint8_t led, bool state)
 {
-    GPIO_WriteBit(leds[led].port, leds[led].pin, state);
+    HAL_GPIO_WritePin(leds[led].port, leds[led].pin, state);
 }
 
 #if USE_FREERTOS
