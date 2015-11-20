@@ -36,15 +36,17 @@
 void init_target(void)
 {
     // clear reset source flags
-    RCC_ClearFlag();
+    __HAL_RCC_CLEAR_RESET_FLAGS();
     enable_bod();
     // enable all the GPIO ports and alternate functions
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA|RCC_APB2Periph_GPIOB|RCC_APB2Periph_GPIOC|RCC_APB2Periph_GPIOD|RCC_APB2Periph_GPIOE, ENABLE);
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
+    __HAL_RCC_GPIOE_CLK_ENABLE();
+    __HAL_RCC_AFIO_CLK_ENABLE();
     // enable only SWD port
-    GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable, ENABLE);
-    // disable the SWD and JTAG port
-    // GPIO_PinRemapConfig(GPIO_Remap_SWJ_Disable, ENABLE);
+    __HAL_AFIO_REMAP_SWJ_NOJTAG();
 
     configure_nvic();
 }

@@ -41,13 +41,11 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "misc.h"
+//#include "misc.h"
 #include "board_config.h"
 #include "system.h"
 #include "strutils.h"
 
-volatile int32_t ITM_RxBuffer;
-extern uint32_t ___SVECTOR_OFFSET; // defined in linker script, must be multiple of 0x200?
 
 static void set_resetflag(uint16_t rcc_flag, uint16_t resetflag, uint16_t* resetflags);
 
@@ -59,8 +57,9 @@ static void set_resetflag(uint16_t rcc_flag, uint16_t resetflag, uint16_t* reset
  */
 void configure_nvic()
 {
-	NVIC_SetVectorTable(NVIC_VectTab_FLASH, (uint32_t)&___SVECTOR_OFFSET);
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
+    // happens in system_stm32fxxx.c
+//	NVIC_SetVectorTable(NVIC_VectTab_FLASH, (uint32_t)&___SVECTOR_OFFSET);
+	HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 }
 
 /**
@@ -79,15 +78,14 @@ void enable_fpu()
   */
 void enable_bod()
 {
-	// enable power control system clock, set it up for 3.3V supply operation (2.9V brownout reset)
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
-
-#if FAMILY == STM32F1
-	PWR_PVDLevelConfig(PWR_PVDLevel_2V9);
-#elif FAMILY == STM32F4
-	PWR_PVDLevelConfig(PWR_PVDLevel_6);
-#endif
-	PWR_PVDCmd(ENABLE);
+    PWR_PVDTypeDef conf = {
+            .PVDLevel = PWR_PVDLEVEL_6,
+            .Mode = PWR_PVD_MODE_NORMAL
+    };
+	// enable power control system clock, set it up for 3.3V supply operation (2.8V brownout reset)
+	__HAL_RCC_PWR_CLK_ENABLE();
+	HAL_PWR_ConfigPVD(&conf);
+	HAL_PWR_EnablePVD();
 }
 
 /**
@@ -111,7 +109,7 @@ void delay(volatile uint32_t count)
 void soft_reset()
 {
     clear_resetflags();
-    NVIC_SystemReset();
+    HAL_NVIC_SystemReset();
 }
 
 /**
@@ -151,7 +149,7 @@ void fake_hardfault()
  */
 void set_resetflag(uint16_t rcc_flag, uint16_t resetflag, uint16_t* resetflags)
 {
-    if(RCC_GetFlagStatus(rcc_flag) == SET)
+    if(__HAL_RCC_GET_FLAG(rcc_flag) == SET)
         *resetflags |= resetflag;
 }
 
@@ -160,7 +158,7 @@ void set_resetflag(uint16_t rcc_flag, uint16_t resetflag, uint16_t* resetflags)
  */
 void clear_resetflags()
 {
-    RCC_ClearFlag();
+    __HAL_RCC_CLEAR_RESET_FLAGS();
 }
 
 /**

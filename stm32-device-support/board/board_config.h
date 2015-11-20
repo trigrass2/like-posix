@@ -34,9 +34,11 @@
 #define BOARD_CONFIG_H_
 
 #if FAMILY == STM32F1
-#include "stm32f10x.h"
+#include "stm32f1xx.h"
+#include "stm32f1xx_hal.h"
 #elif FAMILY == STM32F4
 #include "stm32f4xx.h"
+#include "stm32f4xx_hal.h"
 #else
 #error "FAMILY setting is invalid, do you want to be compiling this module?"
 #endif
