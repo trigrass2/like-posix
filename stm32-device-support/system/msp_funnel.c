@@ -76,12 +76,4 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef *htim)
 		__HAL_RCC_TIM8_CLK_DISABLE();
 }
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-#if USE_DRIVER_SYSTEM_TIMER
-	if(htim->Instance == SYSTIMER_PERIPH)
-		systimer_interrupt_handler();
-#endif
-}
-
 

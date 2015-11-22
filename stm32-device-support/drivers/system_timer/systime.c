@@ -34,37 +34,40 @@
 #include "board_config.h"
 #include "systime.h"
 
-static volatile unsigned long system_seconds;
-
 #define SYSTIMER_TICK_RATE          10000
-#define SYSTIMER_TV_TICK_RATE		1000000
-#define SYSTIMER_PRESCALER			((SYSTIMER_BUS_CLOCK / SYSTIMER_TICK_RATE) - 1)
-#define SYSTIMER_OVERFLOW			(SYSTIMER_TICK_RATE - 1)
+#define SYSTIMER_TV_TICK_RATE       1000000
+#define SYSTIMER_PRESCALER          ((SYSTIMER_BUS_CLOCK / SYSTIMER_TICK_RATE) - 1)
+#define SYSTIMER_OVERFLOW           (SYSTIMER_TICK_RATE - 1)
+
+static volatile unsigned long system_seconds;
+static TIM_HandleTypeDef systime_htim = {
+    .Instance = SYSTIMER_PERIPH,
+    .Init = {
+        .Prescaler = 0,
+        .CounterMode = TIM_COUNTERMODE_UP,
+        .Period = SYSTIMER_OVERFLOW,
+        .ClockDivision = TIM_CLOCKDIVISION_DIV1,
+        .RepetitionCounter = 0
+    },
+    .Channel = HAL_TIM_ACTIVE_CHANNEL_1,
+    .hdma = NULL,
+    .Lock = HAL_UNLOCKED,
+    .State = HAL_TIM_STATE_RESET,
+};
 
 void init_systime()
 {
     system_seconds = 0;
-
-    TIM_HandleTypeDef htim = {
-		.Instance = SYSTIMER_PERIPH,
-		.Init = {
-			.Prescaler = SYSTIMER_PRESCALER,
-			.CounterMode = TIM_COUNTERMODE_UP,
-			.Period = SYSTIMER_OVERFLOW,
-			.ClockDivision = TIM_CLOCKDIVISION_DIV1,
-			.RepetitionCounter = 0
-		},
-		.Channel = HAL_TIM_ACTIVE_CHANNEL_1,
-		.hdma = NULL,
-		.Lock = HAL_UNLOCKED,
-		.State = HAL_TIM_STATE_READY,
-    };
-    HAL_TIM_Base_Init(&htim);
-    HAL_TIM_Base_Start_IT(&htim);
+    systime_htim.Init.Prescaler = SYSTIMER_PRESCALER;
+    HAL_TIM_Base_Init(&systime_htim);
+    HAL_TIM_Base_Start_IT(&systime_htim);
+    HAL_NVIC_SetPriority(SYSTIMER_IRQ, 0, SYSTIMER_INT_PRIORITY);
+    HAL_NVIC_EnableIRQ(SYSTIMER_IRQ);
 }
 
-void systimer_interrupt_handler()
+void SYSTIMER_INTERRUPT_HANDLER()
 {
+    __HAL_TIM_CLEAR_IT(&systime_htim, TIM_IT_UPDATE);
     system_seconds++;
 }
 
