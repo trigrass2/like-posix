@@ -113,10 +113,9 @@ void Reset_Handler()
 	/* Call Clock/RCC init */
 	SystemInit();
 	// init hardware abstraction layer
+	// target is initialized in boardname.bsp/board_config.c -> HAL_MspInit()
 	HAL_Init();
 
-//	// call init_target (in board_config.c)
-//	init_target();
     // call init_services (in services.c)
     init_services();
 
