@@ -46,31 +46,8 @@
 #include "system.h"
 #include "strutils.h"
 
-
 static void set_resetflag(uint16_t rcc_flag, uint16_t resetflag, uint16_t* resetflags);
 
-/**
- * linker script defines memory base and vector table offset values
- * Set the Vector Table base location at:
- * FLASH_BASE+___SVECTOR_OFFSET
- * set 16 levels of preemption priority, 0 levels of subpriority
- */
-void configure_nvic()
-{
-    // happens in system_stm32fxxx.c
-//	NVIC_SetVectorTable(NVIC_VectTab_FLASH, (uint32_t)&___SVECTOR_OFFSET);
-	HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
-}
-
-/**
- * @brief enables the FPU - cortex-m4 devices only.
- */
-void enable_fpu()
-{
-#if (__FPU_PRESENT == 1) && (__FPU_USED == 1)
-	SCB->CPACR |= ((3UL << 10*2)|(3UL << 11*2));
-#endif
-}
 
 /**
   * @brief  Enables brown-out detection and reset.
@@ -89,7 +66,6 @@ void enable_bod()
 }
 
 /**
- * bit of a hack and not really a good idea to use these kind of things.
  * delays for aproximately count milliseconds.
  */
 void delay(volatile uint32_t count)
@@ -98,8 +74,7 @@ void delay(volatile uint32_t count)
     uint32_t t = get_hw_time_ms() + count;
     while(get_hw_time_ms() < t);
 #else
-    count *= SystemCoreClock/8960;
-    while(count-- > 0);
+    HAL_Delay(count);
 #endif
 }
 
