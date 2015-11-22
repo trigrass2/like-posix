@@ -75,6 +75,7 @@
   */
 
 #include "stm32f1xx.h"
+#include "stm32f1xx_hal.h"
 
 /**
   * @}
@@ -93,13 +94,12 @@
   */
 
 #if !defined  (HSE_VALUE) 
-  #define HSE_VALUE    ((uint32_t)8000000) /*!< Default value of the External oscillator in Hz.
-                                                This value can be provided and adapted by the user application. */
+ #error "HSE_VALUE is not defined - please specify in your boardname.bsp/board.mk"
 #endif /* HSE_VALUE */
 
 #if !defined  (HSI_VALUE)
-  #define HSI_VALUE    ((uint32_t)8000000) /*!< Default value of the Internal oscillator in Hz.
-                                                This value can be provided and adapted by the user application. */
+  #define HSI_VALUE    ((uint32_t)8000000) /*!< Value of the Internal oscillator in Hz*/
+ #pragma message "HSI_VALUE defaults to 8000000Hz"
 #endif /* HSI_VALUE */
 
 /*!< Uncomment the following line if you need to use external SRAM  */ 
@@ -154,6 +154,10 @@ const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 
   static void SystemInit_ExtMemCtl(void); 
 #endif /* DATA_IN_ExtSRAM */
 #endif /* STM32F100xE || STM32F101xE || STM32F101xG || STM32F103xE || STM32F103xG */
+
+#if defined(DATA_IN_ExtSRAM)
+#pragma message "DATA_IN_ExtSRAM selected"
+#endif /* DATA_IN_ExtSRAM && DATA_IN_ExtSDRAM */
 
 /**
   * @}
@@ -224,6 +228,7 @@ void SystemInit (void)
 #else
   SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH. */
 #endif 
+  HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 }
 
 /**

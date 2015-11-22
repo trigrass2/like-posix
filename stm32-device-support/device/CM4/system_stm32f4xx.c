@@ -65,13 +65,15 @@
 
 
 #include "stm32f4xx.h"
+#include "stm32f4xx_hal.h"
 
 #if !defined  (HSE_VALUE) 
-  #define HSE_VALUE    ((uint32_t)25000000) /*!< Default value of the External oscillator in Hz */
+ #error "HSE_VALUE is not defined - please specify in your boardname.bsp/board.mk"
 #endif /* HSE_VALUE */
 
 #if !defined  (HSI_VALUE)
   #define HSI_VALUE    ((uint32_t)16000000) /*!< Value of the Internal oscillator in Hz*/
+ #pragma message "HSI_VALUE defaults to 16000000Hz"
 #endif /* HSI_VALUE */
 
 /**
@@ -106,6 +108,10 @@
 
 #if defined(DATA_IN_ExtSRAM) && defined(DATA_IN_ExtSDRAM)
  #error "Please select DATA_IN_ExtSRAM or DATA_IN_ExtSDRAM " 
+#elif defined(DATA_IN_ExtSRAM)
+#pragma message "DATA_IN_ExtSRAM selected"
+#elif defined(DATA_IN_ExtSDRAM)
+#pragma message "DATA_IN_ExtSDRAM selected"
 #endif /* DATA_IN_ExtSRAM && DATA_IN_ExtSDRAM */
 
 /*!< Uncomment the following line if you need to relocate your vector Table in
@@ -204,6 +210,7 @@ void SystemInit(void)
 #else
   SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
 #endif
+  HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 }
 
 /**
