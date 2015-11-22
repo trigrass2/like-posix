@@ -55,7 +55,9 @@ extern void* usart_dev_ioctls[6];
   */
 inline void usart_rx_isr(USART_TypeDef* usart, void* usart_dev)
 {
-	if(USART_GetITStatus(usart, USART_IT_RXNE) == SET)
+	USART_HandleTypeDef husart;
+	husart.Instance = usart;
+	if(__HAL_USART_GET_IT_SOURCE(&husart, USART_IT_RXNE))
 	{
 #if USE_LIKEPOSIX
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
@@ -63,9 +65,8 @@ inline void usart_rx_isr(USART_TypeDef* usart, void* usart_dev)
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 #else
         (void)usart_dev;
-		// todo - fifo put
 #endif
-		USART_ClearITPendingBit(usart, USART_IT_RXNE);
+//        __HAL_USART_CLEAR_IT(&husart, USART_IT_RXNE);
 	}
 }
 
@@ -75,7 +76,9 @@ inline void usart_rx_isr(USART_TypeDef* usart, void* usart_dev)
   */
 inline void usart_tx_isr(USART_TypeDef* usart, void* usart_dev)
 {
-	if(USART_GetITStatus(usart, USART_IT_TXE) == SET)
+	USART_HandleTypeDef husart;
+	husart.Instance = usart;
+	if(__HAL_USART_GET_IT_SOURCE(&husart, USART_IT_TXE))
 	{
 #if USE_LIKEPOSIX
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
@@ -84,7 +87,6 @@ inline void usart_tx_isr(USART_TypeDef* usart, void* usart_dev)
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 #else
 		(void)usart_dev;
-        // todo - fifo get
 #endif
 	}
 }
@@ -110,7 +112,6 @@ void USART2_IRQHandler(void)
 	usart_tx_isr(USART2, usart_dev_ioctls[1]);
 }
 
-#if defined(STM32F10X_HD) || defined(STM32F10X_CL) || defined(STM32F4XX)
 /**
   * @brief  This function handles USART3 interrupt.
   */
@@ -151,7 +152,6 @@ void UART5_IRQHandler(void)
  	usart_rx_isr(USART6, usart_dev_ioctls[5]);
  	usart_tx_isr(USART6, usart_dev_ioctls[5]);
  }
-#endif
 #endif
 
 

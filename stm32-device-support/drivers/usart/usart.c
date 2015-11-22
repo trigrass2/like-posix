@@ -104,10 +104,13 @@ void* usart_dev_ioctls[6];
  */
 void phy_putc(char c)
 {
+	USART_HandleTypeDef husart;
+	husart.Instance = console_usart;
     if(console_usart)
     {
-        while(USART_GetFlagStatus((USART_TypeDef*)console_usart, USART_FLAG_TXE) == RESET);
-        USART_SendData((USART_TypeDef*)console_usart, (uint16_t)c);
+
+        while(!__HAL_USART_GET_FLAG(&husart, USART_FLAG_TXE));
+        console_usart->DR =  c;
     }
 }
 
@@ -116,10 +119,12 @@ void phy_putc(char c)
  */
 char phy_getc(void)
 {
+	USART_HandleTypeDef husart;
+	husart.Instance = console_usart;
     if(console_usart)
     {
-        while(USART_GetFlagStatus((USART_TypeDef*)console_usart, USART_FLAG_RXNE) == RESET);
-        return (char)USART_ReceiveData((USART_TypeDef*)console_usart);
+        while(!__HAL_USART_GET_FLAG(&husart, USART_FLAG_RXNE));
+        return (char)console_usart->DR;
     }
     return -1;
 }
@@ -129,7 +134,7 @@ char phy_getc(void)
  *
  * **note:** this function is called by usart_init.
  */
-void usart_init_device(USART_TypeDef* usart, FunctionalState enable)
+void usart_init_device(USART_TypeDef* usart, bool enable)
 {
     USART_HandleTypeDef husart = {
     		.Instance = usart,
@@ -155,8 +160,13 @@ void usart_init_device(USART_TypeDef* usart, FunctionalState enable)
 			.State = HAL_USART_STATE_RESET,
 			.ErrorCode = 0
     };
-    HAL_USART_Init(&husart);
+    if(enable)
+    	HAL_USART_Init(&husart);
+    else
+    	HAL_USART_DeInit(&husart);
 }
+
+// todo - why am I bothering?
 
 void HAL_USART_MspInit(USART_HandleTypeDef *husart)
 {
@@ -203,113 +213,99 @@ void HAL_USART_MspDeInit(USART_HandleTypeDef *husart)
  */
 void usart_init_gpio(USART_TypeDef* usart)
 {
-#if FAMILY == STM32F1
-    GPIO_InitTypeDef rx_init = {
-        .GPIO_Mode = GPIO_Mode_IN_FLOATING,
-        .GPIO_Speed = GPIO_Speed_50MHz,
-    };
-    GPIO_InitTypeDef tx_init = {
-        .GPIO_Mode = GPIO_Mode_AF_PP,
-        .GPIO_Speed = GPIO_Speed_50MHz,
-    };
-#elif FAMILY == STM32F4
-    GPIO_InitTypeDef rx_init = {
-        .GPIO_Mode = GPIO_Mode_AF,
-        .GPIO_Speed = GPIO_Speed_100MHz,
-        .GPIO_OType = GPIO_OType_OD,
-        .GPIO_PuPd = GPIO_PuPd_NOPULL,
-    };
-    GPIO_InitTypeDef tx_init = {
-        .GPIO_Mode = GPIO_Mode_AF,
-        .GPIO_Speed = GPIO_Speed_100MHz,
-        .GPIO_OType = GPIO_OType_PP,
-        .GPIO_PuPd = GPIO_PuPd_NOPULL,
-    };
-#endif
+	GPIO_InitTypeDef GPIO_InitStructure_rx;
+	GPIO_InitTypeDef GPIO_InitStructure_tx;
+
+	GPIO_InitStructure_tx.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStructure_tx.Pull = GPIO_PULLUP;
+	GPIO_InitStructure_tx.Speed = GPIO_SPEED_LOW;
+
+	GPIO_InitStructure_tx.Mode = GPIO_MODE_AF_PP;
+	GPIO_InitStructure_tx.Pull = GPIO_NOPULL;
+	GPIO_InitStructure_tx.Speed = GPIO_SPEED_LOW;
 
     if(usart == USART1)
     {
 #if FAMILY == STM32F1
 #ifdef USART1_REMAP
-        GPIO_PinRemapConfig(USART1_REMAP, ENABLE);
+    	__HAL_AFIO_REMAP_USART1_ENABLE();
 #endif
 #elif FAMILY == STM32F4
-        GPIO_PinAFConfig(USART1_PORT, USART1_TX_PINSOURCE, GPIO_AF_USART1);
-        GPIO_PinAFConfig(USART1_PORT, USART1_RX_PINSOURCE, GPIO_AF_USART1);
+    	GPIO_InitStructure_tx.Alternate = GPIO_AF7_USART1;
+    	GPIO_InitStructure_rx.Alternate = GPIO_AF7_USART1;
 #endif
-        tx_init.GPIO_Pin = USART1_TX_PIN;
-        GPIO_Init(USART1_PORT, &tx_init);
-        rx_init.GPIO_Pin = USART1_RX_PIN;
-        GPIO_Init(USART1_PORT, &rx_init);
+    	GPIO_InitStructure_tx.Pin = USART1_TX_PIN;
+    	GPIO_InitStructure_rx.Pin = USART1_RX_PIN;
+    	HAL_GPIO_Init(USART1_PORT, &GPIO_InitStructure_tx);
+    	HAL_GPIO_Init(USART1_PORT, &GPIO_InitStructure_rx);
     }
 
     else if(usart == USART2)
     {
 #if FAMILY == STM32F1
 #ifdef USART2_REMAP
-        GPIO_PinRemapConfig(USART2_REMAP, ENABLE);
+        G__HAL_AFIO_REMAP_USART2_ENABLE();
 #endif
 #elif FAMILY == STM32F4
-        GPIO_PinAFConfig(USART2_PORT, USART2_TX_PINSOURCE, GPIO_AF_USART2);
-        GPIO_PinAFConfig(USART2_PORT, USART2_RX_PINSOURCE, GPIO_AF_USART2);
+    	GPIO_InitStructure_tx.Alternate = GPIO_AF7_USART2;
+    	GPIO_InitStructure_rx.Alternate = GPIO_AF7_USART2;
 #endif
-        tx_init.GPIO_Pin = USART2_TX_PIN;
-        GPIO_Init(USART2_PORT, &tx_init);
-        rx_init.GPIO_Pin = USART2_RX_PIN;
-        GPIO_Init(USART2_PORT, &rx_init);
+    	GPIO_InitStructure_tx.Pin = USART2_TX_PIN;
+    	GPIO_InitStructure_rx.Pin = USART2_RX_PIN;
+    	HAL_GPIO_Init(USART2_PORT, &GPIO_InitStructure_tx);
+    	HAL_GPIO_Init(USART2_PORT, &GPIO_InitStructure_rx);
     }
-#if defined(STM32F10X_HD) || defined(STM32F10X_CL) || defined(STM32F4XX)
     else if (usart == USART3)
     {
 #if FAMILY == STM32F1
 #ifdef USART3_REMAP
-        GPIO_PinRemapConfig(USART3_REMAP, ENABLE);
+    	__HAL_AFIO_REMAP_USART3_ENABLE();
+#elif defined(USART3_PARTIAL_REMAP)
+    	__HAL_AFIO_REMAP_USART3_PARTIAL();
 #endif
 #elif FAMILY == STM32F4
-        GPIO_PinAFConfig(USART3_PORT, USART3_TX_PINSOURCE, GPIO_AF_USART3);
-        GPIO_PinAFConfig(USART3_PORT, USART3_RX_PINSOURCE, GPIO_AF_USART3);
+    	GPIO_InitStructure_tx.Alternate = GPIO_AF7_USART3;
+    	GPIO_InitStructure_rx.Alternate = GPIO_AF7_USART3;
 #endif
-        tx_init.GPIO_Pin = USART3_TX_PIN;
-        GPIO_Init(USART3_PORT, &tx_init);
-        rx_init.GPIO_Pin = USART3_RX_PIN;
-        GPIO_Init(USART3_PORT, &rx_init);
+    	GPIO_InitStructure_tx.Pin = USART3_TX_PIN;
+    	GPIO_InitStructure_rx.Pin = USART3_RX_PIN;
+    	HAL_GPIO_Init(USART3_PORT, &GPIO_InitStructure_tx);
+    	HAL_GPIO_Init(USART3_PORT, &GPIO_InitStructure_rx);
     }
 
     else if (usart == UART4)
     {
 #if FAMILY == STM32F4
-        GPIO_PinAFConfig(UART4_PORT, UART4_TX_PINSOURCE, GPIO_AF_UART4);
-        GPIO_PinAFConfig(UART4_PORT, UART4_RX_PINSOURCE, GPIO_AF_UART4);
+    	GPIO_InitStructure_tx.Alternate = GPIO_AF8_UART4;
+    	GPIO_InitStructure_rx.Alternate = GPIO_AF8_UART4;
 #endif
-        tx_init.GPIO_Pin = UART4_TX_PIN;
-        GPIO_Init(UART4_PORT, &tx_init);
-        rx_init.GPIO_Pin = UART4_RX_PIN;
-        GPIO_Init(UART4_PORT, &rx_init);
+    	GPIO_InitStructure_tx.Pin = UART4_TX_PIN;
+    	GPIO_InitStructure_rx.Pin = UART4_RX_PIN;
+    	HAL_GPIO_Init(UART4_PORT, &GPIO_InitStructure_tx);
+    	HAL_GPIO_Init(UART4_PORT, &GPIO_InitStructure_rx);
     }
 
     else if (usart == UART5)
     {
 #if FAMILY == STM32F4
-        GPIO_PinAFConfig(UART5_TX_PORT, UART5_TX_PINSOURCE, GPIO_AF_UART5);
-        GPIO_PinAFConfig(UART5_RX_PORT, UART5_RX_PINSOURCE, GPIO_AF_UART5);
+    	GPIO_InitStructure_tx.Alternate = GPIO_AF8_UART5;
+    	GPIO_InitStructure_rx.Alternate = GPIO_AF8_UART5;
 #endif
-        tx_init.GPIO_Pin = UART5_TX_PIN;
-        GPIO_Init(UART5_TX_PORT, &tx_init);
-        rx_init.GPIO_Pin = UART5_RX_PIN;
-        GPIO_Init(UART5_RX_PORT, &rx_init);
+    	GPIO_InitStructure_tx.Pin = UART5_TX_PIN;
+    	GPIO_InitStructure_rx.Pin = UART5_RX_PIN;
+    	HAL_GPIO_Init(UART5_TX_PORT, &GPIO_InitStructure_tx);
+    	HAL_GPIO_Init(UART5_RX_PORT, &GPIO_InitStructure_rx);
     }
-
 #if FAMILY == STM32F4
     else if (usart == USART6)
     {
-        GPIO_PinAFConfig(USART6_PORT, USART6_TX_PINSOURCE, GPIO_AF_USART6);
-        GPIO_PinAFConfig(USART6_PORT, USART6_RX_PINSOURCE, GPIO_AF_USART6);
-        tx_init.GPIO_Pin = USART6_TX_PIN;
-        GPIO_Init(USART6_PORT, &tx_init);
-        rx_init.GPIO_Pin = USART6_RX_PIN;
-        GPIO_Init(USART6_PORT, &rx_init);
+    	GPIO_InitStructure_tx.Alternate = GPIO_AF8_USART6;
+    	GPIO_InitStructure_rx.Alternate = GPIO_AF8_USART6;
+    	GPIO_InitStructure_tx.Pin = USART6_TX_PIN;
+    	GPIO_InitStructure_rx.Pin = USART6_RX_PIN;
+    	HAL_GPIO_Init(USART6_PORT, &GPIO_InitStructure_tx);
+    	HAL_GPIO_Init(USART6_PORT, &GPIO_InitStructure_rx);
     }
-#endif
 #endif
 }
 
@@ -319,7 +315,6 @@ int8_t get_usart_devno(USART_TypeDef* usart)
 		return 0;
 	else if(usart == USART2)
 		return 1;
-#if defined(STM32F10X_HD) || defined(STM32F10X_CL) || defined(STM32F4XX)
 	else if (usart == USART3)
 		return 2;
 	else if (usart == UART4)
@@ -329,7 +324,6 @@ int8_t get_usart_devno(USART_TypeDef* usart)
 #if FAMILY == STM32F4
 	else if (usart == USART6)
 		return 5;
-#endif
 #endif
 	return -1;
 }
@@ -369,8 +363,6 @@ bool usart_init(USART_TypeDef* usart, char* install, bool enable)
 														usart_close_ioctl,
 														usart_ioctl);
 #else
-    	// todo - init fifo's - and interrupts
-//        usart_init_interrupt(usart, USART_INTERRUPT_PRIORITY, true);
     	usart_dev_ioctls[usart_devno] = NULL;
 #endif
     	ret = usart_dev_ioctls[usart_devno] != NULL;
@@ -381,7 +373,7 @@ bool usart_init(USART_TypeDef* usart, char* install, bool enable)
     {
     	// installed usarts are opened automatically... this is optional
         usart_init_gpio(usart);
-        usart_init_device(usart, ENABLE);
+        usart_init_device(usart, true);
     }
 
     return ret;
@@ -393,31 +385,32 @@ bool usart_init(USART_TypeDef* usart, char* install, bool enable)
  *
  * **note:** this functuion is called by usart_init.
  */
-void usart_init_interrupt(USART_TypeDef* usart, uint8_t priority, FunctionalState enable)
+void usart_init_interrupt(USART_TypeDef* usart, uint8_t priority, bool enable)
 {
-	NVIC_InitTypeDef nvic_init;
+	uint8_t irq;
 
 	if(usart == USART1)
-		nvic_init.NVIC_IRQChannel = USART1_IRQn;
+		irq = USART1_IRQn;
 	else if(usart == USART2)
-		nvic_init.NVIC_IRQChannel = USART2_IRQn;
-#if defined(STM32F10X_HD) || defined(STM32F10X_CL) || defined(STM32F4XX)
+		irq = USART2_IRQn;
 	else if (usart == USART3)
-		nvic_init.NVIC_IRQChannel = USART3_IRQn;
+		irq = USART3_IRQn;
 	else if (usart == UART4)
-		nvic_init.NVIC_IRQChannel = UART4_IRQn;
+		irq = UART4_IRQn;
 	else if (usart == UART5)
-		nvic_init.NVIC_IRQChannel = UART5_IRQn;
+		irq = UART5_IRQn;
 #if FAMILY == STM32F4
 	else if (usart == USART6)
-		nvic_init.NVIC_IRQChannel = USART6_IRQn;
-#endif
+		irq = USART6_IRQn;
 #endif
 
-	nvic_init.NVIC_IRQChannelPreemptionPriority = priority;
-	nvic_init.NVIC_IRQChannelSubPriority = 0;
-	nvic_init.NVIC_IRQChannelCmd = enable;
-	NVIC_Init(&nvic_init);
+    if(enable)
+    {
+    	HAL_NVIC_SetPriority(irq, 0, priority);
+    	HAL_NVIC_EnableIRQ(irq);
+    }
+    else
+    	HAL_NVIC_DisableIRQ(irq);
 }
 
 /**
@@ -442,18 +435,15 @@ void usart_set_baudrate(USART_TypeDef* usart, uint32_t br)
 	uint32_t tmpreg;
 	uint32_t integerdivider;
     uint32_t fractionaldivider;
-    RCC_ClocksTypeDef RCC_ClocksStatus;
 
-	RCC_GetClocksFreq(&RCC_ClocksStatus);
-
-#if defined(STM32F10X_HD) || defined(STM32F10X_CL)
-    if(usart == USART1)
-#elif FAMILY == STM32F4
+#if FAMILY == STM32F4
     if(usart == USART1 || usart == USART6)
+#else
+    if(usart == USART1)
 #endif
-        apbclock = RCC_ClocksStatus.PCLK2_Frequency;
+        apbclock = HAL_RCC_GetPCLK2Freq();
     else
-        apbclock = RCC_ClocksStatus.PCLK1_Frequency;
+        apbclock = HAL_RCC_GetPCLK1Freq();
 
 	// Determine the integer part
 	integerdivider = ((25 * apbclock) / (4 * br)); // Integer part computing in case Oversampling mode is 16 Samples
@@ -476,17 +466,15 @@ void usart_set_baudrate(USART_TypeDef* usart, uint32_t br)
 uint32_t usart_get_baudrate(USART_TypeDef* usart)
 {
     uint32_t pclock;
-    RCC_ClocksTypeDef RCC_ClocksStatus;
-    RCC_GetClocksFreq(&RCC_ClocksStatus);
 
-#if defined(STM32F10X_HD) || defined(STM32F10X_CL)
-    if(usart == USART1)
-#elif FAMILY == STM32F4
+#if FAMILY == STM32F4
     if(usart == USART1 || usart == USART6)
+#else
+    if(usart == USART1)
 #endif
-        pclock = RCC_ClocksStatus.PCLK2_Frequency;
+    	pclock = HAL_RCC_GetPCLK2Freq();
     else
-        pclock = RCC_ClocksStatus.PCLK1_Frequency;
+    	pclock = HAL_RCC_GetPCLK1Freq();
 
     // multiply by 25 as 25 * max of 168MHz just avoids overflow and give better prescicon
     uint32_t div = (25 * (usart->BRR >> 4)) + ((25 * (usart->BRR & 0x000f))/16);
@@ -496,15 +484,17 @@ uint32_t usart_get_baudrate(USART_TypeDef* usart)
 #if USE_LIKEPOSIX
 static int usart_enable_rx_ioctl(dev_ioctl_t* dev)
 {
-    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
-    USART_ITConfig(usart, USART_IT_RXNE, ENABLE);
+	USART_HandleTypeDef husart;
+	husart.Instance = (USART_TypeDef*)(dev->ctx);
+	__HAL_USART_ENABLE_IT(husart, USART_IT_RXNE);
     return 0;
 }
 
 static int usart_enable_tx_ioctl(dev_ioctl_t* dev)
 {
-    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
-    USART_ITConfig(usart, USART_IT_TXE, ENABLE);
+	USART_HandleTypeDef husart;
+	husart.Instance = (USART_TypeDef*)(dev->ctx);
+	__HAL_USART_ENABLE_IT(husart, USART_IT_TXE);
     return 0;
 }
 
@@ -512,16 +502,17 @@ static int usart_open_ioctl(dev_ioctl_t* dev)
 {
     USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
     usart_init_gpio(usart);
-    usart_init_device(usart, ENABLE);
+    usart_init_device(usart, true);
     return 0;
 }
 
 static int usart_close_ioctl(dev_ioctl_t* dev)
 {
-    USART_TypeDef* usart = (USART_TypeDef*)(dev->ctx);
-    USART_ITConfig(usart, USART_IT_RXNE, DISABLE);
-    USART_ITConfig(usart, USART_IT_TXE, DISABLE);
-    usart_init_device(usart, DISABLE);
+	USART_HandleTypeDef husart;
+	husart.Instance = (USART_TypeDef*)(dev->ctx);
+	__HAL_USART_DISABLE_IT(husart, USART_IT_RXNE);
+	__HAL_USART_DISABLE_IT(husart, USART_IT_TXE);
+    usart_init_device(usart, false);
     return 0;
 }
 
