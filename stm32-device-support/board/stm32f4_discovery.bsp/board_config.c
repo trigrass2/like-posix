@@ -33,18 +33,31 @@
 #include "board_config.h"
 #include "system.h"
 
-void init_target(void)
+/**
+  * @brief  Initializes the MSP.
+  * @retval None
+  */
+void HAL_MspInit(void)
 {
     // clear reset source flags
-    RCC_ClearFlag();
-    enable_bod();
+    __HAL_RCC_CLEAR_RESET_FLAGS();
     // enable all the GPIO ports and alternate functions
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA|RCC_AHB1Periph_GPIOB|RCC_AHB1Periph_GPIOC|RCC_AHB1Periph_GPIOD|RCC_AHB1Periph_GPIOE, ENABLE);
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
+    __HAL_RCC_GPIOE_CLK_ENABLE();
 
-    configure_nvic();
-    enable_fpu();
+    enable_bod();
 }
 
+/**
+  * @brief  DeInitializes the MSP.
+  * @retval None
+  */
+void HAL_MspDeInit(void)
+{
 
+}
 
 

@@ -61,7 +61,7 @@ void init_systime()
     systime_htim.Init.Prescaler = SYSTIMER_PRESCALER;
     HAL_TIM_Base_Init(&systime_htim);
     HAL_TIM_Base_Start_IT(&systime_htim);
-    HAL_NVIC_SetPriority(SYSTIMER_IRQ, 0, SYSTIMER_INT_PRIORITY);
+    HAL_NVIC_SetPriority(SYSTIMER_IRQ, SYSTIMER_INT_PRIORITY, 0);
     HAL_NVIC_EnableIRQ(SYSTIMER_IRQ);
 }
 

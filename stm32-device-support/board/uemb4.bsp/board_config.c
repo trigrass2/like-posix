@@ -50,7 +50,6 @@ void HAL_MspInit(void)
 	__HAL_RCC_GPIOE_CLK_ENABLE();
 
 	enable_bod();
-    enable_fpu();
 }
 
 /**

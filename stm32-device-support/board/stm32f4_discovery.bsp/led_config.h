@@ -46,10 +46,10 @@
 #define BOOT_LED LED4
 
 #define LED_PORT_MAP	{ \
-	{GPIOD, GPIO_Pin_12}, \
-	{GPIOD, GPIO_Pin_13}, \
-	{GPIOD, GPIO_Pin_14}, \
-	{GPIOD, GPIO_Pin_15} \
+	{GPIOD, GPIO_PIN_12}, \
+	{GPIOD, GPIO_PIN_13}, \
+	{GPIOD, GPIO_PIN_14}, \
+	{GPIOD, GPIO_PIN_15} \
 }
 
 #endif // LED_CONFIG_H_
