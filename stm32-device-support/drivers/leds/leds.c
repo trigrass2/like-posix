@@ -117,31 +117,30 @@ void toggle_led(uint8_t led)
 
 void set_led(uint8_t led)
 {
-    switch_led(led, true);
+    HAL_GPIO_WritePin(leds[led].port, leds[led].pin, GPIO_PIN_SET);
 }
 
 void clear_led(uint8_t led)
 {
-    switch_led(led, false);
+    HAL_GPIO_WritePin(leds[led].port, leds[led].pin, GPIO_PIN_RESET);
 }
 
 void switch_led(uint8_t led, bool state)
 {
-    HAL_GPIO_WritePin(leds[led].port, leds[led].pin, state);
+    HAL_GPIO_WritePin(leds[led].port, leds[led].pin, state ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
 #if USE_FREERTOS
-void led_flash_task( void *pvParameters )
+void led_flash_task(void *pvParameters)
 {
     uint8_t led = *(uint8_t*)pvParameters;
     clear_led(led);
     for (;;)
     {
-        vTaskDelay(1000/portTICK_RATE_MS );
+        usleep(1000000);
         toggle_led(led);
-        vTaskDelay(60/portTICK_RATE_MS );
+        usleep(60000);
         toggle_led(led);
-        taskYIELD();
     }
 }
 #endif
