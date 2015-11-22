@@ -25,6 +25,10 @@ ifeq ($(DATA_IN_ExtSRAM), 1)
 CFLAGS += -DDATA_IN_ExtSRAM
 endif
 
+ifeq ($(DATA_IN_ExtSDRAM), 1)
+CFLAGS += -DDATA_IN_ExtSDRAM
+endif
+
 ## configure BOARD SOURCE and CFLAGS
 CFLAGS += -I$(DEVICE_SUPPORT_DIR)/board
 CFLAGS += -I$(BOARDDIR)/$(BOARD).bsp

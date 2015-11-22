@@ -22,6 +22,7 @@ SOURCE += $(SYSTEMDIR)/asserts.c
 SOURCE += $(SYSTEMDIR)/hardware_exception.c
 SOURCE += $(SYSTEMDIR)/services.c
 SOURCE += $(SYSTEMDIR)/msp_funnel.c
+SOURCE += $(SYSTEMDIR)/systick.c
 ifeq ($(USE_FREERTOS), 1)
 SOURCE += $(SYSTEMDIR)/stackoverflow.c
 endif
