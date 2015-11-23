@@ -48,12 +48,12 @@
 
 logger_t diskiolog;
 
-SD_CardInfo SDCardInfo;             // card information
+HAL_SD_CardInfoTypedef SDCardInfo;             // card information
 DSTATUS Status = STA_NOINIT;        // Disk status
 
 DSTATUS disk_initialize(BYTE drv)      /* Physical drive number (0) */
 {
-    SD_Error err = SD_NOT_CONFIGURED;
+    HAL_SD_ErrorTypedef err = SD_NOT_CONFIGURED;
 
     // reset Status to not initialised
     Status = STA_NOINIT;
@@ -64,12 +64,12 @@ DSTATUS disk_initialize(BYTE drv)      /* Physical drive number (0) */
 
     // update status, based on hardware state
     // SD card must be present and drive number set to 0
-    if((SD_Detect() == SD_PRESENT) && (drv == 0))
+    if((sd_detect() == SD_PRESENT) && (drv == 0))
         Status &= ~STA_NODISK;
     else
         Status |= STA_NODISK;
 
-    if(SD_WPDetect() == SD_WRITE_PROTECTED)
+    if(sd_write_protected() == SD_WRITE_PROTECTED)
         Status |= STA_PROTECT;
     else
         Status &= ~STA_PROTECT;
@@ -78,7 +78,7 @@ DSTATUS disk_initialize(BYTE drv)      /* Physical drive number (0) */
     if(Status == STA_NOINIT)
     {
         // init SD card
-        err = SD_Init(&SDCardInfo);
+        err = sd_init(&SDCardInfo);
         if(err == SD_OK)
         {
             log_info(&diskiolog, "capacity: %uMB", (unsigned int)((SDCardInfo.CardBlockSize/512)*(SDCardInfo.CardCapacity/(2*1000))));
@@ -86,10 +86,13 @@ DSTATUS disk_initialize(BYTE drv)      /* Physical drive number (0) */
             log_info(&diskiolog, "card type: %u", (unsigned int)SDCardInfo.CardType);
             Status &= ~STA_NOINIT;           // indicate success
         }
+        else
+        	log_error(&diskiolog, "sd init error: err=%d", (int)err);
+
     }
 
     if(Status & STA_NOINIT)
-        log_error(&diskiolog, "disk init error: dstatus=%d", (int)Status);
+        log_error(&diskiolog, "disk init error");
 
     return Status;
 }
@@ -97,8 +100,8 @@ DSTATUS disk_initialize(BYTE drv)      /* Physical drive number (0) */
 DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, UINT count)
 {
     DRESULT res = RES_ERROR;
-    SD_Error err = SD_OK;
-    SDCardState cardstate = SD_CARD_ERROR;
+    HAL_SD_ErrorTypedef err = SD_OK;
+    HAL_SD_CardStateTypedef cardstate = SD_CARD_ERROR;
 
     if (drv)
         return RES_PARERR;
@@ -106,25 +109,7 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, UINT count)
     if(Status & (STA_NODISK | STA_NOINIT))
         return RES_NOTRDY;
 
-
-    if(count == 1)
-        err = SD_ReadBlock((uint8_t*)buff, sector);
-    else
-        err = SD_ReadMultiBlocks((uint8_t*)buff, sector, count);
-
-    if(err == SD_OK)
-        err = SD_WaitIOOperation(WAIT_WHILE_RX_ACTIVE);
-
-    while(err == SD_OK)
-    {
-        err = SD_QueryStatus(&cardstate);
-        if(cardstate == SD_CARD_TRANSFER)
-        {
-            res = RES_OK;
-            break;
-        }
-        usleep(1000);
-    }
+    err = sd_read((uint8_t*)buff, sector, count);
 
     if(err != SD_OK)
         log_error(&diskiolog, "read error: %d", err);
@@ -136,8 +121,8 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, UINT count)
 DRESULT disk_write (BYTE drv, const BYTE *buff, DWORD sector, UINT count)
 {
     DRESULT res = RES_ERROR;
-    SD_Error err = SD_OK;
-    SDCardState cardstate = SD_CARD_ERROR;
+    HAL_SD_ErrorTypedef err = SD_OK;
+    HAL_SD_CardStateTypedef cardstate = SD_CARD_ERROR;
 
     if (drv)
         return RES_PARERR;
@@ -148,24 +133,7 @@ DRESULT disk_write (BYTE drv, const BYTE *buff, DWORD sector, UINT count)
     if(Status & STA_PROTECT)
         return RES_WRPRT;
 
-    if(count == 1)
-        err = SD_WriteBlock((const uint8_t*)buff, sector);
-    else if(count > 1)
-        err = SD_WriteMultiBlocks((const uint8_t*)buff, sector, count);
-
-    if(err == SD_OK)
-        err = SD_WaitIOOperation(WAIT_WHILE_TX_ACTIVE);
-
-    while(err == SD_OK)
-    {
-        err = SD_QueryStatus(&cardstate);
-        if(cardstate == SD_CARD_TRANSFER)
-        {
-            res = RES_OK;
-            break;
-        }
-        usleep(1000);
-    }
+    err = sd_write((const uint8_t*)buff, sector, count);
 
     if(err != SD_OK)
         log_error(&diskiolog, "write error: %d", err);
@@ -192,7 +160,7 @@ DRESULT disk_ioctl(BYTE drv, BYTE ctrl, void *buff)
    switch (ctrl)
    {
       case CTRL_SYNC :        // error if transfer not complete
-          if(SD_GetTransferState() == SD_TRANSFER_BUSY)
+          if(sd_get_transfer_state() == SD_TRANSFER_BUSY)
               res = RES_ERROR;
       break;
       case GET_SECTOR_COUNT : // Get number of sectors on the disk
@@ -219,14 +187,14 @@ DRESULT disk_ioctl(BYTE drv, BYTE ctrl, void *buff)
       case MMC_GET_SDSTAT:
 
       break;
-      case CTRL_POWER :
-        if(*(BYTE*)buff == 0)
-            SD_PowerOFF();
-        if(*(BYTE*)buff == 1)
-            SD_PowerON();
-      break;
+//      case CTRL_POWER :
+//        if(*(BYTE*)buff == 0)
+//            SD_PowerOFF();
+//        if(*(BYTE*)buff == 1)
+//            SD_PowerON();
+//      break;
 //      case CTRL_ERASE_SECTOR:
-//          SD_Erase(*(((DWORD*)buff)), *(((DWORD*)buff)+1));
+//          sd_erase(*(((DWORD*)buff)), *(((DWORD*)buff)+1));
 //      break;
       default:
          res = RES_PARERR;
@@ -281,7 +249,7 @@ DSTATUS disk_status(BYTE drv)
    else
        Status |= STA_NODISK;         // indicate no-disk
 
-    if(SD_WPDetect() == SD_WRITE_PROTECTED)
+    if(sd_write_protected() == SD_WRITE_PROTECTED)
        Status |= STA_PROTECT;     // indicate write protected
    else
        Status &= ~STA_PROTECT;     // indicate not write protected
