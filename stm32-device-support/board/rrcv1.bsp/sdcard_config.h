@@ -34,25 +34,24 @@
 #define SDCARD_CONFIG_H_
 
 // define active high sd present pin
-// #define SD_CARD_PRES_PIN            GPIO_Pin_
+// #define SD_CARD_PRES_PIN            GPIO_PIN_
 // #define SD_CARD_PRES_PORT           GPIO
 
 // define active low sd present pin
-//#define SD_CARD_NPRES_PIN            GPIO_Pin_3
+//#define SD_CARD_NPRES_PIN            GPIO_PIN_3
 //#define SD_CARD_NPRES_PORT           GPIOD
 
 // define active high write protect pin
-// #define SD_CARD_WP_PIN              GPIO_Pin_
+// #define SD_CARD_WP_PIN              GPIO_PIN_
 // #define SD_CARD_WP_PORT             GPIO
 
 // define active low write protect pin
-// #define SD_CARD_NWP_PIN              GPIO_Pin_
+// #define SD_CARD_NWP_PIN              GPIO_PIN_
 // #define SD_CARD_NWP_PORT             GPIO
 
 
 #define SDCARD_TASK_PRIORITY    	1
 #define SDCARD_TASK_STACK 			192
-#define SDCARD_DRIVER_MODE 			SDCARD_DRIVER_MODE_SPI
 #define SDCARD_SPI_PERIPHERAL 		SPI1
 #define SDCARD_SPI_INIT_BAUDRATE	400000
 #define SDCARD_SPI_FULL_BAUDRATE 	5000000
