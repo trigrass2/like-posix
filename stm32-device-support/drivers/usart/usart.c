@@ -244,7 +244,7 @@ void usart_init_gpio(USART_TypeDef* usart)
     {
 #if FAMILY == STM32F1
 #ifdef USART2_REMAP
-        G__HAL_AFIO_REMAP_USART2_ENABLE();
+        __HAL_AFIO_REMAP_USART2_ENABLE();
 #endif
 #elif FAMILY == STM32F4
     	GPIO_InitStructure_tx.Alternate = GPIO_AF7_USART2;
@@ -486,7 +486,7 @@ static int usart_enable_rx_ioctl(dev_ioctl_t* dev)
 {
 	USART_HandleTypeDef husart;
 	husart.Instance = (USART_TypeDef*)(dev->ctx);
-	__HAL_USART_ENABLE_IT(husart, USART_IT_RXNE);
+	__HAL_USART_ENABLE_IT(&husart, USART_IT_RXNE);
     return 0;
 }
 
@@ -494,7 +494,7 @@ static int usart_enable_tx_ioctl(dev_ioctl_t* dev)
 {
 	USART_HandleTypeDef husart;
 	husart.Instance = (USART_TypeDef*)(dev->ctx);
-	__HAL_USART_ENABLE_IT(husart, USART_IT_TXE);
+	__HAL_USART_ENABLE_IT(&husart, USART_IT_TXE);
     return 0;
 }
 
@@ -510,9 +510,9 @@ static int usart_close_ioctl(dev_ioctl_t* dev)
 {
 	USART_HandleTypeDef husart;
 	husart.Instance = (USART_TypeDef*)(dev->ctx);
-	__HAL_USART_DISABLE_IT(husart, USART_IT_RXNE);
-	__HAL_USART_DISABLE_IT(husart, USART_IT_TXE);
-    usart_init_device(usart, false);
+	__HAL_USART_DISABLE_IT(&husart, USART_IT_RXNE);
+	__HAL_USART_DISABLE_IT(&husart, USART_IT_TXE);
+    usart_init_device(husart.Instance, false);
     return 0;
 }
 

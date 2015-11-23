@@ -83,7 +83,7 @@ inline void usart_tx_isr(USART_TypeDef* usart, void* usart_dev)
 #if USE_LIKEPOSIX
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		if(xQueueReceiveFromISR(((dev_ioctl_t*)usart_dev)->pipe.write, (char*)&(usart->DR), &xHigherPriorityTaskWoken) == pdFALSE)
-			USART_ITConfig(usart, USART_IT_TXE, DISABLE);
+			__HAL_USART_DISABLE_IT(&husart, USART_IT_TXE);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 #else
 		(void)usart_dev;
