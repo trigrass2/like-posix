@@ -303,7 +303,6 @@ uint8_t sd_write_protected(void)
 
 void SD_IRQHandler(void)
 {
-	printf("IRQ!\n");
   HAL_SD_IRQHandler(&uSdHandle);
 }
 

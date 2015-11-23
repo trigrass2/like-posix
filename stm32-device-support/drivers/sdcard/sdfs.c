@@ -144,40 +144,36 @@ void sdcard_task(void* pvParameters)
 {
     TCHAR x;
     (void)pvParameters;
+    FRESULT fr;
 
     for(;;)
     {
+    	if(sd_detect() != SD_PRESENT)
+    		log_syslog(&sdfs.log, "wait for disk");
+		// wait for disk
+		while(sd_detect() != SD_PRESENT)
+			usleep(100000);
+
         // after power on or any card not present event, wait a while with the IO in an idle state
         f_mount(NULL, sdfs.drivemapping, 0);
         sdfs.mounted = false;
         set_diskstatus(SD_NOT_PRESENT);
         sd_deinit();
-        usleep(250000);
+        fr = f_mount(&sdfs.fs, sdfs.drivemapping, 1);
 
-        log_syslog(&sdfs.log, "wait for disk");
-        // wait for disk
-        while(sd_detect() != SD_PRESENT)
-             vTaskDelay(100/portTICK_RATE_MS);
-
-        if(f_mount(&sdfs.fs, sdfs.drivemapping, 1) == FR_OK)
+        if(fr == FR_OK)
+           sdfs.mounted = true;
+        else
         {
-            // HACK - alll the f_ functions do perform the chk_mounted routine,
-            // which calls disk_initialize for us.
-            // loop here to give disk_initialize a few tries to actually work.
-            x = 10;
-            while(x-- && f_getcwd(&x, 1) != FR_OK)
-                usleep(250000);
-
-            if(x)
-            {
-                set_diskstatus(SD_PRESENT);
-                sdfs.mounted = true;
-            }
+            log_debug(&sdfs.log, "mount failed: %d", fr);
+        	sleep(2);
+        	continue;
         }
 
-        // wait for disk out
-        while((sd_detect() == SD_PRESENT) && (get_diskstatus() == SD_PRESENT))
-        	usleep(250000);
+        log_debug(&sdfs.log, "mounted %s", sdfs.drivemapping);
+
+        while(sdfs.mounted && sd_detect() == SD_PRESENT)
+        	usleep(100000);
 
         log_syslog(&sdfs.log, "disk out");
     }
