@@ -75,7 +75,7 @@
 //uint8_t SD_Detect(void);
 //uint8_t SD_WPDetect(void);
 
-//#define SD_DATATIMEOUT           ((uint32_t)100000000)
+#define SD_DATATIMEOUT           ((uint32_t)100000000)
 
 #define SD_CARD_PORT                GPIOC
 #define SD_CARD_CK_PIN              GPIO_PIN_12

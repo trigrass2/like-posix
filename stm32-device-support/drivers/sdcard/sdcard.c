@@ -115,7 +115,6 @@ void sd_hardware_init(SD_HandleTypeDef *hsd)
 {
 	static DMA_HandleTypeDef dma_rx_handle;
 	static DMA_HandleTypeDef dma_tx_handle;
-	GPIO_InitTypeDef gpio_init_structure;
 
 	/* Enable SDIO clock */
 	__HAL_RCC_SDIO_CLK_ENABLE();
