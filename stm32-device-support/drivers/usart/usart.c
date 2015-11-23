@@ -346,7 +346,7 @@ bool usart_init(USART_TypeDef* usart, char* install, bool enable)
 	bool ret = true;
 	int8_t usart_devno = get_usart_devno(usart);
 
-	log_syslog(NULL, "init usart%d", usart_devno);
+	log_syslog(NULL, "init usart%d", usart_devno+1);
 
 	assert_true(usart_devno != -1);
 
@@ -366,7 +366,7 @@ bool usart_init(USART_TypeDef* usart, char* install, bool enable)
     	usart_dev_ioctls[usart_devno] = NULL;
 #endif
     	ret = usart_dev_ioctls[usart_devno] != NULL;
-        log_syslog(NULL, "install usart%d: %s", usart_devno, ret ? "successful" : "failed");
+        log_syslog(NULL, "install usart%d: %s", usart_devno+1, ret ? "successful" : "failed");
     }
 
     if(enable)
