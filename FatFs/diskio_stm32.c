@@ -81,14 +81,13 @@ DSTATUS disk_initialize(BYTE drv)      /* Physical drive number (0) */
         err = sd_init(&SDCardInfo);
         if(err == SD_OK)
         {
-            log_info(&diskiolog, "capacity: %uMB", (unsigned int)((SDCardInfo.CardBlockSize/512)*(SDCardInfo.CardCapacity/(2*1000))));
+            log_info(&diskiolog, "capacity: %uMB", (unsigned int)((SDCardInfo.CardBlockSize/512)*(SDCardInfo.CardCapacity/(1000000))));
             log_info(&diskiolog, "sector size: %uB", (unsigned int)SDCardInfo.CardBlockSize);
             log_info(&diskiolog, "card type: %u", (unsigned int)SDCardInfo.CardType);
             Status &= ~STA_NOINIT;           // indicate success
         }
         else
         	log_error(&diskiolog, "sd init error: err=%d", (int)err);
-
     }
 
     if(Status & STA_NOINIT)
@@ -99,9 +98,7 @@ DSTATUS disk_initialize(BYTE drv)      /* Physical drive number (0) */
 
 DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, UINT count)
 {
-    DRESULT res = RES_ERROR;
-    HAL_SD_ErrorTypedef err = SD_OK;
-    HAL_SD_CardStateTypedef cardstate = SD_CARD_ERROR;
+    HAL_SD_ErrorTypedef err;
 
     if (drv)
         return RES_PARERR;
@@ -112,17 +109,18 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, UINT count)
     err = sd_read((uint8_t*)buff, sector, count);
 
     if(err != SD_OK)
+    {
         log_error(&diskiolog, "read error: %d", err);
+        return RES_ERROR;
+    }
 
-    return res;
+    return RES_OK;
 }
 
 #if _FS_READONLY == 0
 DRESULT disk_write (BYTE drv, const BYTE *buff, DWORD sector, UINT count)
 {
-    DRESULT res = RES_ERROR;
-    HAL_SD_ErrorTypedef err = SD_OK;
-    HAL_SD_CardStateTypedef cardstate = SD_CARD_ERROR;
+    HAL_SD_ErrorTypedef err;
 
     if (drv)
         return RES_PARERR;
@@ -133,12 +131,15 @@ DRESULT disk_write (BYTE drv, const BYTE *buff, DWORD sector, UINT count)
     if(Status & STA_PROTECT)
         return RES_WRPRT;
 
-    err = sd_write((const uint8_t*)buff, sector, count);
+    err = sd_write((uint8_t*)buff, sector, count);
 
     if(err != SD_OK)
+    {
         log_error(&diskiolog, "write error: %d", err);
+        return RES_ERROR;
+    }
 
-    return res;
+    return RES_OK;
 }
 #endif // _FS_READONLY
 
@@ -244,7 +245,7 @@ DSTATUS disk_status(BYTE drv)
     // update status, based on card inserted state
 
     // SD card must be present and drive number set to 0
-    if((get_diskstatus() == SD_PRESENT) && (drv == 0))
+    if(sd_detect() == SD_PRESENT && drv == 0)
        Status &= ~STA_NODISK;         // indicate disk present
    else
        Status |= STA_NODISK;         // indicate no-disk

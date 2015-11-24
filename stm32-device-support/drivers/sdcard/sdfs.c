@@ -62,7 +62,8 @@
 
 #define SDCARD_IT_PRIORITY          5
 #define SDCARD_TASK_PRIORITY        2
-#define SDCARD_TASK_STACK           1024
+#define SDCARD_TASK_STACK           192
+#define SDCARD_DRIVER_MODE			SDCARD_DRIVER_MODE_XXXXXXXX
 
 #endif // SDCARD_CONFIG_H_
 
@@ -120,20 +121,7 @@ bool sdfs_init(void)
 
 #else
     if(f_mount(&sdfs.fs, sdfs.drivemapping, 1) == FR_OK)
-    {
-        // HACK - alll the f_ functions do perform the chk_mounted routine,
-        // which calls disk_initialize for us.
-        // loop here to give disk_initialize a few tries to actually work.
-        char x = 10;
-        while(x-- && f_getcwd(&x, 1) != FR_OK)
-            usleep(500000);
-
-        if(x)
-        {
-            set_diskstatus(SD_PRESENT);
-            sdfs.mounted = true;
-        }
-    }
+		sdfs.mounted = true;
 
     return sdfs.mounted;
 #endif
@@ -142,7 +130,6 @@ bool sdfs_init(void)
 #if USE_FREERTOS
 void sdcard_task(void* pvParameters)
 {
-    TCHAR x;
     (void)pvParameters;
     FRESULT fr;
 
@@ -157,7 +144,6 @@ void sdcard_task(void* pvParameters)
         // after power on or any card not present event, wait a while with the IO in an idle state
         f_mount(NULL, sdfs.drivemapping, 0);
         sdfs.mounted = false;
-        set_diskstatus(SD_NOT_PRESENT);
         sd_deinit();
         fr = f_mount(&sdfs.fs, sdfs.drivemapping, 1);
 
@@ -170,7 +156,7 @@ void sdcard_task(void* pvParameters)
         	continue;
         }
 
-        log_debug(&sdfs.log, "mounted %s", sdfs.drivemapping);
+        log_debug(&sdfs.log, "mounted volume '%s'", sdfs.drivemapping);
 
         while(sdfs.mounted && sd_detect() == SD_PRESENT)
         	usleep(100000);

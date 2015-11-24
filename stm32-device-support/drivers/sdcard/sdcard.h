@@ -43,95 +43,45 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "sdcard_type.h"
+#include "board_config.h"
 #include "sdcard_config.h"
+#include "base_sdcard.h"
 
-#ifndef USE_THREAD_AWARE_SDCARD_DRIVER
-#define USE_THREAD_AWARE_SDCARD_DRIVER   0
+#define SDCARD_DRIVER_MODE_SPI          1
+#define SDCARD_DRIVER_MODE_SDIO_1BIT    2
+#define SDCARD_DRIVER_MODE_SDIO_4BIT    3
+
+#ifndef SDCARD_DRIVER_MODE
+#error "SDCARD_DRIVER_MODE must be specified in boardname.bsp/sdcard_config.h"
 #endif
 
-#if USE_THREAD_AWARE_SDCARD_DRIVER
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "semphr.h"
-#endif
+#define SDIO_STD_CAPACITY_SD_CARD_V1_1             ((uint32_t)0x00000000)
+#define SDIO_STD_CAPACITY_SD_CARD_V2_0             ((uint32_t)0x00000001)
+#define SDIO_HIGH_CAPACITY_SD_CARD                 ((uint32_t)0x00000002)
+#define SDIO_MULTIMEDIA_CARD                       ((uint32_t)0x00000003)
+#define SDIO_SECURE_DIGITAL_IO_CARD                ((uint32_t)0x00000004)
+#define SDIO_HIGH_SPEED_MULTIMEDIA_CARD            ((uint32_t)0x00000005)
+#define SDIO_SECURE_DIGITAL_IO_COMBO_CARD          ((uint32_t)0x00000006)
+#define SDIO_HIGH_CAPACITY_MMC_CARD                ((uint32_t)0x00000007)
+#define SDIO_UNKNOWN_CARD_TYPE                     ((uint32_t)0x00000008)
 
-//extern const char* sderrstr[];
-//
-//HAL_SD_ErrorTypedef SD_PowerON(void);
-//HAL_SD_ErrorTypedef SD_PowerOFF(void);
-//HAL_SD_ErrorTypedef SD_Init(SD_CardInfo* sdcardinfo);
-//void SD_DeInit(void);
-//HAL_SD_ErrorTypedef SD_WaitIOOperation(sdio_wait_on_io_t io_flag);
-//HAL_SD_ErrorTypedef SD_QueryStatus(HAL_SD_CardStateTypedef* cardstatus);
-//HAL_SD_ErrorTypedef SD_ReadBlock(uint8_t *readbuff, uint32_t sector);
-//HAL_SD_ErrorTypedef SD_ReadMultiBlocks(uint8_t *readbuff, uint32_t sector, uint32_t NumberOfBlocks);
-//HAL_SD_ErrorTypedef SD_WriteBlock(const uint8_t *writebuff, uint32_t sector);
-//HAL_SD_ErrorTypedef SD_WriteMultiBlocks(const uint8_t *writebuff, uint32_t sector, uint32_t NumberOfBlocks);
-//HAL_SD_ErrorTypedef SD_Erase(uint32_t startaddr, uint32_t endaddr);
-//HAL_SD_TransferStateTypedef SD_GetTransferState(void);
-//
-//uint8_t SD_Detect(void);
-//uint8_t SD_WPDetect(void);
+enum {
+	SD_NOT_PRESENT=0,
+	SD_PRESENT=1
+};
 
-#define SD_DATATIMEOUT           ((uint32_t)100000000)
-
-#define SD_CARD_PORT                GPIOC
-#define SD_CARD_CK_PIN              GPIO_PIN_12
-#define SD_CARD_D0_PIN              GPIO_PIN_8
-#define SD_CARD_D1_PIN              GPIO_PIN_9
-#define SD_CARD_D2_PIN              GPIO_PIN_10
-#define SD_CARD_D3_PIN              GPIO_PIN_11
-#define SD_CARD_CMD_PORT            GPIOD
-#define SD_CARD_CMD_PIN             GPIO_PIN_2
-
-/**
-  * @brief  SD detection on its memory slot
-  */
-#define SD_PRESENT                                 ((uint8_t)0x01)
-#define SD_NOT_PRESENT                             ((uint8_t)0x00)
-
-/**
-  * @brief  SD write protect detection
-  */
-#define SD_WRITE_PROTECTED                         ((uint8_t)0x01)
-#define SD_NOT_WRITE_PROTECTED                     ((uint8_t)0x00)
-
-#define   MSD_OK                        ((uint8_t)0x00)
-#define   MSD_ERROR                     ((uint8_t)0x01)
-#define   MSD_ERROR_SD_NOT_PRESENT      ((uint8_t)0x02)
-
-#define __DMAx_TxRx_CLK_ENABLE            __HAL_RCC_DMA2_CLK_ENABLE
-#define SD_DMAx_Tx_CHANNEL                DMA_CHANNEL_4
-#define SD_DMAx_Rx_CHANNEL                DMA_CHANNEL_4
-#define SD_DMAx_Tx_STREAM                 DMA2_Stream6
-#define SD_DMAx_Rx_STREAM                 DMA2_Stream3
-#define SD_DMAx_Tx_IRQn                   DMA2_Stream6_IRQn
-#define SD_DMAx_Rx_IRQn                   DMA2_Stream3_IRQn
-
-#define SD_IRQHandler                     SDIO_IRQHandler
-#define SD_DMA_Tx_IRQHandler              DMA2_Stream6_IRQHandler
-#define SD_DMA_Rx_IRQHandler              DMA2_Stream3_IRQHandler
-
-#if defined(SD_CARD_NPRES_PIN)
-#define SD_DetectIRQHandler()             HAL_GPIO_EXTI_IRQHandler(SD_CARD_NPRES_PIN)
-#elif defined(SD_CARD_PRES_PIN)
-#define SD_DetectIRQHandler()             HAL_GPIO_EXTI_IRQHandler(SD_CARD_PRES_PIN)
-#endif
+enum {
+	SD_NOT_WRITE_PROTECTED=0,
+	SD_WRITE_PROTECTED=1
+};
 
 HAL_SD_ErrorTypedef sd_init(HAL_SD_CardInfoTypedef* uSdCardInfo);
 HAL_SD_ErrorTypedef sd_deinit(void);
-void set_diskstatus(uint8_t state);
-uint8_t get_diskstatus();
 uint8_t sd_detect(void);
 uint8_t sd_write_protected(void);
-
 uint8_t sd_read(uint8_t *pData, uint32_t sector, uint32_t sectors);
 uint8_t sd_write(uint8_t *pData, uint32_t sector, uint32_t sectors);
 uint8_t sd_erase(uint32_t startsector, uint32_t endsector);
-
-
 void sd_get_card_info(HAL_SD_CardInfoTypedef *CardInfo);
 HAL_SD_TransferStateTypedef sd_get_transfer_state(void);
 
