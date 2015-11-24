@@ -66,6 +66,13 @@ void HAL_MspDeInit(void)
 
 /**
   * @brief  System Clock Configuration
+  *
+  * 		core clock = ((HSE_VALUE / PLL_M) * PLL_N) / PLL_P
+  * 		or
+  * 		core clock = ((HSI_VALUE / PLL_M) * PLL_N) / PLL_P
+  *
+  * 		PLL48CLK = ((HSE_VALUE / PLL_M) * PLL_N) / PLL_Q
+  *
   *         The system Clock is configured as follow :
   *            System Clock source            = PLL (HSE)
   *            SYSCLK(Hz)                     = 168000000

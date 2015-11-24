@@ -46,9 +46,9 @@
 #define ACTIVITY_LED    LED1
 
 #define LED_PORT_MAP	{ \
-	{GPIOE, GPIO_Pin_15}, \
-    {GPIOE, GPIO_Pin_14}, \
-	{GPIOE, GPIO_Pin_13}, \
+	{GPIOE, GPIO_PIN_15}, \
+    {GPIOE, GPIO_PIN_14}, \
+	{GPIOE, GPIO_PIN_13}, \
 }
 
 #endif // LED_CONFIG_H_

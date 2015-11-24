@@ -44,7 +44,7 @@
 #define ACTIVITY_LED    LED1
 
 #define LED_PORT_MAP	{ \
-	{GPIOC, GPIO_Pin_8}, \
+	{GPIOC, GPIO_PIN_8}, \
 }
 
 #endif // LED_CONFIG_H_

@@ -66,6 +66,13 @@ void HAL_MspDeInit(void)
 
 /**
   * @brief  System Clock Configuration
+  *
+  * 		core clock = ((HSE_VALUE / PLL_M) * PLL_N) / PLL_P
+  * 		or
+  * 		core clock = ((HSI_VALUE / PLL_M) * PLL_N) / PLL_P
+  *
+  * 		PLL48CLK = ((HSE_VALUE / PLL_M) * PLL_N) / PLL_Q
+  *
   *         The system Clock is configured as follow :
   *            System Clock source            = PLL (HSE)
   *            SYSCLK(Hz)                     = 168000000
@@ -73,8 +80,8 @@ void HAL_MspDeInit(void)
   *            AHB Prescaler                  = 1
   *            APB1 Prescaler                 = 4
   *            APB2 Prescaler                 = 2
-  *            HSE Frequency(Hz)              = 8000000
-  *            PLL_M                          = 8
+  *            HSE Frequency(Hz)              = 25000000
+  *            PLL_M                          = 25
   *            PLL_N                          = 336
   *            PLL_P                          = 2
   *            PLL_Q                          = 7
@@ -102,7 +109,7 @@ static void SystemClock_Config(void)
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLM = 25;
   RCC_OscInitStruct.PLL.PLLN = 336;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 7;
