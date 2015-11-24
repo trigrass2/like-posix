@@ -38,6 +38,7 @@
 
 #include "board_config.h"
 #include "services.h"
+#include "system.h"
 
 #if USE_FREERTOS
 #if USE_PTHREADS
