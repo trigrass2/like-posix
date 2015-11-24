@@ -69,6 +69,7 @@
  * @{
  */
 
+#include <unistd.h>
 #include "leds.h"
 
 #if USE_FREERTOS
