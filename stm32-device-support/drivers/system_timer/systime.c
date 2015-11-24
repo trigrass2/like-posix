@@ -50,7 +50,7 @@ static TIM_HandleTypeDef systime_htim = {
         .RepetitionCounter = 0
     },
     .Channel = HAL_TIM_ACTIVE_CHANNEL_1,
-    .hdma = NULL,
+    .hdma = {NULL},
     .Lock = HAL_UNLOCKED,
     .State = HAL_TIM_STATE_RESET,
 };
