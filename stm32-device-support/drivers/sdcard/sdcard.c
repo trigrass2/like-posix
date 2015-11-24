@@ -30,6 +30,11 @@
  *
  */
 
+/**
+ * The SDIO driver is a modification (by Michael Stuart) of that found in the STM32cubeF1 and STM32cubeF4 code bases.
+ *
+ * The SPI driver is a modification (by Michael Stuart) of that by Martin Thomas, http://siwawi.bauing.uni-kl.de/avr_projects/arm_projects/index_cortex.html
+ */
 
 #include "board_config.h"
 #include "sdcard.h"
