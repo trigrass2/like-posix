@@ -58,6 +58,8 @@
 #include "task.h"
 #include "queue.h"
 #include "semphr.h"
+
+// TODO - add queue logic to makew driver block the calling thread while performing IO
 #endif
 
 
