@@ -179,16 +179,11 @@ void run_from(uint32_t address)
 uint64_t get_device_uid()
 {
     uint64_t serialnumber;
-#if defined(STM32F10X_HD) || defined(STM32F10X_MD) || defined(STM32F10X_LD)
+#if FAMILY == STM32F1
     serialnumber = *(__IO uint64_t*)(0x1FFFF7E8);
     serialnumber += *(__IO uint64_t*)(0x1FFFF7EC);
 //  serialnumber += *(__IO uint64_t*)(0x1FFFF7F0);
-#elif defined(STM32F10X_CL)
-    // TODO - this isnt right?
-    serialnumber = *(__IO uint64_t*)(0x1FFFB7E8);
-    serialnumber += *(__IO uint64_t*)(0x1FFFB7EC);
-//  serialnumber += *(__IO uint64_t*)(0x1FFFB7F0);
-#elif defined(STM32F4XX)
+#elif FAMILY == STM32F4
     serialnumber = *(__IO uint64_t*)(0x1FFF7A10);
     serialnumber += *(__IO uint64_t*)(0x1FFF7A14);
 //  serialnumber += *(__IO uint64_t*)(0x1FFF7A18);
