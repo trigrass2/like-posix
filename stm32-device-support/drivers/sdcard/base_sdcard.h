@@ -24,7 +24,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the Appleseed project, <https://github.com/drmetal/app-l-seed>
+ * This file is part of the Appleseed project, <https://github.com/drmetal/appleseed>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
@@ -48,9 +48,10 @@
 
 #if SDCARD_DRIVER_MODE == SDCARD_DRIVER_MODE_SDIO_4BIT || SDCARD_DRIVER_MODE == SDCARD_DRIVER_MODE_SDIO_1BIT
 
+#define __DMAx_TxRx_CLK_ENABLE            __HAL_RCC_DMA2_CLK_ENABLE
+
 #if FAMILY == STM32F4
 
-#define __DMAx_TxRx_CLK_ENABLE            __HAL_RCC_DMA2_CLK_ENABLE
 #define SD_DMAx_Tx_CHANNEL                DMA_CHANNEL_4
 #define SD_DMAx_Rx_CHANNEL                DMA_CHANNEL_4
 #define SD_DMAx_Tx_STREAM                 DMA2_Stream6
@@ -65,17 +66,10 @@
 #elif FAMILY == STM32F1
 
 #define SD_IRQHandler                     SDIO_IRQHandler
-#define SD_SDIO_DMA_IRQHANDLER            DMA2_Channel4_5_IRQHandler
-#define SD_SDIO_DMA_IRQn               	  DMA2_Channel4_5_IRQn
-#define SD_SDIO_DMA_CHANNEL           	  DMA2_Channel4
-#define SD_SDIO_DMA_FLAG_GLIF             DMA2_FLAG_GL4
-#define SD_SDIO_DMA_FLAG_TEIF             DMA2_FLAG_TE4
-#define SD_SDIO_DMA_FLAG_HTIF             DMA2_FLAG_HT4
-#define SD_SDIO_DMA_FLAG_TCIF             DMA2_FLAG_TC4
-#define SD_SDIO_DMA_IT_GLIF               DMA2_IT_GL4
-#define SD_SDIO_DMA_IT_TEIF               DMA2_IT_TE4
-#define SD_SDIO_DMA_IT_HTIF               DMA2_IT_HT4
-#define SD_SDIO_DMA_IT_TCIF               DMA2_IT_TC4
+#define SD_DMA_TxRx_IRQHandler            DMA2_Channel4_5_IRQHandler
+#define SD_DMAx_TxRx_IRQn                 DMA2_Channel4_5_IRQn
+#define SD_DMAx_TxRx_CHANNEL              DMA2_Channel4
+#define SD_DMAx                           DMA2
 
 #endif
 

@@ -24,7 +24,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the Appleseed project, <https://github.com/drmetal/app-l-seed>
+ * This file is part of the Appleseed project, <https://github.com/drmetal/appleseed>
  *
  * based heavily on the code by Zizzle at: https://github.com/Zizzle/stm32_freertos_example/tree/master/drivers
  *

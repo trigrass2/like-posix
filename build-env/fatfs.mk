@@ -7,12 +7,13 @@ endif
 
 CFLAGS += -DUSE_DRIVER_FAT_FILESYSTEM=$(USE_DRIVER_FAT_FILESYSTEM)
 
+## FAT Filesystem
+ifeq ($(USE_DRIVER_FAT_FILESYSTEM), 1)
+
 ifneq ($(USE_DRIVER_SDCARD), 1) 
 $(error to use FATFS, USE_DRIVER_SDCARD must be set to 1)
 endif
 
-## FAT Filesystem
-ifeq ($(USE_DRIVER_FAT_FILESYSTEM), 1)
 SOURCE += $(FATFS_DIR)/core/option/syscall.c
 SOURCE += $(FATFS_DIR)/core/option/ccsbcs.c
 SOURCE += $(FATFS_DIR)/core/ff.c

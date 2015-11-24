@@ -24,7 +24,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the Appleseed project, <https://github.com/drmetal/app-l-seed>
+ * This file is part of the Appleseed project, <https://github.com/drmetal/appleseed>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
@@ -89,7 +89,7 @@ void HAL_MspDeInit(void)
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the Appleseed project, <https://github.com/drmetal/app-l-seed>
+ * This file is part of the Appleseed project, <https://github.com/drmetal/appleseed>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *

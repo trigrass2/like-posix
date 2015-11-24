@@ -24,7 +24,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the Appleseed project, <https://github.com/drmetal/app-l-seed>
+ * This file is part of the Appleseed project, <https://github.com/drmetal/appleseed>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
@@ -53,5 +53,6 @@
 #define SDCARD_TASK_PRIORITY        1
 #define SDCARD_TASK_STACK 		    192
 #define SDCARD_DRIVER_MODE			SDCARD_DRIVER_MODE_SDIO_4BIT
+#define SDIO_CLOCK_DIVIDER          1 // SDIO clock = 16MHz = 48000000 / SDIO_CLOCK_DIVIDER + 2)
 
 #endif // SDCARD_CONFIG_H_

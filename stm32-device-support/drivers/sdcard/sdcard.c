@@ -1,54 +1,35 @@
-///*
-// * Copyright (c) 2015 Michael Stuart.
-// * All rights reserved.
-// *
-// * Redistribution and use in source and binary forms, with or without modification,
-// * are permitted provided that the following conditions are met:
-// *
-// * 1. Redistributions of source code must retain the above copyright notice,
-// *    this list of conditions and the following disclaimer.
-// * 2. Redistributions in binary form must reproduce the above copyright notice,
-// *    this list of conditions and the following disclaimer in the documentation
-// *    and/or other materials provided with the distribution.
-// * 3. The name of the author may not be used to endorse or promote products
-// *    derived from this software without specific prior written permission.
-// *
-// * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
-// * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
-// * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
-// * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-// * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
-// * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
-// * OF SUCH DAMAGE.
-// *
-// * This file is part of the Appleseed project, <https://github.com/drmetal/app-l-seed>
-// *
-// * Author: Michael Stuart <spaceorbot@gmail.com>
-// *
-// */
-//
-///**
-// * @addtogroup sdfs
-// *
-// * SD Card SDIO driver.
-// *
-// * This is a heavily modified version of the STM32 SD Card drivers for STM32F1/F4,
-// * merged and modified for brevity and slight performance improvement.
-// *
-// * - supports DMA mode only
-// * - does use interrupts, but only to set flags used for polled checking at this time
-// * - supports 512 byte blocksize only
-// * - SDC MMC card support untested
-// * - SDC V1, V2.x, SDHC tested
-// * - loosely emulates the original API by ST, with some modifications
-// *
-// * @file
-// * @{
-// */
-//
+/*
+ * Copyright (c) 2015 Michael Stuart.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 3. The name of the author may not be used to endorse or promote products
+ *    derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+ * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+ * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+ * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
+ * This file is part of the Appleseed project, <https://github.com/drmetal/appleseed>
+ *
+ * Author: Michael Stuart <spaceorbot@gmail.com>
+ *
+ */
+
 
 #include "board_config.h"
 #include "sdcard.h"
@@ -66,13 +47,32 @@
 #if SDCARD_DRIVER_MODE == SDCARD_DRIVER_MODE_SDIO_4BIT || SDCARD_DRIVER_MODE == SDCARD_DRIVER_MODE_SDIO_1BIT
 
 static SD_HandleTypeDef uSdHandle;
+static DMA_HandleTypeDef dma_rx_handle;
+static DMA_HandleTypeDef dma_tx_handle;
 
 static void sd_gpio_init(void);
 static void sd_gpio_deinit(void);
 static void sd_hardware_init(SD_HandleTypeDef *hsd);
 static void sd_hardware_deinit(SD_HandleTypeDef *hsd);
+static HAL_SD_ErrorTypedef sd_enable_rx_dma(SD_HandleTypeDef *hsd);
+static HAL_SD_ErrorTypedef sd_enable_tx_dma(SD_HandleTypeDef *hsd);
 
-
+/**
+ * clock rate:
+ *          SDIO peripheral clock / ClockDiv + 2
+ *
+ *          STM32F1 - if core clock clock is 72MHz, then:
+ *              SDIO clock = 72000000 / (SDIO_CLOCK_DIVIDER + 2)
+ *
+ *          STM32F4 - if PLL1 is configured to deliver 48MHz, then:
+ *              SDIO clock = 48000000 / (SDIO_CLOCK_DIVIDER + 2)
+ *
+ *          therefore:
+ *              SDIO_CLOCK_DIVIDER = (SDIO peripheral clock / SDIO clock) - 2
+ *
+ *          SDIO clock speed may be 24MHz at most, and should be reduced on boards
+ *          with poor layout or the wrong pull up resistor values.
+ */
 HAL_SD_ErrorTypedef sd_init(HAL_SD_CardInfoTypedef* uSdCardInfo)
 {
 	HAL_SD_ErrorTypedef sd_state;
@@ -83,7 +83,7 @@ HAL_SD_ErrorTypedef sd_init(HAL_SD_CardInfoTypedef* uSdCardInfo)
 	uSdHandle.Init.ClockPowerSave      = SDIO_CLOCK_POWER_SAVE_DISABLE;
 	uSdHandle.Init.BusWide             = SDIO_BUS_WIDE_1B;
 	uSdHandle.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_ENABLE;
-	uSdHandle.Init.ClockDiv            = SDIO_TRANSFER_CLK_DIV;
+	uSdHandle.Init.ClockDiv            = SDIO_CLOCK_DIVIDER;
 
 	sd_gpio_init();
 
@@ -128,9 +128,6 @@ HAL_SD_ErrorTypedef sd_deinit(void)
   */
 void sd_hardware_init(SD_HandleTypeDef *hsd)
 {
-	static DMA_HandleTypeDef dma_rx_handle;
-	static DMA_HandleTypeDef dma_tx_handle;
-
 	/* Enable SDIO clock */
 	__HAL_RCC_SDIO_CLK_ENABLE();
 
@@ -140,6 +137,8 @@ void sd_hardware_init(SD_HandleTypeDef *hsd)
 	/* NVIC configuration for SDIO interrupts */
 	HAL_NVIC_SetPriority(SDIO_IRQn, SDCARD_IT_PRIORITY, 0);
 	HAL_NVIC_EnableIRQ(SDIO_IRQn);
+
+#if FAMILY == STM32F4
 
 	/* Configure DMA Rx parameters */
 	dma_rx_handle.Init.Channel             = SD_DMAx_Rx_CHANNEL;
@@ -198,6 +197,13 @@ void sd_hardware_init(SD_HandleTypeDef *hsd)
 	/* NVIC configuration for DMA transfer complete interrupt */
 	HAL_NVIC_SetPriority(SD_DMAx_Tx_IRQn, SDCARD_IT_PRIORITY+1, 0);
 	HAL_NVIC_EnableIRQ(SD_DMAx_Tx_IRQn);
+
+#elif FAMILY == STM32F1
+
+    hsd->hdmarx = NULL;
+    hsd->hdmatx = NULL;
+
+#endif
 }
 
 void sd_gpio_init(void)
@@ -205,7 +211,7 @@ void sd_gpio_init(void)
 	GPIO_InitTypeDef GPIO_InitStructure;
 
 	GPIO_InitStructure.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_LOW;
+	GPIO_InitStructure.Speed = GPIO_SPEED_LOW;
 
 #if defined(SD_CARD_PRES_PIN) && defined(SD_CARD_PRES_PORT)
 	GPIO_InitStructure.Pull = GPIO_PULLDOWN;
@@ -228,7 +234,7 @@ void sd_gpio_init(void)
 #endif
 
 	GPIO_InitStructure.Pin =  SD_CARD_CK_PIN | SD_CARD_D0_PIN | SD_CARD_D1_PIN | SD_CARD_D2_PIN | SD_CARD_D3_PIN;
-	GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
+	GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
 	GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
 	GPIO_InitStructure.Pull = GPIO_PULLUP;
 #if FAMILY == STM32F4
@@ -254,20 +260,24 @@ void sd_gpio_deinit(void)
 
 void sd_hardware_deinit(SD_HandleTypeDef *hsd)
 {
-    static DMA_HandleTypeDef dma_rx_handle;
-    static DMA_HandleTypeDef dma_tx_handle;
-
     /* Disable NVIC for DMA transfer complete interrupts */
+#if FAMILY == STM32F4
     HAL_NVIC_DisableIRQ(SD_DMAx_Rx_IRQn);
     HAL_NVIC_DisableIRQ(SD_DMAx_Tx_IRQn);
-
     /* Deinitialize the stream for new transfer */
     dma_rx_handle.Instance = SD_DMAx_Rx_STREAM;
-    HAL_DMA_DeInit(&dma_rx_handle);
-
     /* Deinitialize the stream for new transfer */
     dma_tx_handle.Instance = SD_DMAx_Tx_STREAM;
     HAL_DMA_DeInit(&dma_tx_handle);
+    HAL_DMA_DeInit(&dma_rx_handle);
+#elif FAMILY == STM32F1
+    HAL_NVIC_DisableIRQ(SD_DMAx_TxRx_IRQn);
+    /* Deinitialize the stream for new transfer */
+    dma_tx_handle.Instance = SD_DMAx_TxRx_CHANNEL;
+    dma_rx_handle.Instance = SD_DMAx_TxRx_CHANNEL;
+    HAL_DMA_DeInit(&dma_tx_handle);
+    HAL_DMA_DeInit(&dma_rx_handle);
+#endif
 
     /* Disable NVIC for SDIO interrupts */
     HAL_NVIC_DisableIRQ(SDIO_IRQn);
@@ -311,6 +321,8 @@ void SD_IRQHandler(void)
   HAL_SD_IRQHandler(&uSdHandle);
 }
 
+#if FAMILY == STM32F4
+
 void SD_DMA_Tx_IRQHandler(void)
 {
   HAL_DMA_IRQHandler(uSdHandle.hdmatx);
@@ -321,6 +333,15 @@ void SD_DMA_Rx_IRQHandler(void)
   HAL_DMA_IRQHandler(uSdHandle.hdmarx);
 }
 
+#elif FAMILY == STM32F1
+
+void SD_DMA_TxRx_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(uSdHandle.hdmatx);
+    HAL_DMA_IRQHandler(uSdHandle.hdmarx);
+}
+
+#endif
 
 void HAL_SD_XferCpltCallback(SD_HandleTypeDef *hsd)
 {
@@ -367,6 +388,10 @@ void sd_get_card_info(HAL_SD_CardInfoTypedef *CardInfo)
 
 HAL_SD_ErrorTypedef sd_read(uint8_t *pData, uint32_t sector, uint32_t sectors)
 {
+#if FAMILY == STM32F1
+    uSdHandle.hdmatx = NULL;
+    sd_enable_rx_dma(&uSdHandle);
+#endif
 	HAL_SD_ErrorTypedef sd_state = HAL_SD_ReadBlocks_DMA(&uSdHandle, (uint32_t*)pData, (uint64_t)(sector * SD_SECTOR_SIZE), SD_SECTOR_SIZE, sectors);
 
 	if(sd_state == SD_OK)
@@ -377,6 +402,10 @@ HAL_SD_ErrorTypedef sd_read(uint8_t *pData, uint32_t sector, uint32_t sectors)
 
 HAL_SD_ErrorTypedef sd_write(uint8_t *pData, uint32_t sector, uint32_t sectors)
 {
+#if FAMILY == STM32F1
+    uSdHandle.hdmarx = NULL;
+    sd_enable_tx_dma(&uSdHandle);
+#endif
 	HAL_SD_ErrorTypedef sd_state = HAL_SD_WriteBlocks_DMA(&uSdHandle, (uint32_t*)pData, (uint64_t)(sector * SD_SECTOR_SIZE), SD_SECTOR_SIZE, sectors);
 
 	if(sd_state == SD_OK)
@@ -389,6 +418,90 @@ HAL_SD_ErrorTypedef sd_erase(uint32_t startsector, uint32_t endsector)
 {
 	return HAL_SD_Erase(&uSdHandle, startsector, endsector);
 }
+
+#if FAMILY == STM32F1
+
+HAL_SD_ErrorTypedef sd_enable_rx_dma(SD_HandleTypeDef *hsd)
+{
+  HAL_StatusTypeDef status = HAL_ERROR;
+
+  if(hsd->hdmarx == NULL)
+  {
+    /* Configure DMA Rx parameters */
+    dma_rx_handle.Init.Direction           = DMA_PERIPH_TO_MEMORY;
+    dma_rx_handle.Init.PeriphInc           = DMA_PINC_DISABLE;
+    dma_rx_handle.Init.MemInc              = DMA_MINC_ENABLE;
+    dma_rx_handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+    dma_rx_handle.Init.MemDataAlignment    = DMA_MDATAALIGN_WORD;
+    dma_rx_handle.Init.Priority            = DMA_PRIORITY_VERY_HIGH;
+
+    dma_rx_handle.Instance = SD_DMAx_TxRx_CHANNEL;
+
+    /* Associate the DMA handle */
+    __HAL_LINKDMA(hsd, hdmarx, dma_rx_handle);
+
+    /* Stop any ongoing transfer and reset the state*/
+    HAL_DMA_Abort(&dma_rx_handle);
+
+    /* Deinitialize the Channel for new transfer */
+    HAL_DMA_DeInit(&dma_rx_handle);
+
+    /* Configure the DMA Channel */
+    status = HAL_DMA_Init(&dma_rx_handle);
+
+    /* NVIC configuration for DMA transfer complete interrupt */
+    HAL_NVIC_SetPriority(SD_DMAx_TxRx_IRQn, SDCARD_IT_PRIORITY+1, 0);
+    HAL_NVIC_EnableIRQ(SD_DMAx_TxRx_IRQn);
+  }
+  else
+  {
+    status = HAL_OK;
+  }
+
+  return (status != HAL_OK? SD_ERROR : SD_OK);
+}
+
+HAL_SD_ErrorTypedef sd_enable_tx_dma(SD_HandleTypeDef *hsd)
+{
+  HAL_StatusTypeDef status;
+
+  if(hsd->hdmatx == NULL)
+  {
+    /* Configure DMA Tx parameters */
+    dma_tx_handle.Init.Direction           = DMA_MEMORY_TO_PERIPH;
+    dma_tx_handle.Init.PeriphInc           = DMA_PINC_DISABLE;
+    dma_tx_handle.Init.MemInc              = DMA_MINC_ENABLE;
+    dma_tx_handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+    dma_tx_handle.Init.MemDataAlignment    = DMA_MDATAALIGN_WORD;
+    dma_tx_handle.Init.Priority            = DMA_PRIORITY_VERY_HIGH;
+
+    dma_tx_handle.Instance = SD_DMAx_TxRx_CHANNEL;
+
+    /* Associate the DMA handle */
+    __HAL_LINKDMA(hsd, hdmatx, dma_tx_handle);
+
+    /* Stop any ongoing transfer and reset the state*/
+    HAL_DMA_Abort(&dma_tx_handle);
+
+    /* Deinitialize the Channel for new transfer */
+    HAL_DMA_DeInit(&dma_tx_handle);
+
+    /* Configure the DMA Channel */
+    status = HAL_DMA_Init(&dma_tx_handle);
+
+    /* NVIC configuration for DMA transfer complete interrupt */
+    HAL_NVIC_SetPriority(SD_DMAx_TxRx_IRQn, SDCARD_IT_PRIORITY+1, 0);
+    HAL_NVIC_EnableIRQ(SD_DMAx_TxRx_IRQn);
+  }
+  else
+  {
+    status = HAL_OK;
+  }
+
+  return (status != HAL_OK? SD_ERROR : SD_OK);
+}
+
+#endif
 
 #elif SDCARD_DRIVER_MODE == SDCARD_DRIVER_MODE_SPI
 
