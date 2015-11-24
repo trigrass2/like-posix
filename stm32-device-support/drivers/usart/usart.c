@@ -387,7 +387,7 @@ bool usart_init(USART_TypeDef* usart, char* install, bool enable)
  */
 void usart_init_interrupt(USART_TypeDef* usart, uint8_t priority, bool enable)
 {
-	uint8_t irq;
+	uint8_t irq = 0;
 
 	if(usart == USART1)
 		irq = USART1_IRQn;
@@ -402,6 +402,8 @@ void usart_init_interrupt(USART_TypeDef* usart, uint8_t priority, bool enable)
 #if FAMILY == STM32F4
 	else if (usart == USART6)
 		irq = USART6_IRQn;
+	else
+		assert_true(0);
 #endif
 
     if(enable)
