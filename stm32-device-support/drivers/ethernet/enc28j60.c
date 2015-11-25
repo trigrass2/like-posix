@@ -45,15 +45,24 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "cutensils.h"
+#include "spi.h"
+#include "logger.h"
 
 volatile uint8_t enc28j60_current_bank = 0;
 volatile uint16_t enc28j60_rxrdpt = 0;
 static logger_t enclog;
 
-#define enc28j60_select() GPIO_ResetBits(ENC28J60_SPI_NSS_PORT, ENC28J60_SPI_NSS_PIN)
-#define enc28j60_release() GPIO_SetBits(ENC28J60_SPI_NSS_PORT, ENC28J60_SPI_NSS_PIN)
+#define ENC28J60_SPI_BAUDRATE 10000000
+#define ENC28J60_RESET_TIME_MS 50000
 
+#define enc28j60_select() spi_assert_nss(ENC28J60_SPI_PERIPH)
+#define enc28j60_release() spi_deassert_nss(ENC28J60_SPI_PERIPH)
+#define enc28j60_rxtx(data) spi_transfer(ENC28J60_SPI_PERIPH, data)
+#define enc28j60_rx() enc28j60_rxtx(0xff)
+#define enc28j60_tx(data) enc28j60_rxtx(data)
+
+#define enc28j60_assert_reset() HAL_GPIO_WritePin(ENC28J60_SPI_NRST_PORT, ENC28J60_SPI_NRST_PIN, GPIO_PIN_RESET);
+#define enc28j60_deassert_reset() HAL_GPIO_WritePin(ENC28J60_SPI_NRST_PORT, ENC28J60_SPI_NRST_PIN, GPIO_PIN_SET);
 
 static void enc28j60_gpio_init();
 static void enc28j60_spi_init();
@@ -122,107 +131,26 @@ void enc28j60_init(uint8_t *macadr)
 
 void enc28j60_spi_init()
 {
-	if(ENC28J60_SPI_CLOCK == RCC_APB2Periph_SPI1)
-		RCC_APB2PeriphClockCmd(ENC28J60_SPI_CLOCK, ENABLE);
-	else
-		RCC_APB1PeriphClockCmd(ENC28J60_SPI_CLOCK, ENABLE);
-
-	SPI_InitTypeDef SPI_InitStruct;
-	SPI_InitStruct.SPI_BaudRatePrescaler = ENC28J60_SPI_PRESCALER;
-	SPI_InitStruct.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
-	SPI_InitStruct.SPI_Mode = SPI_Mode_Master;
-	SPI_InitStruct.SPI_DataSize = SPI_DataSize_8b;
-	SPI_InitStruct.SPI_CPOL = SPI_CPOL_Low;
-	SPI_InitStruct.SPI_CPHA = SPI_CPHA_1Edge;
-	SPI_InitStruct.SPI_NSS = SPI_NSS_Soft;
-	SPI_InitStruct.SPI_FirstBit = SPI_FirstBit_MSB;
-	SPI_InitStruct.SPI_CRCPolynomial = 7;
-	SPI_Init(ENC28J60_SPI_PERIPH, &SPI_InitStruct);
-
-	SPI_Cmd(ENC28J60_SPI_PERIPH, ENABLE);
+    spi_init(ENC28J60_SPI_PERIPH, NULL, true);
+    spi_set_baudrate(ENC28J60_SPI_PERIPH, ENC28J60_SPI_BAUDRATE);
 }
 
 void enc28j60_gpio_init()
 {
 	GPIO_InitTypeDef GPIO_InitStruct;
-#if FAMILY == STM32F1
-	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
-	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF_PP;
 
-	// MOSI & CLK
-	GPIO_InitStruct.GPIO_Pin = ENC28J60_SPI_MOSI_PIN;
-	GPIO_Init(ENC28J60_SPI_MOSI_PORT, &GPIO_InitStruct);
-	GPIO_InitStruct.GPIO_Pin = ENC28J60_SPI_SCK_PIN;
-	GPIO_Init(ENC28J60_SPI_SCK_PORT, &GPIO_InitStruct);
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_MEDIUM;
+    GPIO_InitStruct.Pin = ENC28J60_SPI_NRST_PIN;
+    HAL_GPIO_Init(ENC28J60_SPI_NRST_PORT, &GPIO_InitStruct);
 
-	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IPU;
-
-	// MISO, INT
-	GPIO_InitStruct.GPIO_Pin = ENC28J60_SPI_MISO_PIN;
-	GPIO_Init(ENC28J60_SPI_MISO_PORT, &GPIO_InitStruct);
-	GPIO_InitStruct.GPIO_Pin = ENC28J60_SPI_NINT_PIN;
-	GPIO_Init(ENC28J60_SPI_NINT_PORT, &GPIO_InitStruct);
-
-	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
-
-	// SS, RESET
-	GPIO_InitStruct.GPIO_Pin = ENC28J60_SPI_NSS_PIN;
-	GPIO_Init(ENC28J60_SPI_NSS_PORT, &GPIO_InitStruct);
-	GPIO_InitStruct.GPIO_Pin = ENC28J60_SPI_NRST_PIN;
-	GPIO_Init(ENC28J60_SPI_NRST_PORT, &GPIO_InitStruct);
-#elif FAMILY == STM32F4
-	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
-	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
-
-	// MOSI & CLK
-	GPIO_InitStruct.GPIO_Pin = ENC28J60_SPI_MOSI_PIN;
-	GPIO_Init(ENC28J60_SPI_MOSI_PORT, &GPIO_InitStruct);
-	GPIO_InitStruct.GPIO_Pin = ENC28J60_SPI_SCK_PIN;
-	GPIO_Init(ENC28J60_SPI_SCK_PORT, &GPIO_InitStruct);
-
-	GPIO_InitStruct.GPIO_OType = GPIO_OType_OD;
-
-	// MISO
-	GPIO_InitStruct.GPIO_Pin = ENC28J60_SPI_MISO_PIN;
-	GPIO_Init(ENC28J60_SPI_MISO_PORT, &GPIO_InitStruct);
-
-	GPIO_PinAFConfig(ENC28J60_SPI_MOSI_PORT, ENC28J60_SPI_MOSI_PINSOURCE, ENC28J60_SPI_ALT_FUNCTION);
-	GPIO_PinAFConfig(ENC28J60_SPI_MISO_PORT, ENC28J60_SPI_MISO_PINSOURCE, ENC28J60_SPI_ALT_FUNCTION);
-	GPIO_PinAFConfig(ENC28J60_SPI_SCK_PORT, ENC28J60_SPI_SCK_PINSOURCE, ENC28J60_SPI_ALT_FUNCTION);
-
-	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_OUT;
-	GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-
-	// SS, RESET
-	GPIO_InitStruct.GPIO_Pin = ENC28J60_SPI_NSS_PIN;
-	GPIO_Init(ENC28J60_SPI_NSS_PORT, &GPIO_InitStruct);
-	GPIO_InitStruct.GPIO_Pin = ENC28J60_SPI_NRST_PIN;
-	GPIO_Init(ENC28J60_SPI_NRST_PORT, &GPIO_InitStruct);
-
-
-	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN;
-	GPIO_InitStruct.GPIO_OType = GPIO_OType_OD;
-	GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
-
-	// INT
-	GPIO_InitStruct.GPIO_Pin = ENC28J60_SPI_NINT_PIN;
-	GPIO_Init(ENC28J60_SPI_NINT_PORT, &GPIO_InitStruct);
-#endif
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Pin = ENC28J60_SPI_NINT_PIN;
+    HAL_GPIO_Init(ENC28J60_SPI_NINT_PORT, &GPIO_InitStruct);
 }
 
-uint8_t enc28j60_rxtx(uint8_t data)
-{
-	while(SPI_I2S_GetFlagStatus(ENC28J60_SPI_PERIPH, SPI_I2S_FLAG_TXE)==RESET);
-	SPI_I2S_SendData(ENC28J60_SPI_PERIPH,data);
-
-	while(SPI_I2S_GetFlagStatus(ENC28J60_SPI_PERIPH, SPI_I2S_FLAG_RXNE)==RESET);
-	return SPI_I2S_ReceiveData(ENC28J60_SPI_PERIPH);
-}
-
-#define enc28j60_rx() enc28j60_rxtx(0xff)
-#define enc28j60_tx(data) enc28j60_rxtx(data)
 
 // Generic SPI read command
 uint8_t enc28j60_read_op(uint8_t cmd, uint8_t adr)
@@ -263,9 +191,9 @@ void enc28j60_soft_reset()
 void enc28j60_reset()
 {
     log_debug(&enclog, "hard reset");
-	GPIO_ResetBits(ENC28J60_SPI_NRST_PORT, ENC28J60_SPI_NRST_PIN);
-    for(volatile int i = 500000; i > 0; i--);
-	GPIO_SetBits(ENC28J60_SPI_NRST_PORT, ENC28J60_SPI_NRST_PIN);
+    enc28j60_assert_reset();
+    usleep(ENC28J60_RESET_TIME_MS);
+    enc28j60_deassert_reset();
 }
 
 // read the revision of the chip:

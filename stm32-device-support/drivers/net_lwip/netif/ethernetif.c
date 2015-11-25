@@ -449,6 +449,8 @@ static struct pbuf * low_level_input(struct netif *netif)
 
 #elif USE_DRIVER_ENC28J60_PHY && USE_DRIVER_LWIP_NET
 
+#include "enc28j60.h"
+
 // TODO - does the setting CHECKSUM_BY_HARDWARE have an effect here?
 
 /**
@@ -500,11 +502,6 @@ static struct pbuf * low_level_input(struct netif *netif)
     enc28j60_recv_packet_end();
 
     return p;
-}
-
-err_t ethernetif_incoming()
-{
-    return enc28j60_check_incoming() ? ERR_OK : ERR_MEM;
 }
 
 #else
