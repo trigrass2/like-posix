@@ -166,8 +166,6 @@ void usart_init_device(USART_TypeDef* usart, bool enable)
     	HAL_USART_DeInit(&husart);
 }
 
-// todo - why am I bothering?
-
 void HAL_USART_MspInit(USART_HandleTypeDef *husart)
 {
 	if(husart->Instance == USART1)
@@ -216,13 +214,13 @@ void usart_init_gpio(USART_TypeDef* usart)
 	GPIO_InitTypeDef GPIO_InitStructure_rx;
 	GPIO_InitTypeDef GPIO_InitStructure_tx;
 
-	GPIO_InitStructure_tx.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStructure_tx.Pull = GPIO_PULLUP;
-	GPIO_InitStructure_tx.Speed = GPIO_SPEED_LOW;
+	GPIO_InitStructure_rx.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStructure_rx.Pull = GPIO_PULLUP;
+	GPIO_InitStructure_rx.Speed = GPIO_SPEED_MEDIUM;
 
 	GPIO_InitStructure_tx.Mode = GPIO_MODE_AF_PP;
 	GPIO_InitStructure_tx.Pull = GPIO_NOPULL;
-	GPIO_InitStructure_tx.Speed = GPIO_SPEED_LOW;
+	GPIO_InitStructure_tx.Speed = GPIO_SPEED_MEDIUM;
 
     if(usart == USART1)
     {
