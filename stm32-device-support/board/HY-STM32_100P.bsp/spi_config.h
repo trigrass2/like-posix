@@ -30,11 +30,22 @@
  *
  */
 
-#include "board_config.h"
+#ifndef BOARD_SPI_H_
+#define BOARD_SPI_H_
 
-#define SPI_INTERRUPT_PRIORITY	7
+#define SPI1_FULL_REMAP 0
+#define SPI3_FULL_REMAP 0
 
-void SPI1_IRQHandler(void);
-void SPI2_IRQHandler(void);
-void SPI3_IRQHandler(void);
+/**
+ * only specify chip select's for those SPI's that require them.
+ * (comment out those that are not needed)
+ */
+#define SPI1_NSS_PORT 	GPIOA
+#define SPI1_NSS_PIN 	GPIO_PIN_15
+//#define SPI2_NSS_PORT
+//#define SPI2_NSS_PIN
+//#define SPI3_NSS_PORT
+//#define SPI3_NSS_PIN
+
+#endif /* BOARD_SPI_H_ */
 

@@ -53,9 +53,9 @@ static int8_t get_spi_devno(SPI_TypeDef* spi);
 // used in the interrupt handlers....
 void* spi_dev_ioctls[NUM_ONCHIP_SPIS];
 
-static void spi_init_device(SPI_TypeDef* spi, FunctionalState enable);
+static void spi_init_device(SPI_TypeDef* spi, bool enable);
 static void spi_init_gpio(SPI_TypeDef* spi);
-static void spi_init_interrupt(SPI_TypeDef* spi, uint8_t priority, FunctionalState enable);
+static void spi_init_interrupt(SPI_TypeDef* spi, uint8_t priority, bool enable);
 
 
 /**
@@ -77,7 +77,7 @@ bool spi_init(SPI_TypeDef* spi, char* filename, bool enable)
     bool ret = true;
     int8_t spi_devno = get_spi_devno(spi);
 
-    log_syslog(NULL, "init spi%d", spi_devno);
+    log_syslog(NULL, "init spi%d", spi_devno+1);
 
     assert_true(spi_devno != -1);
 
@@ -99,7 +99,7 @@ bool spi_init(SPI_TypeDef* spi, char* filename, bool enable)
         spi_dev_ioctls[spi_devno] = NULL;
 #endif
         ret = spi_dev_ioctls[spi_devno] != NULL;
-        log_syslog(NULL, "install spi%d: %s", spi_devno, ret ? "successful" : "failed");
+        log_syslog(NULL, "install spi%d: %s", spi_devno+1, ret ? "successful" : "failed");
     }
 
     spi_init_gpio(spi);
@@ -115,15 +115,15 @@ void spi_assert_nss(SPI_TypeDef* spi)
 {
 #ifdef SPI1_NSS_PIN
 	if(spi == SPI1)
-		GPIO_ResetBits(SPI1_NSS_PORT, SPI1_NSS_PIN);
+	    HAL_GPIO_WritePin(SPI1_NSS_PORT, SPI1_NSS_PIN, GPIO_PIN_RESET);
 #endif
 #ifdef SPI2_NSS_PIN
 	if(spi == SPI2)
-		GPIO_ResetBits(SPI2_NSS_PORT, SPI2_NSS_PIN);
+	    HAL_GPIO_WritePin(SPI2_NSS_PORT, SPI2_NSS_PIN, GPIO_PIN_RESET);
 #endif
 #ifdef SPI3_NSS_PIN
 	if(spi == SPI3)
-		GPIO_ResetBits(SPI3_NSS_PORT, SPI3_NSS_PIN);
+	    HAL_GPIO_WritePin(SPI3_NSS_PORT, SPI3_NSS_PIN, GPIO_PIN_RESET);
 #endif
 }
 
@@ -133,16 +133,16 @@ void spi_assert_nss(SPI_TypeDef* spi)
 void spi_deassert_nss(SPI_TypeDef* spi)
 {
 #ifdef SPI1_NSS_PIN
-	if(spi == SPI1)
-		GPIO_SetBits(SPI1_NSS_PORT, SPI1_NSS_PIN);
+    if(spi == SPI1)
+        HAL_GPIO_WritePin(SPI1_NSS_PORT, SPI1_NSS_PIN, GPIO_PIN_SET);
 #endif
 #ifdef SPI2_NSS_PIN
-	if(spi == SPI2)
-		GPIO_SetBits(SPI2_NSS_PORT, SPI2_NSS_PIN);
+    if(spi == SPI2)
+        HAL_GPIO_WritePin(SPI2_NSS_PORT, SPI2_NSS_PIN, GPIO_PIN_SET);
 #endif
 #ifdef SPI3_NSS_PIN
-	if(spi == SPI3)
-		GPIO_SetBits(SPI3_NSS_PORT, SPI3_NSS_PIN);
+    if(spi == SPI3)
+        HAL_GPIO_WritePin(SPI3_NSS_PORT, SPI3_NSS_PIN, GPIO_PIN_SET);
 #endif
 }
 
@@ -151,18 +151,22 @@ void spi_deassert_nss(SPI_TypeDef* spi)
  */
 uint8_t spi_transfer(SPI_TypeDef* spi, uint8_t data)
 {
-  while(SPI_I2S_GetFlagStatus(spi, SPI_I2S_FLAG_TXE) == RESET);
-  SPI_I2S_SendData(spi, data);
-  while(SPI_I2S_GetFlagStatus(spi, SPI_I2S_FLAG_RXNE) == RESET);
-  return SPI_I2S_ReceiveData(spi);
+    SPI_HandleTypeDef hspi;
+    hspi.Instance = spi;
+    while(!__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_TXE));
+    spi->DR =  data;
+    while(!__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_RXNE));
+    return spi->DR;
 }
 
 /**
- * sets the prescaler value of the specified SPI peripheral (can be SPI_BaudRatePrescaler_2/4/8/16/32/64/128/256)
+ * sets the prescaler value of the specified SPI peripheral (can be SPI_BAUDRATEPRESCALER_2/4/8/16/32/64/128/256)
  */
 void spi_set_prescaler(SPI_TypeDef* spi, uint16_t presc)
 {
-	while(SPI_I2S_GetFlagStatus(spi, SPI_I2S_FLAG_BSY) == SET);
+    SPI_HandleTypeDef hspi;
+    hspi.Instance = spi;
+	while(__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_BSY));
 	spi->CR1 &= ~SPI_CR1_BR;
 	spi->CR1 |= presc;
 }
@@ -174,31 +178,28 @@ void spi_set_baudrate(SPI_TypeDef* spi, uint32_t br)
 {
     uint32_t integerdivider;
     uint16_t presc;
-    RCC_ClocksTypeDef RCC_ClocksStatus;
-
-    RCC_GetClocksFreq(&RCC_ClocksStatus);
 
     if(spi == SPI1)
-        integerdivider = RCC_ClocksStatus.PCLK2_Frequency / br;
+        integerdivider = HAL_RCC_GetPCLK2Freq() / br;
     else
-        integerdivider = RCC_ClocksStatus.PCLK1_Frequency / br;
+        integerdivider = HAL_RCC_GetPCLK1Freq() / br;
 
     if(integerdivider > 128)
-        presc = SPI_BaudRatePrescaler_256;
+        presc = SPI_BAUDRATEPRESCALER_256;
     else if(integerdivider > 64)
-        presc = SPI_BaudRatePrescaler_128;
+        presc = SPI_BAUDRATEPRESCALER_128;
     else if(integerdivider > 32)
-        presc = SPI_BaudRatePrescaler_64;
+        presc = SPI_BAUDRATEPRESCALER_64;
     else if(integerdivider > 16)
-        presc = SPI_BaudRatePrescaler_32;
+        presc = SPI_BAUDRATEPRESCALER_32;
     else if(integerdivider > 8)
-        presc = SPI_BaudRatePrescaler_16;
+        presc = SPI_BAUDRATEPRESCALER_16;
     else if(integerdivider > 4)
-        presc = SPI_BaudRatePrescaler_8;
+        presc = SPI_BAUDRATEPRESCALER_8;
     else if(integerdivider > 2)
-        presc = SPI_BaudRatePrescaler_4;
+        presc = SPI_BAUDRATEPRESCALER_4;
     else
-        presc = SPI_BaudRatePrescaler_2;
+        presc = SPI_BAUDRATEPRESCALER_2;
 
     spi_set_prescaler(spi, presc);
 }
@@ -209,30 +210,27 @@ void spi_set_baudrate(SPI_TypeDef* spi, uint32_t br)
 uint32_t spi_get_baudrate(SPI_TypeDef* spi)
 {
     uint32_t apbclock;
-    RCC_ClocksTypeDef RCC_ClocksStatus;
-
-    RCC_GetClocksFreq(&RCC_ClocksStatus);
 
     if(spi == SPI1)
-        apbclock = RCC_ClocksStatus.PCLK2_Frequency;
+        apbclock = HAL_RCC_GetPCLK2Freq();
     else
-        apbclock = RCC_ClocksStatus.PCLK1_Frequency;
+        apbclock = HAL_RCC_GetPCLK1Freq();
 
-    if(spi->CR1 & SPI_BaudRatePrescaler_256)
+    if(spi->CR1 & SPI_BAUDRATEPRESCALER_256)
         return apbclock / 256;
-    else if(spi->CR1 & SPI_BaudRatePrescaler_128)
+    else if(spi->CR1 & SPI_BAUDRATEPRESCALER_128)
         return apbclock / 128;
-    else if(spi->CR1 & SPI_BaudRatePrescaler_64)
+    else if(spi->CR1 & SPI_BAUDRATEPRESCALER_64)
         return apbclock / 64;
-    else if(spi->CR1 & SPI_BaudRatePrescaler_32)
+    else if(spi->CR1 & SPI_BAUDRATEPRESCALER_32)
         return apbclock / 32;
-    else if(spi->CR1 & SPI_BaudRatePrescaler_16)
+    else if(spi->CR1 & SPI_BAUDRATEPRESCALER_16)
         return apbclock / 16;
-    else if(spi->CR1 & SPI_BaudRatePrescaler_8)
+    else if(spi->CR1 & SPI_BAUDRATEPRESCALER_8)
         return apbclock / 8;
-    else if(spi->CR1 & SPI_BaudRatePrescaler_4)
+    else if(spi->CR1 & SPI_BAUDRATEPRESCALER_4)
         return apbclock / 4;
-    else if(spi->CR1 & SPI_BaudRatePrescaler_2)
+    else if(spi->CR1 & SPI_BAUDRATEPRESCALER_2)
         return apbclock / 2;
     return 0;
 }
@@ -248,186 +246,189 @@ int8_t get_spi_devno(SPI_TypeDef* spi)
 		return 0;
 	else if(spi == SPI2)
 		return 1;
-#if defined(STM32F10X_HD) || defined(STM32F10X_CL) || defined(STM32F4XX)
 	else if (spi == SPI3)
 		return 2;
-#endif
+
 	return -1;
 }
 
-void spi_init_device(SPI_TypeDef* spi, FunctionalState enable)
+void spi_init_device(SPI_TypeDef* spi, bool enable)
 {
-	SPI_InitTypeDef device_init;
-
-	// config SPI clock, IO
-	if(spi == SPI1)
-		RCC_APB2PeriphClockCmd(SPI1_CLOCK, enable);
-	else if(spi == SPI2)
-		RCC_APB1PeriphClockCmd(SPI2_CLOCK, enable);
-#if defined(STM32F10X_HD) || defined(STM32F10X_CL) || defined(STM32F4XX)
-	else if(spi == SPI3)
-		RCC_APB1PeriphClockCmd(SPI3_CLOCK, enable);
-#endif
+    SPI_HandleTypeDef hspi;
 
 	// init SPI peripheral
-	device_init.SPI_FirstBit = SPI_FirstBit_MSB; 			// SPI_FirstBit_MSB or SPI_FirstBit_LSB
-	device_init.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256; 	// SPI_BaudRatePrescaler_2 to SPI_BaudRatePrescaler_256
-	device_init.SPI_CPHA = SPI_CPHA_1Edge; 					// SPI_CPHA_1Edge or SPI_CPHA_2Edge
-	device_init.SPI_CPOL = SPI_CPOL_Low; 					// SPI_CPOL_Low or SPI_CPOL_High
-	device_init.SPI_DataSize = SPI_DataSize_8b;
-	device_init.SPI_Mode = SPI_Mode_Master;
-	device_init.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
-	device_init.SPI_NSS = SPI_NSS_Soft;
+	hspi.Instance = spi;
+	hspi.Init.FirstBit = SPI_FIRSTBIT_MSB; 			// SPI_FirstBit_MSB or SPI_FirstBit_LSB
+	hspi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256; 	// SPI_BAUDRATEPRESCALER_2 to SPI_BAUDRATEPRESCALER_256
+	hspi.Init.CLKPhase = SPI_PHASE_1EDGE; 					// SPI_CPHA_1Edge or SPI_CPHA_2Edge
+	hspi.Init.CLKPolarity = SPI_POLARITY_LOW; 					// SPI_CPOL_Low or SPI_CPOL_High
+	hspi.Init.DataSize = SPI_DATASIZE_8BIT;
+	hspi.Init.Mode = SPI_MODE_MASTER;
+	hspi.Init.Direction = SPI_DIRECTION_2LINES;
+	hspi.Init.NSS = SPI_NSS_SOFT;
+	hspi.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
 
-	SPI_Init(spi, &device_init);
-	SPI_Cmd(spi, enable);
+    if(enable)
+        HAL_SPI_Init(&hspi);
+    else
+        HAL_SPI_DeInit(&hspi);
+}
+
+void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
+{
+    if(hspi->Instance == SPI1)
+        __HAL_RCC_SPI1_CLK_ENABLE();
+    else if(hspi->Instance == SPI2)
+        __HAL_RCC_SPI2_CLK_ENABLE();
+    else if(hspi->Instance == SPI3)
+        __HAL_RCC_SPI3_CLK_ENABLE();
+}
+
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
+{
+    if(hspi->Instance == SPI1)
+        __HAL_RCC_SPI1_CLK_DISABLE();
+    else if(hspi->Instance == SPI2)
+        __HAL_RCC_SPI2_CLK_DISABLE();
+    else if(hspi->Instance == SPI3)
+        __HAL_RCC_SPI3_CLK_DISABLE();
 }
 
 void spi_init_gpio(SPI_TypeDef* spi)
 {
-#if FAMILY == STM32F1
-    GPIO_InitTypeDef input_init = {
-        .GPIO_Mode = GPIO_Mode_IN_FLOATING,
-        .GPIO_Speed = GPIO_Speed_50MHz,
-    };
-    GPIO_InitTypeDef altfunc_init = {
-        .GPIO_Mode = GPIO_Mode_AF_PP,
-        .GPIO_Speed = GPIO_Speed_50MHz,
-    };
-    GPIO_InitTypeDef output_init = {
-        .GPIO_Mode = GPIO_Mode_Out_PP,
-        .GPIO_Speed = GPIO_Speed_50MHz,
-    };
-#elif FAMILY == STM32F4
-    GPIO_InitTypeDef input_init = {
-        .GPIO_Mode = GPIO_Mode_AF,
-        .GPIO_Speed = GPIO_Speed_100MHz,
-        .GPIO_OType = GPIO_OType_OD,
-        .GPIO_PuPd = GPIO_PuPd_NOPULL,
-    };
-    GPIO_InitTypeDef altfunc_init = {
-        .GPIO_Mode = GPIO_Mode_AF,
-        .GPIO_Speed = GPIO_Speed_100MHz,
-        .GPIO_OType = GPIO_OType_PP,
-        .GPIO_PuPd = GPIO_PuPd_NOPULL,
-    };
-    GPIO_InitTypeDef output_init = {
-        .GPIO_Mode = GPIO_Mode_OUT,
-        .GPIO_Speed = GPIO_Speed_100MHz,
-        .GPIO_OType = GPIO_OType_PP,
-        .GPIO_PuPd = GPIO_PuPd_NOPULL,
-    };
+    GPIO_InitTypeDef GPIO_InitStructure_rx;
+    GPIO_InitTypeDef GPIO_InitStructure_tx;
+
+    GPIO_InitStructure_rx.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStructure_rx.Pull = GPIO_PULLUP;
+    GPIO_InitStructure_rx.Speed = GPIO_SPEED_HIGH;
+#if FAMILY == STM32F4
+        GPIO_InitStructure_rx.Alternate = 0;
+#endif
+
+    GPIO_InitStructure_tx.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStructure_tx.Pull = GPIO_NOPULL;
+    GPIO_InitStructure_tx.Speed = GPIO_SPEED_HIGH;
+#if FAMILY == STM32F4
+        GPIO_InitStructure_tx.Alternate = 0;
 #endif
 
 	// config SPI clock, IO
 	if(spi == SPI1)
 	{
-#if FAMILY == STM32F1
-#ifdef SPI1_REMAP
-		GPIO_PinRemapConfig(SPI1_REMAP, ENABLE);
-#endif
-#elif FAMILY == STM32F4
-        GPIO_PinAFConfig(SPI1_PORT, SPI1_MISO_PINSOURCE, GPIO_AF_SPI1);
-        GPIO_PinAFConfig(SPI1_PORT, SPI1_MOSI_PINSOURCE, GPIO_AF_SPI1);
-        GPIO_PinAFConfig(SPI1_PORT, SPI1_SCK_PINSOURCE, GPIO_AF_SPI1);
-#endif
-        input_init.GPIO_Pin = SPI1_MISO_PIN;
-        GPIO_Init(SPI1_PORT, &input_init);
-        altfunc_init.GPIO_Pin = SPI1_MOSI_PIN;
-        GPIO_Init(SPI1_PORT, &altfunc_init);
-        altfunc_init.GPIO_Pin = SPI1_SCK_PIN;
-        GPIO_Init(SPI1_PORT, &altfunc_init);
 #ifdef SPI1_NSS_PIN
-		output_init.GPIO_Pin = SPI1_NSS_PIN;
-	    GPIO_Init(SPI1_NSS_PORT, &output_init);
+	    GPIO_InitStructure_tx.Pin = SPI1_NSS_PIN;
+		HAL_GPIO_Init(SPI1_NSS_PORT, &GPIO_InitStructure_tx);
 #else
 #pragma message "SPI1 NSS pin not configured"
 #endif
+
+		GPIO_InitStructure_tx.Mode = GPIO_MODE_AF_PP;
+
+#if FAMILY == STM32F1
+#ifdef SPI1_REMAP
+	    __HAL_AFIO_REMAP_SPI1_ENABLE();
+#endif
+#elif FAMILY == STM32F4
+	    GPIO_InitStructure_tx.Alternate = GPIO_AF5_SPI1;
+	    GPIO_InitStructure_rx.Alternate = GPIO_AF5_SPI1;
+#endif
+
+	    GPIO_InitStructure_rx.Pin = SPI1_MISO_PIN;
+	    HAL_GPIO_Init(SPI1_PORT, &GPIO_InitStructure_rx);
+        GPIO_InitStructure_tx.Pin = SPI1_MOSI_PIN;
+        HAL_GPIO_Init(SPI1_PORT, &GPIO_InitStructure_tx);
+        GPIO_InitStructure_tx.Pin = SPI1_SCK_PIN;
+        HAL_GPIO_Init(SPI1_PORT, &GPIO_InitStructure_tx);
 	}
 	else if(spi == SPI2)
 	{
-#if FAMILY == STM32F1
-#ifdef SPI2_REMAP
-		GPIO_PinRemapConfig(SPI2_REMAP, ENABLE);
-#endif
-#elif FAMILY == STM32F4
-        GPIO_PinAFConfig(SPI2_PORT, SPI2_MISO_PINSOURCE, GPIO_AF_SPI2);
-        GPIO_PinAFConfig(SPI2_PORT, SPI2_MOSI_PINSOURCE, GPIO_AF_SPI2);
-        GPIO_PinAFConfig(SPI2_PORT, SPI2_SCK_PINSOURCE, GPIO_AF_SPI2);
-#endif
-        input_init.GPIO_Pin = SPI2_MISO_PIN;
-        GPIO_Init(SPI2_PORT, &input_init);
-        altfunc_init.GPIO_Pin = SPI2_MOSI_PIN;
-        GPIO_Init(SPI2_PORT, &altfunc_init);
-        altfunc_init.GPIO_Pin = SPI2_SCK_PIN;
-        GPIO_Init(SPI2_PORT, &altfunc_init);
 #ifdef SPI2_NSS_PIN
-		output_init.GPIO_Pin = SPI2_NSS_PIN;
-	    GPIO_Init(SPI2_NSS_PORT, &output_init);
+        GPIO_InitStructure_tx.Pin = SPI2_NSS_PIN;
+        HAL_GPIO_Init(SPI2_NSS_PORT, &GPIO_InitStructure_tx);
 #else
 #pragma message "SPI2 NSS pin not configured"
 #endif
-	}
 
-#if defined(STM32F10X_HD) || defined(STM32F10X_CL) || defined(STM32F4XX)
+        GPIO_InitStructure_tx.Mode = GPIO_MODE_AF_PP;
+
+#if FAMILY == STM32F4
+        GPIO_InitStructure_tx.Alternate = GPIO_AF5_SPI2;
+        GPIO_InitStructure_rx.Alternate = GPIO_AF5_SPI2;
+#endif
+
+        GPIO_InitStructure_rx.Pin = SPI2_MISO_PIN;
+        HAL_GPIO_Init(SPI2_PORT, &GPIO_InitStructure_rx);
+        GPIO_InitStructure_tx.Pin = SPI2_MOSI_PIN;
+        HAL_GPIO_Init(SPI2_PORT, &GPIO_InitStructure_tx);
+        GPIO_InitStructure_tx.Pin = SPI2_SCK_PIN;
+        HAL_GPIO_Init(SPI2_PORT, &GPIO_InitStructure_tx);
+	}
 	else if(spi == SPI3)
 	{
-#if FAMILY == STM32F1
-#ifdef SPI3_REMAP
-		GPIO_PinRemapConfig(SPI3_REMAP, ENABLE);
-#endif
-#elif FAMILY == STM32F4
-        GPIO_PinAFConfig(SPI3_PORT, SPI3_MISO_PINSOURCE, GPIO_AF_SPI3);
-        GPIO_PinAFConfig(SPI3_PORT, SPI3_MOSI_PINSOURCE, GPIO_AF_SPI3);
-        GPIO_PinAFConfig(SPI3_PORT, SPI3_SCK_PINSOURCE, GPIO_AF_SPI3);
-#endif
-        input_init.GPIO_Pin = SPI3_MISO_PIN;
-        GPIO_Init(SPI3_PORT, &input_init);
-        altfunc_init.GPIO_Pin = SPI3_MOSI_PIN;
-        GPIO_Init(SPI3_PORT, &altfunc_init);
-        altfunc_init.GPIO_Pin = SPI3_SCK_PIN;
-        GPIO_Init(SPI3_PORT, &altfunc_init);
 #ifdef SPI3_NSS_PIN
-		output_init.GPIO_Pin = SPI3_NSS_PIN;
-	    GPIO_Init(SPI3_NSS_PORT, &output_init);
+        GPIO_InitStructure_tx.Pin = SPI3_NSS_PIN;
+        HAL_GPIO_Init(SPI3_NSS_PORT, &GPIO_InitStructure_tx);
 #else
 #pragma message "SPI3 NSS pin not configured"
 #endif
-	}
+
+        GPIO_InitStructure_tx.Mode = GPIO_MODE_AF_PP;
+
+#if FAMILY == STM32F1
+#ifdef SPI3_REMAP
+        __HAL_AFIO_REMAP_SPI3_ENABLE();
 #endif
+#elif FAMILY == STM32F4
+        GPIO_InitStructure_tx.Alternate = GPIO_AF5_SPI3;
+        GPIO_InitStructure_rx.Alternate = GPIO_AF5_SPI3;
+#endif
+
+        GPIO_InitStructure_rx.Pin = SPI3_MISO_PIN;
+        HAL_GPIO_Init(SPI3_PORT, &GPIO_InitStructure_rx);
+        GPIO_InitStructure_tx.Pin = SPI3_MOSI_PIN;
+        HAL_GPIO_Init(SPI3_PORT, &GPIO_InitStructure_tx);
+        GPIO_InitStructure_tx.Pin = SPI3_SCK_PIN;
+        HAL_GPIO_Init(SPI3_PORT, &GPIO_InitStructure_tx);
+	}
 }
 
-void spi_init_interrupt(SPI_TypeDef* spi, uint8_t priority, FunctionalState enable)
+void spi_init_interrupt(SPI_TypeDef* spi, uint8_t priority, bool enable)
 {
-	NVIC_InitTypeDef nvic_init;
+    uint8_t irq = 0;
 
 	if(spi == SPI1)
-		nvic_init.NVIC_IRQChannel = SPI1_IRQn;
+	    irq = SPI1_IRQn;
 	else if(spi == SPI2)
-		nvic_init.NVIC_IRQChannel = SPI2_IRQn;
-#if defined(STM32F10X_HD) || defined(STM32F10X_CL) || defined(STM32F4XX)
+	    irq = SPI2_IRQn;
 	else if (spi == SPI3)
-		nvic_init.NVIC_IRQChannel = SPI3_IRQn;
-#endif
+	    irq = SPI3_IRQn;
+    else
+        assert_true(0);
 
-	nvic_init.NVIC_IRQChannelPreemptionPriority = priority;
-	nvic_init.NVIC_IRQChannelSubPriority = 0;
-	nvic_init.NVIC_IRQChannelCmd = enable;
-	NVIC_Init(&nvic_init);
+	if(enable)
+    {
+        HAL_NVIC_SetPriority(irq, 0, priority);
+        HAL_NVIC_EnableIRQ(irq);
+    }
+    else
+        HAL_NVIC_DisableIRQ(irq);
 }
 
 #if USE_LIKEPOSIX
 static int spi_enable_rx_ioctl(dev_ioctl_t* dev)
 {
-    SPI_TypeDef* spi = (SPI_TypeDef*)(dev->ctx);
-    SPI_I2S_ITConfig(spi, SPI_I2S_IT_RXNE, ENABLE);
+    SPI_HandleTypeDef hspi;
+    hspi.Instance = (SPI_TypeDef*)(dev->ctx);
+    __HAL_SPI_ENABLE_IT(&hspi, SPI_IT_RXNE);
     return 0;
 }
 
 static int spi_enable_tx_ioctl(dev_ioctl_t* dev)
 {
-    SPI_TypeDef* spi = (SPI_TypeDef*)(dev->ctx);
-    SPI_I2S_ITConfig(spi, SPI_I2S_IT_TXE, ENABLE);
+    SPI_HandleTypeDef hspi;
+    hspi.Instance = (SPI_TypeDef*)(dev->ctx);
+    __HAL_SPI_ENABLE_IT(&hspi, SPI_IT_TXE);
     return 0;
 }
 
@@ -435,16 +436,17 @@ static int spi_open_ioctl(dev_ioctl_t* dev)
 {
     SPI_TypeDef* spi = (SPI_TypeDef*)(dev->ctx);
     spi_init_gpio(spi);
-    spi_init_device(spi, ENABLE);
+    spi_init_device(spi, true);
     return 0;
 }
 
 static int spi_close_ioctl(dev_ioctl_t* dev)
 {
-    SPI_TypeDef* spi = (SPI_TypeDef*)(dev->ctx);
-    SPI_I2S_ITConfig(spi, SPI_I2S_IT_RXNE, DISABLE);
-    SPI_I2S_ITConfig(spi, SPI_I2S_IT_TXE, DISABLE);
-    spi_init_device(spi, DISABLE);
+    SPI_HandleTypeDef hspi;
+    hspi.Instance = (SPI_TypeDef*)(dev->ctx);
+    __HAL_SPI_DISABLE_IT(&hspi, SPI_IT_RXNE);
+    __HAL_SPI_DISABLE_IT(&hspi, SPI_IT_TXE);
+    spi_init_device(hspi.Instance, false);
     return 0;
 }
 

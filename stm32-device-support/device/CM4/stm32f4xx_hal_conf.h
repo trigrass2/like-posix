@@ -153,7 +153,9 @@
 /**
  * see boardname.bsp/net_config.h
  */
+#if USE_DRIVER_LWIP_NET
 #include "phy_config.h"
+#endif
 
 /* Includes ------------------------------------------------------------------*/
 /**

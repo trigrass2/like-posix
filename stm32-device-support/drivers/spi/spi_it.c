@@ -50,7 +50,7 @@ extern void* spi_dev_ioctls[NUM_ONCHIP_SPIS];
   */
 inline void spi_rx_isr(SPI_TypeDef* spi, void* spi_dev)
 {
-	if(SPI_I2S_GetITStatus(spi, SPI_I2S_IT_RXNE) == SET)
+	if(SPI_I2S_GetITStatus(spi, SPI_IT_RXNE) == SET)
 	{
 #if USE_LIKEPOSIX
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
@@ -60,7 +60,7 @@ inline void spi_rx_isr(SPI_TypeDef* spi, void* spi_dev)
         (void)spi_dev;
 		// todo - fifo put
 #endif
-		SPI_I2S_ClearITPendingBit(spi, SPI_I2S_IT_RXNE);
+		SPI_I2S_ClearITPendingBit(spi, SPI_IT_RXNE);
 	}
 }
 

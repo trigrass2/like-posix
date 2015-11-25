@@ -118,6 +118,7 @@ ifneq ($(USE_FREERTOS), 1)
 $(error to use posix style IO, USE_FREERTOS must be set to 1)
 endif
 
+CFLAGS += -I$(DRIVERSDIR)/ethernet
 CFLAGS += -I$(DRIVERSDIR)/net_lwip/netif
 SOURCE += $(DRIVERSDIR)/net_lwip/net.c
 SOURCE += $(DRIVERSDIR)/net_lwip/netconf.c
@@ -130,14 +131,13 @@ endif
 CFLAGS += -DUSE_DRIVER_ENC28J60_PHY=$(USE_DRIVER_ENC28J60_PHY)
 ifeq ($(USE_DRIVER_ENC28J60_PHY), 1)
 SOURCE += $(DRIVERSDIR)/ethernet/enc28j60.c
-CFLAGS += -I$(DRIVERSDIR)/ethernet
 CFLAGS += -DCHECKSUM_BY_HARDWARE=0
 endif
 
 ## Ethernet PHY, BCM5241
 CFLAGS += -DUSE_DRIVER_MII_RMII_PHY=$(USE_DRIVER_MII_RMII_PHY)
 ifeq ($(USE_DRIVER_MII_RMII_PHY), 1)
-CFLAGS += -I$(DRIVERSDIR)/ethernet
+
 CFLAGS += -DCHECKSUM_BY_HARDWARE=1
 endif
 
