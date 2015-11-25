@@ -267,6 +267,8 @@ void spi_init_device(SPI_TypeDef* spi, bool enable)
 	hspi.Init.Direction = SPI_DIRECTION_2LINES;
 	hspi.Init.NSS = SPI_NSS_SOFT;
 	hspi.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+	hspi.Init.TIMode = SPI_TIMODE_DISABLE;
+	hspi.Init.CRCPolynomial = 0;
 
     if(enable)
         HAL_SPI_Init(&hspi);

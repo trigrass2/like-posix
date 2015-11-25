@@ -50,7 +50,9 @@ extern void* spi_dev_ioctls[NUM_ONCHIP_SPIS];
   */
 inline void spi_rx_isr(SPI_TypeDef* spi, void* spi_dev)
 {
-	if(SPI_I2S_GetITStatus(spi, SPI_IT_RXNE) == SET)
+    USART_HandleTypeDef hspi;
+    hspi.Instance = spi;
+	if(__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_RXNE))
 	{
 #if USE_LIKEPOSIX
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
@@ -60,7 +62,6 @@ inline void spi_rx_isr(SPI_TypeDef* spi, void* spi_dev)
         (void)spi_dev;
 		// todo - fifo put
 #endif
-		SPI_I2S_ClearITPendingBit(spi, SPI_IT_RXNE);
 	}
 }
 
@@ -70,12 +71,14 @@ inline void spi_rx_isr(SPI_TypeDef* spi, void* spi_dev)
   */
 inline void spi_tx_isr(SPI_TypeDef* spi, void* spi_dev)
 {
-	if(SPI_I2S_GetITStatus(spi, SPI_I2S_IT_TXE) == SET)
+    USART_HandleTypeDef hspi;
+    hspi.Instance = spi;
+	if(__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_TXE))
 	{
 #if USE_LIKEPOSIX
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		if(xQueueReceiveFromISR(((dev_ioctl_t*)spi_dev)->pipe.write, (char*)&(spi->DR), &xHigherPriorityTaskWoken) == pdFALSE)
-			SPI_I2S_ITConfig(spi, SPI_I2S_IT_TXE, DISABLE);
+		    __HAL_SPI_DISABLE_IT(&hspi, SPI_IT_TXE);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 #else
 		(void)spi_dev;
@@ -105,7 +108,6 @@ void SPI2_IRQHandler(void)
 	spi_tx_isr(SPI2, spi_dev_ioctls[1]);
 }
 
-#if defined(STM32F10X_HD) || defined(STM32F10X_CL) || defined(STM32F4XX)
 /**
   * @brief  This function handles SPI3 interrupt.
   */
@@ -115,7 +117,6 @@ void SPI3_IRQHandler(void)
 	spi_rx_isr(SPI3, spi_dev_ioctls[2]);
 	spi_tx_isr(SPI3, spi_dev_ioctls[2]);
 }
-#endif
 
 
 
