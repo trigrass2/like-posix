@@ -37,8 +37,6 @@
 #include "task.h"
 #include "queue.h"
 
-#include "eth_mac.h"
-
 #include "ethernetif.h"
 #include "lwip/tcp_impl.h"
 #include "lwip/dhcp.h"
@@ -137,10 +135,10 @@ void net_task(void *pvParameters)
     	// TODO - use a semaphore to trigger ethernetif_input from an packet received interrupt.
     	// run the other TCP stuff in a separate thread in that case...
 
-        e = ethernetif_incoming();
+//        e = ethernetif_incoming();
 
-		if(e == ERR_OK)
-		{
+//		if(e == ERR_OK)
+//		{
 #if !NO_SYS
 		    LOCK_TCPIP_CORE();
 			e = ethernetif_input(&netconf->netif);
@@ -148,7 +146,7 @@ void net_task(void *pvParameters)
 #else
 			e = ethernetif_input(&netconf->netif);
 #endif
-		}
+//		}
 
 		if(e != ERR_OK)
 		    vTaskDelay(1/portTICK_RATE_MS); // TODO - sort this out!! required in some cases to get CPU time for other tasks :|

@@ -662,14 +662,22 @@ typedef struct
 /** @defgroup ETH_Buffers_setting ETH Buffers setting
   * @{
   */ 
-#define ETH_MAX_PACKET_SIZE    ((uint32_t)1524)    /*!< ETH_HEADER + ETH_EXTRA + ETH_VLAN_TAG + ETH_MAX_ETH_PAYLOAD + ETH_CRC */
+
+/**
+ * modified by Mike Stuart - allow MTU to be set in net_config.h / stm32xxx_hal_conf.h
+ */
+#ifndef ETH_MAX_ETH_PAYLOAD
+#define ETH_MAX_ETH_PAYLOAD        ((uint32_t)1500)    /*!< Maximum Ethernet payload size */
+#endif
+
+#define ETH_MAX_PACKET_SIZE    ((uint32_t)ETH_MAX_ETH_PAYLOAD + 24)    /*!< ETH_HEADER + ETH_EXTRA + ETH_VLAN_TAG + ETH_MAX_ETH_PAYLOAD + ETH_CRC */
 #define ETH_HEADER               ((uint32_t)14)    /*!< 6 byte Dest addr, 6 byte Src addr, 2 byte length/type */
 #define ETH_CRC                   ((uint32_t)4)    /*!< Ethernet CRC */
 #define ETH_EXTRA                 ((uint32_t)2)    /*!< Extra bytes in some cases */   
 #define ETH_VLAN_TAG                  ((uint32_t)4)    /*!< optional 802.1q VLAN Tag */
 #define ETH_MIN_ETH_PAYLOAD          ((uint32_t)46)    /*!< Minimum Ethernet payload size */
-#define ETH_MAX_ETH_PAYLOAD        ((uint32_t)1500)    /*!< Maximum Ethernet payload size */
-#define ETH_JUMBO_FRAME_PAYLOAD    ((uint32_t)9000)    /*!< Jumbo frame payload size */      
+#define ETH_JUMBO_FRAME_PAYLOAD    ((uint32_t)9000)    /*!< Jumbo frame payload size */
+
 
  /* Ethernet driver receive buffers are organized in a chained linked-list, when
     an ethernet packet is received, the Rx-DMA will transfer the packet from RxFIFO

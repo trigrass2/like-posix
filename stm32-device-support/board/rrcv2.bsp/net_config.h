@@ -36,140 +36,25 @@
 #define NET_TASK_PRIORITY       2
 #define NET_TASK_STACK          64
 
-/**
- * Ethernet driver buffer size and count - defaults are set in stm32_eth.h
- */
-#define ETH_RXBUFNB        4                   // Rx buffers
-#define ETH_TXBUFNB        8                   // Tx buffers
-#define MAX_ETH_PAYLOAD     600
-
 #define NET_LINK_LED			LED2
-
 
 //#define ENC28J60_PHY
 //#define DP83848_PHY
 //#define LAN8700_PHY
 #define BCM5241_PHY
 
-#define MII_MODE
-//#define RMII_MODE
+/* Definition of the Ethernet driver buffers size and count */
+#define ETH_MAX_ETH_PAYLOAD     	   600
+#define ETH_RX_BUF_SIZE                ETH_MAX_PACKET_SIZE /* buffer size for receive               */
+#define ETH_TX_BUF_SIZE                ETH_MAX_PACKET_SIZE /* buffer size for transmit              */
+#define ETH_RXBUFNB                    ((uint32_t)4)       /* 4 Rx buffers of size ETH_RX_BUF_SIZE  */
+#define ETH_TXBUFNB                    ((uint32_t)8)       /* 4 Tx buffers of size ETH_TX_BUF_SIZE  */
 
-#define PHY_READ_TO                     ((uint32_t)0x0004FFFF)
-#define PHY_WRITE_TO                    ((uint32_t)0x0004FFFF)
-#define PHY_ResetDelay                  ((uint32_t)0x000FFFFF)
-#define PHY_ConfigDelay                 ((uint32_t)0x00FFFFFF)
 
-#if defined(BCM5241_PHY)
-#define PHY_ADDRESS       0x00
-#elif defined(DP83848_PHY)
-#define PHY_ADDRESS       0x01
-#elif defined(LAN8700_PHY)
-#define PHY_ADDRESS       0x01
-#endif
-
-#define ETH_USE_MCO				1
-#define ETH_MCO_SRC				RCC_MCO1Source_HSE
-//#define ETH_MCO_SRC				RCC_MCO_HSE
-
+#define ETH_USE_MCO					1
+#define ETH_MCO_SRC					RCC_MCO1SOURCE_HSE
 #define ETH_MCO_PORT				GPIOA
-#define ETH_MCO_PIN					GPIO_Pin_8
-#define ETH_MCO_PINSOURCE			GPIO_PinSource8
-
-#define ETH_MII_CRS_PORT			GPIOA
-#define ETH_MII_CRS_PIN  			GPIO_Pin_0
-#define ETH_MII_CRS_PINSOURCE  		GPIO_PinSource0
-
-#define ETH_MII_RX_CLK_PORT			GPIOA
-#define ETH_MII_RX_CLK_PIN			GPIO_Pin_1
-#define ETH_MII_RX_CLK_PINSOURCE  	GPIO_PinSource1
-
-#define ETH_MII_MDIO_PORT  			GPIOA
-#define ETH_MII_MDIO_PIN			GPIO_Pin_2
-#define ETH_MII_MDIO_PINSOURCE    	GPIO_PinSource2
-
-#define ETH_MII_COL_PORT			GPIOA
-#define ETH_MII_COL_PIN				GPIO_Pin_3
-#define ETH_MII_COL_PINSOURCE  		GPIO_PinSource3
-
-#define ETH_MII_RX_DV_PORT   		GPIOA
-#define ETH_MII_RX_DV_PIN			GPIO_Pin_7
-#define ETH_MII_RX_DV_PINSOURCE   	GPIO_PinSource7
-
-#define ETH_MII_RXD2_PORT    		GPIOB
-#define ETH_MII_RXD2_PIN			GPIO_Pin_0
-#define ETH_MII_RXD2_PINSOURCE    	GPIO_PinSource0
-
-#define ETH_MII_RXD3_PORT    		GPIOB
-#define ETH_MII_RXD3_PIN			GPIO_Pin_1
-#define ETH_MII_RXD3_PINSOURCE    	GPIO_PinSource1
-
-//#define ETH_MII_PPS_OUT_PORT 		GPIOB
-//#define ETH_MII_PPS_OUT_PIN			GPIO_Pin_5
-//#define ETH_MII_PPS_OUT_PINSOURCE 	GPIO_PinSource5
-
-#define ETH_MII_TXD3_PORT   		GPIOB
-#define ETH_MII_TXD3_PIN			GPIO_Pin_8
-#define ETH_MII_TXD3_PINSOURCE    	GPIO_PinSource8
-
-#define ETH_MII_RX_ER_PORT   		GPIOB
-#define ETH_MII_RX_ER_PIN			GPIO_Pin_10
-#define ETH_MII_RX_ER_PINSOURCE   	GPIO_PinSource10
-
-#define ETH_MII_TX_EN_PORT   		GPIOB
-#define ETH_MII_TX_EN_PIN			GPIO_Pin_11
-#define ETH_MII_TX_EN_PINSOURCE   	GPIO_PinSource11
-
-#define ETH_MII_TXD0_PORT    		GPIOB
-#define ETH_MII_TXD0_PIN 			GPIO_Pin_12
-#define ETH_MII_TXD0_PINSOURCE    	GPIO_PinSource12
-
-#define ETH_MII_TXD1_PORT    		GPIOB
-#define ETH_MII_TXD1_PIN			GPIO_Pin_13
-#define ETH_MII_TXD1_PINSOURCE    	GPIO_PinSource13
-
-#define ETH_MII_MDC_PORT  			GPIOC
-#define ETH_MII_MDC_PIN				GPIO_Pin_1
-#define ETH_MII_MDC_PINSOURCE  		GPIO_PinSource1
-
-#define ETH_MII_TXD2_PORT    		GPIOC
-#define ETH_MII_TXD2_PIN			GPIO_Pin_2
-#define ETH_MII_TXD2_PINSOURCE    	GPIO_PinSource2
-
-#define ETH_MII_TX_CLK_PORT 		GPIOC
-#define ETH_MII_TX_CLK_PIN			GPIO_Pin_3
-#define ETH_MII_TX_CLK_PINSOURCE  	GPIO_PinSource3
-
-#define ETH_MII_RXD0_PORT    		GPIOC
-#define ETH_MII_RXD0_PIN 			GPIO_Pin_4
-#define ETH_MII_RXD0_PINSOURCE    	GPIO_PinSource4
-
-#define ETH_MII_RXD1_PORT    		GPIOC
-#define ETH_MII_RXD1_PIN 			GPIO_Pin_5
-#define ETH_MII_RXD1_PINSOURCE    	GPIO_PinSource5
-
-#define ETH_GPIO_PORTS  {\
-	ETH_MII_CRS_PORT,ETH_MII_RX_CLK_PORT,ETH_MII_MDIO_PORT,ETH_MII_COL_PORT,\
-	ETH_MII_RX_DV_PORT,ETH_MII_RXD2_PORT,ETH_MII_RXD3_PORT,ETH_MII_TXD3_PORT,\
-	ETH_MII_RX_ER_PORT,ETH_MII_TX_EN_PORT,ETH_MII_TXD0_PORT,ETH_MII_TXD1_PORT,\
-	ETH_MII_MDC_PORT,ETH_MII_TXD2_PORT,ETH_MII_TX_CLK_PORT,ETH_MII_RXD0_PORT,\
-	ETH_MII_RXD1_PORT\
-}
-
-#define ETH_GPIO_PINS  {\
-	ETH_MII_CRS_PIN,ETH_MII_RX_CLK_PIN,ETH_MII_MDIO_PIN,ETH_MII_COL_PIN,\
-	ETH_MII_RX_DV_PIN,ETH_MII_RXD2_PIN,ETH_MII_RXD3_PIN,ETH_MII_TXD3_PIN,\
-	ETH_MII_RX_ER_PIN,ETH_MII_TX_EN_PIN,ETH_MII_TXD0_PIN,ETH_MII_TXD1_PIN,\
-	ETH_MII_MDC_PIN,ETH_MII_TXD2_PIN,ETH_MII_TX_CLK_PIN,ETH_MII_RXD0_PIN,\
-	ETH_MII_RXD1_PIN\
-}
-
-#define ETH_GPIO_PINSOURCES  {\
-	ETH_MII_CRS_PINSOURCE,ETH_MII_RX_CLK_PINSOURCE,ETH_MII_MDIO_PINSOURCE,\
-	ETH_MII_COL_PINSOURCE,ETH_MII_RX_DV_PINSOURCE,ETH_MII_RXD2_PINSOURCE,\
-	ETH_MII_RXD3_PINSOURCE,ETH_MII_TXD3_PINSOURCE,ETH_MII_RX_ER_PINSOURCE,\
-	ETH_MII_TX_EN_PINSOURCE,ETH_MII_TXD0_PINSOURCE,ETH_MII_TXD1_PINSOURCE,\
-	ETH_MII_MDC_PINSOURCE,ETH_MII_TXD2_PINSOURCE,ETH_MII_TX_CLK_PINSOURCE,\
-	ETH_MII_RXD0_PINSOURCE,ETH_MII_RXD1_PINSOURCE\
-}
+#define ETH_MCO_PIN					GPIO_PIN_8
+#define ETH_MCO_OUTPUT				RCC_MCO1
 
 #endif // NET_CONF_H_

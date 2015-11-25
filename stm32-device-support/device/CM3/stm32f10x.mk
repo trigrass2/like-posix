@@ -46,8 +46,3 @@ SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_w
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_fsmc.c
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_sdmmc.c
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_usb.c
-
-
-ifeq ($(USE_DRIVER_MII_RMII_PHY), 1)
-SOURCE += $(STM32_CM3_DIR)/ethernet/stm32_eth.c
-endif

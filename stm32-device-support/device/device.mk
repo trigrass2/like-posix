@@ -145,7 +145,6 @@ CFLAGS += -I $(CHIPSUPPORTDIR)/cube_drivers/Inc
 CFLAGS += -I $(CHIPSUPPORTDIR)/cube_drivers/CMSIS/Include
 CFLAGS += -I $(CHIPSUPPORTDIR)/cube_drivers/CMSIS/Device/ST/$(HALPREFIX)/Include
 CFLAGS += -I $(CHIPSUPPORTDIR)/cube_drivers/$(HALPREFIX)_HAL_Driver/Inc
-CFLAGS += -I $(CHIPSUPPORTDIR)/ethernet
 CFLAGS += -I $(DEVICEDIR)
 CFLAGS += -I $(CHIPSUPPORTDIR)
 

@@ -3,8 +3,6 @@ STM32_CM4_DIR = $(DEVICE_SUPPORT_DIR)/device/CM4
 
 SOURCE += $(STM32_CM4_DIR)/system_stm32f4xx.c
 
-
-
 SOURCE += $(STM32_CM4_DIR)/cube_drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c
 SOURCE += $(STM32_CM4_DIR)/cube_drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc_ex.c
 SOURCE += $(STM32_CM4_DIR)/cube_drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
@@ -72,7 +70,3 @@ SOURCE += $(STM32_CM4_DIR)/cube_drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_fm
 SOURCE += $(STM32_CM4_DIR)/cube_drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_fsmc.c
 SOURCE += $(STM32_CM4_DIR)/cube_drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_sdmmc.c
 SOURCE += $(STM32_CM4_DIR)/cube_drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c
-
-ifeq ($(USE_DRIVER_MII_RMII_PHY), 1)
-SOURCE += $(STM32_CM4_DIR)/ethernet/stm32_eth.c
-endif
