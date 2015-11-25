@@ -57,7 +57,7 @@ inline void usart_rx_isr(USART_TypeDef* usart, void* usart_dev)
 {
 	USART_HandleTypeDef husart;
 	husart.Instance = usart;
-	if(__HAL_USART_GET_IT_SOURCE(&husart, USART_IT_RXNE))
+	if(__HAL_USART_GET_FLAG(&husart, USART_IT_RXNE))
 	{
 #if USE_LIKEPOSIX
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
@@ -66,7 +66,7 @@ inline void usart_rx_isr(USART_TypeDef* usart, void* usart_dev)
 #else
         (void)usart_dev;
 #endif
-//        __HAL_USART_CLEAR_IT(&husart, USART_IT_RXNE);
+        __HAL_USART_CLEAR_FLAG(&husart, USART_IT_RXNE);
 	}
 }
 
@@ -78,7 +78,7 @@ inline void usart_tx_isr(USART_TypeDef* usart, void* usart_dev)
 {
 	USART_HandleTypeDef husart;
 	husart.Instance = usart;
-	if(__HAL_USART_GET_IT_SOURCE(&husart, USART_IT_TXE))
+	if(__HAL_USART_GET_FLAG(&husart, USART_IT_TXE))
 	{
 #if USE_LIKEPOSIX
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
