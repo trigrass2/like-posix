@@ -100,6 +100,39 @@ bool string_to_mac_address(uint8_t* address, const uint8_t* macaddr)
     return true;
 }
 
+/**
+ * configures a netconf_t structure, from files.
+ *
+ * compliments the net_init function, typical usage would be:
+ *
+\code
+
+    #include "net.h"
+
+    net_config(&netconf, "/etc/network/resolv", "/etc/network/interface");
+    net_init(&netconf);
+    while(wait_for_address(&netconf));
+
+\code
+ *
+ * @param netconf is a netconf structure - it does not need to be preinitialized.
+ * @param resolv is the file path to the file that configures address resolution.
+ *        for example this might reside in /etc/network/resolv, and contains the following key value pairs:
+ *
+ *          resolv dhcp # may be dhcp or static
+ *          hostname hostname # only used if LWIP_NETIF_HOSTNAME=1 in lwipopts.h
+ *
+ * @param interface is the file path to the file that configures the network interface.
+ *        for example this might reside in /etc/network/interface, and contains the following key value pairs:
+ *
+ *          ipaddr  192.168.0.10 # your IP address
+ *          macaddr 00:00:00:00:01 # your mac address
+ *          netmask 255.255.255.0
+ *          gateway 192.168.0.1 # your local gateway address
+ *          dns1 192.168.0.1 # your dns server
+ *          dns2 192.168.0.1 # your secondary dns server
+ *
+ */
 void net_config(netconf_t* netconf, const char* resolv, const char* interface)
 {
 	logger_t log;
