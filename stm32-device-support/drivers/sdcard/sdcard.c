@@ -37,6 +37,7 @@
  */
 
 #include "board_config.h"
+#include "systime.h"
 #include "sdcard.h"
 
 #if USE_FREERTOS
@@ -48,12 +49,67 @@
 // TODO - add queue logic to makew driver block the calling thread while performing IO
 #endif
 
+uint8_t sd_detect(void)
+{
+#if defined(SD_CARD_PRES_PORT)
+    if (HAL_GPIO_ReadPin(SD_CARD_PRES_PORT, SD_CARD_PRES_PIN))
+        return SD_PRESENT;
+    return SD_NOT_PRESENT;
+#elif defined(SD_CARD_NPRES_PORT)
+    if (HAL_GPIO_ReadPin(SD_CARD_NPRES_PORT, SD_CARD_NPRES_PIN))
+        return SD_NOT_PRESENT;
+    return SD_PRESENT;
+#else
+    return SD_PRESENT;
+#endif
+}
+
+uint8_t sd_write_protected(void)
+{
+#if defined(SD_CARD_WP_PORT)
+   if(HAL_GPIO_ReadPin(SD_CARD_WP_PORT, SD_CARD_WP_PIN))
+       return SD_WRITE_PROTECTED;
+   return SD_NOT_WRITE_PROTECTED;
+#elif defined(SD_CARD_NWP_PORT)
+   if(HAL_GPIO_ReadPin(SD_CARD_NWP_PORT, SD_CARD_NWP_PIN))
+       return SD_NOT_WRITE_PROTECTED;
+   return SD_WRITE_PROTECTED;
+#else
+   return SD_NOT_WRITE_PROTECTED;
+#endif
+}
+
+
+void sd_det_wp_gpio_init(void)
+{
+	GPIO_InitTypeDef GPIO_InitStructure;
+
+	GPIO_InitStructure.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStructure.Speed = GPIO_SPEED_LOW;
+
+#if defined(SD_CARD_PRES_PIN) && defined(SD_CARD_PRES_PORT)
+	GPIO_InitStructure.Pull = GPIO_PULLDOWN;
+	GPIO_InitStructure.Pin = SD_CARD_PRES_PIN;
+	HAL_GPIO_Init(SD_CARD_PRES_PORT, &GPIO_InitStructure);
+#elif defined(SD_CARD_NPRES_PIN) && defined(SD_CARD_NPRES_PORT)
+	GPIO_InitStructure.Pull = GPIO_PULLUP;
+	GPIO_InitStructure.Pin = SD_CARD_NPRES_PIN;
+	HAL_GPIO_Init(SD_CARD_NPRES_PORT, &GPIO_InitStructure);
+#endif
+
+#if defined(SD_CARD_WP_PORT)
+	GPIO_InitStructure.Pull = GPIO_PULLDOWN;
+	GPIO_InitStructure.Pin = SD_CARD_WP_PIN;
+	HAL_GPIO_Init(SD_CARD_WP_PORT, &GPIO_InitStructure);
+#elif defined(SD_CARD_NWP_PORT)
+	GPIO_InitStructure.Pull = GPIO_PULLUP;
+	GPIO_InitStructure.Pin = SD_CARD_NWP_PIN;
+	HAL_GPIO_Init(SD_CARD_NWP_PORT, &GPIO_InitStructure);
+#endif
+}
+
 
 #if SDCARD_DRIVER_MODE == SDCARD_DRIVER_MODE_SDIO_4BIT || SDCARD_DRIVER_MODE == SDCARD_DRIVER_MODE_SDIO_1BIT
-
-static SD_HandleTypeDef uSdHandle;
-static DMA_HandleTypeDef dma_rx_handle;
-static DMA_HandleTypeDef dma_tx_handle;
 
 static void sd_gpio_init(void);
 static void sd_gpio_deinit(void);
@@ -61,6 +117,10 @@ static void sd_hardware_init(SD_HandleTypeDef *hsd);
 static void sd_hardware_deinit(SD_HandleTypeDef *hsd);
 static HAL_SD_ErrorTypedef sd_enable_rx_dma(SD_HandleTypeDef *hsd);
 static HAL_SD_ErrorTypedef sd_enable_tx_dma(SD_HandleTypeDef *hsd);
+
+static SD_HandleTypeDef uSdHandle;
+static DMA_HandleTypeDef dma_rx_handle;
+static DMA_HandleTypeDef dma_tx_handle;
 
 /**
  * clock rate:
@@ -78,7 +138,7 @@ static HAL_SD_ErrorTypedef sd_enable_tx_dma(SD_HandleTypeDef *hsd);
  *          SDIO clock speed may be 24MHz at most, and should be reduced on boards
  *          with poor layout or the wrong pull up resistor values.
  */
-HAL_SD_ErrorTypedef sd_init(HAL_SD_CardInfoTypedef* uSdCardInfo)
+HAL_SD_ErrorTypedef sd_init(HAL_SD_CardInfoTypedef* cardinfo)
 {
 	HAL_SD_ErrorTypedef sd_state;
 
@@ -97,7 +157,7 @@ HAL_SD_ErrorTypedef sd_init(HAL_SD_CardInfoTypedef* uSdCardInfo)
 
 	sd_hardware_init(&uSdHandle);
 
-	sd_state = HAL_SD_Init(&uSdHandle, uSdCardInfo);
+	sd_state = HAL_SD_Init(&uSdHandle, cardinfo);
 
 	if(sd_state == SD_OK)
 	{
@@ -215,28 +275,7 @@ void sd_gpio_init(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 
-	GPIO_InitStructure.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStructure.Speed = GPIO_SPEED_LOW;
-
-#if defined(SD_CARD_PRES_PIN) && defined(SD_CARD_PRES_PORT)
-	GPIO_InitStructure.Pull = GPIO_PULLDOWN;
-	GPIO_InitStructure.Pin = SD_CARD_PRES_PIN;
-	HAL_GPIO_Init(SD_CARD_PRES_PORT, &GPIO_InitStructure);
-#elif defined(SD_CARD_NPRES_PIN) && defined(SD_CARD_NPRES_PORT)
-	GPIO_InitStructure.Pull = GPIO_PULLUP;
-	GPIO_InitStructure.Pin = SD_CARD_NPRES_PIN;
-	HAL_GPIO_Init(SD_CARD_NPRES_PORT, &GPIO_InitStructure);
-#endif
-
-#if defined(SD_CARD_WP_PORT)
-	GPIO_InitStructure.Pull = GPIO_PULLDOWN;
-	GPIO_InitStructure.Pin = SD_CARD_WP_PIN;
-	HAL_GPIO_Init(SD_CARD_WP_PORT, &GPIO_InitStructure);
-#elif defined(SD_CARD_NWP_PORT)
-	GPIO_InitStructure.Pull = GPIO_PULLUP;
-	GPIO_InitStructure.Pin = SD_CARD_NWP_PIN;
-	HAL_GPIO_Init(SD_CARD_NWP_PORT, &GPIO_InitStructure);
-#endif
+	sd_det_wp_gpio_init();
 
 	GPIO_InitStructure.Pin =  SD_CARD_CK_PIN | SD_CARD_D0_PIN | SD_CARD_D1_PIN | SD_CARD_D2_PIN | SD_CARD_D3_PIN;
 	GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
@@ -289,36 +328,6 @@ void sd_hardware_deinit(SD_HandleTypeDef *hsd)
 
     /* Disable SDIO clock */
     __HAL_RCC_SDIO_CLK_DISABLE();
-}
-
-uint8_t sd_detect(void)
-{
-#if defined(SD_CARD_PRES_PORT)
-    if (HAL_GPIO_ReadPin(SD_CARD_PRES_PORT, SD_CARD_PRES_PIN))
-        return SD_PRESENT;
-    return SD_NOT_PRESENT;
-#elif defined(SD_CARD_NPRES_PORT)
-    if (HAL_GPIO_ReadPin(SD_CARD_NPRES_PORT, SD_CARD_NPRES_PIN))
-        return SD_NOT_PRESENT;
-    return SD_PRESENT;
-#else
-    return SD_PRESENT;
-#endif
-}
-
-uint8_t sd_write_protected(void)
-{
-#if defined(SD_CARD_WP_PORT)
-   if(HAL_GPIO_ReadPin(SD_CARD_WP_PORT, SD_CARD_WP_PIN))
-       return SD_WRITE_PROTECTED;
-   return SD_NOT_WRITE_PROTECTED;
-#elif defined(SD_CARD_NWP_PORT)
-   if(HAL_GPIO_ReadPin(SD_CARD_NWP_PORT, SD_CARD_NWP_PIN))
-       return SD_NOT_WRITE_PROTECTED;
-   return SD_WRITE_PROTECTED;
-#else
-   return SD_NOT_WRITE_PROTECTED;
-#endif
 }
 
 void SD_IRQHandler(void)
@@ -385,10 +394,10 @@ HAL_SD_TransferStateTypedef sd_get_transfer_state(void)
 	return HAL_SD_GetStatus(&uSdHandle);
 }
 
-void sd_get_card_info(HAL_SD_CardInfoTypedef *CardInfo)
+HAL_SD_ErrorTypedef sd_get_card_info(HAL_SD_CardInfoTypedef *cardinfo)
 {
 	/* Get SD card Information */
-	HAL_SD_Get_CardInfo(&uSdHandle, CardInfo);
+	return HAL_SD_Get_CardInfo(&uSdHandle, cardinfo);
 }
 
 HAL_SD_ErrorTypedef sd_read(uint8_t *pData, uint32_t sector, uint32_t sectors)
@@ -513,6 +522,7 @@ HAL_SD_ErrorTypedef sd_enable_tx_dma(SD_HandleTypeDef *hsd)
 
 #include "spi.h"
 
+
 #define R1_RESP_TIMEOUT             250
 #define BUSY_RESP_TIMEOUT           250
 #define ACTIVE_RESP_TIMEOUT         1000
@@ -589,17 +599,39 @@ HAL_SD_ErrorTypedef sd_enable_tx_dma(SD_HandleTypeDef *hsd)
  */
 #define SD_DUMMY_BYTE   0xFF
 
-static void SD_LowLevel_Init();
-static void SD_LowLevel_DeInit();
-static HAL_SD_ErrorTypedef SD_WaitForReady();
-static HAL_SD_ErrorTypedef SD_WaitForToken(uint8_t token);
-static HAL_SD_ErrorTypedef SD_WaitForDataResponse();
-static HAL_SD_ErrorTypedef SD_WaitForR1Response();
-static HAL_SD_ErrorTypedef SD_SendCmd(uint8_t cmd, uint32_t arg);
-static HAL_SD_ErrorTypedef SD_ReadDataBlock(uint8_t* data, uint32_t length);
-static HAL_SD_ErrorTypedef SD_WriteDataBlock(const uint8_t* data, uint32_t length, uint8_t token);
 
-static HAL_SD_ErrorTypedef SD_GetCardInfo(SD_CardInfo *cardinfo);
+static void sd_hardware_init();
+static void sd_hardware_deinit();
+static HAL_SD_ErrorTypedef sd_wait_for_ready();
+static HAL_SD_ErrorTypedef sd_wait_for_token(uint8_t token);
+static HAL_SD_ErrorTypedef sd_wait_for_data_response();
+static HAL_SD_ErrorTypedef sd_wait_for_r1();
+static HAL_SD_ErrorTypedef sd_send_cmd(uint8_t cmd, uint32_t arg);
+static HAL_SD_ErrorTypedef sd_read_data_block(uint8_t* data, uint32_t length);
+static HAL_SD_ErrorTypedef sd_write_data_block(const uint8_t* data, uint32_t length, uint8_t token);
+
+#define gettime_ms() get_hw_time_ms()
+
+typedef struct {
+#if USE_THREAD_AWARE_SDCARD_DRIVER
+    QueueHandle_t transfer_end;
+#else
+    bool transfer_end;
+#endif
+    HAL_SD_TransferStateTypedef transfer_state;
+    uint8_t card_type;
+    uint32_t rca;				///< holds the card RCA shifted up by 16 bits. used by the driver only. the true RCA is stored in SD_CardInfo sdcardinfo.RCA
+}sdcard_state_t;
+
+volatile sdcard_state_t sdcard_state = {
+#if USE_THREAD_AWARE_SDCARD_DRIVER
+    .transfer_end = NULL,
+#else
+    .transfer_end = false,
+#endif
+    .card_type = SDIO_UNKNOWN_CARD_TYPE,
+    .rca = 0,
+};
 
 
 /**
@@ -607,9 +639,9 @@ static HAL_SD_ErrorTypedef SD_GetCardInfo(SD_CardInfo *cardinfo);
   * @param  None
   * @retval None
   */
-void SD_DeInit(void)
+HAL_SD_ErrorTypedef sd_deinit(void)
 {
-   SD_LowLevel_DeInit();
+   sd_hardware_deinit();
 }
 
 /**
@@ -619,7 +651,7 @@ void SD_DeInit(void)
   *         - SD_RESPONSE_FAILURE: Sequence failed
   *         - SD_OK: Sequence succeed
   */
-HAL_SD_ErrorTypedef SD_Init(SD_CardInfo* cardinfo)
+HAL_SD_ErrorTypedef sd_init(HAL_SD_CardInfoTypedef* cardinfo)
 {
     uint32_t timer;
 	uint16_t i;
@@ -627,10 +659,10 @@ HAL_SD_ErrorTypedef SD_Init(SD_CardInfo* cardinfo)
 	HAL_SD_ErrorTypedef code = SD_UNSUPPORTED_HW;
 
 	sdcard_state.transfer_end = true;
+	sdcard_state.transfer_state = SD_TRANSFER_OK;
 
-    log_init(&sdlog, "sdio");
-
-    SD_LowLevel_Init();
+	sd_det_wp_gpio_init();
+    sd_hardware_init();
 
 	// 80 clock cycles with CS high
 	spi_deassert_nss(SDCARD_SPI_PERIPHERAL);
@@ -641,13 +673,13 @@ HAL_SD_ErrorTypedef SD_Init(SD_CardInfo* cardinfo)
 	spi_assert_nss(SDCARD_SPI_PERIPHERAL);
 
 	// go to idle state (software reset)
-	code = SD_SendCmd(SD_CMD0, 0);
+	code = sd_send_cmd(SD_CMD0, 0);
 
 	if(code != SD_IDLE)
 		return code;
 
 	// send interface condition (only supported by SDSCV2, SDHC, SDXC)
-	code = SD_SendCmd(SD_CMD8, 0x01AA);
+	code = sd_send_cmd(SD_CMD8, 0x01AA);
 
 	if(code == SD_IDLE)
 	{
@@ -663,13 +695,13 @@ HAL_SD_ErrorTypedef SD_Init(SD_CardInfo* cardinfo)
 		code = SD_IDLE;
 		timer = (uint32_t)gettime_ms() + ACTIVE_RESP_TIMEOUT;
 		while((code != SD_ACTIVE) && ((uint32_t)gettime_ms() < timer))
-			code = SD_SendCmd(SD_ACMD41, 0x40000000);
+			code = sd_send_cmd(SD_ACMD41, 0x40000000);
 
 		if(code != SD_ACTIVE)
 			return SD_CMD_RSP_TIMEOUT;
 
 		// send CMD58
-		code = SD_SendCmd(SD_CMD58, SD_R1_ACTIVE);
+		code = sd_send_cmd(SD_CMD58, SD_R1_ACTIVE);
 		if(code != SD_ACTIVE)
 			return code;
 
@@ -685,7 +717,7 @@ HAL_SD_ErrorTypedef SD_Init(SD_CardInfo* cardinfo)
 	else
 	{
 		// card may be SDSC or MMC
-		code = SD_SendCmd(SD_ACMD41, 0);
+		code = sd_send_cmd(SD_ACMD41, 0);
 		if(code == SD_ACTIVE || code == SD_IDLE)
 		{
 			cardinfo->CardType = SDIO_STD_CAPACITY_SD_CARD_V1_1;
@@ -700,7 +732,7 @@ HAL_SD_ErrorTypedef SD_Init(SD_CardInfo* cardinfo)
 		code = SD_IDLE;
 		timer = (uint32_t)gettime_ms() + ACTIVE_RESP_TIMEOUT;
 		while((code != SD_ACTIVE) && ((uint32_t)gettime_ms() < timer))
-			code = SD_SendCmd(frame[0], 0);
+			code = sd_send_cmd(frame[0], 0);
 
 		if(code != SD_ACTIVE)
 			return SD_CMD_RSP_TIMEOUT;
@@ -708,9 +740,9 @@ HAL_SD_ErrorTypedef SD_Init(SD_CardInfo* cardinfo)
 
 	if(code == SD_ACTIVE)
 	{
-		code = SD_SendCmd(SD_CMD16, SD_SECTOR_SIZE);
+		code = sd_send_cmd(SD_CMD16, SD_SECTOR_SIZE);
 		if(code == SD_ACTIVE)
-			code = SD_GetCardInfo(cardinfo);
+			code = sd_get_card_info(cardinfo);
 
 		if(code == SD_OK)
 		{
@@ -722,68 +754,27 @@ HAL_SD_ErrorTypedef SD_Init(SD_CardInfo* cardinfo)
 	return code;
 }
 
-void SD_LowLevel_Init()
+void sd_hardware_init()
 {
 	spi_deassert_nss(SDCARD_SPI_PERIPHERAL);
 	spi_init(SDCARD_SPI_PERIPHERAL, NULL, true);
 	spi_set_baudrate(SDCARD_SPI_PERIPHERAL, SDCARD_SPI_INIT_BAUDRATE);
 }
 
-void SD_LowLevel_DeInit()
+void sd_hardware_deinit()
 {
 	spi_deassert_nss(SDCARD_SPI_PERIPHERAL);
 }
 
-HAL_SD_ErrorTypedef SD_PowerON(void)
-{
-	return SD_OK;
-}
+//HAL_SD_ErrorTypedef sd_erase(uint32_t startaddr, uint32_t endaddr)
+//{
+//	assert_true(0);
+//	(void)startaddr;
+//	(void)endaddr;
+//	return SD_OK;
+//}
 
-HAL_SD_ErrorTypedef SD_PowerOFF(void)
-{
-	return SD_OK;
-}
-
-HAL_SD_TransferStateTypedef SD_GetTransferState(void)
-{
-	return SD_TRANSFER_OK;
-}
-
-HAL_SD_ErrorTypedef SD_Erase(uint32_t startaddr, uint32_t endaddr)
-{
-	assert_true(0);
-	(void)startaddr;
-	(void)endaddr;
-	return SD_OK;
-}
-
-/**
-  * @brief  Returns the current card's status.
-  * @param  pcardstatus: pointer to the buffer that will contain the SD card
-  *         status (Card Status register).
-  * @retval HAL_SD_ErrorTypedef: SD Card Error code.
-  */
-HAL_SD_ErrorTypedef SD_QueryStatus(HAL_SD_CardStateTypedef* cardstatus)
-{
-    HAL_SD_ErrorTypedef sderr = SD_OK;
-
-    *cardstatus = SD_CARD_TRANSFER;
-//
-//    sdio_send_cmd(sdcard_state.rca, SD_CMD_SEND_STATUS, SDIO_Response_Short);
-//    sderr = CmdResp1Error(SD_CMD_SEND_STATUS);
-//
-//    if(sderr == SD_OK)
-//        *cardstatus = (SDIO_GetResponse(SDIO_RESP1) >> 9)&0x0F;
-//    else
-//        *cardstatus = SD_CARD_ERROR;
-//
-//
-//    HAL_SD_ErrorTypedef SD_SendCmd(SD_CMD13, 0);
-
-    return sderr;
-}
-
-HAL_SD_ErrorTypedef SD_WaitForReady()
+HAL_SD_ErrorTypedef sd_wait_for_ready()
 {
     uint8_t response;
     uint32_t timer = (uint32_t)gettime_ms() + BUSY_RESP_TIMEOUT;
@@ -793,14 +784,14 @@ HAL_SD_ErrorTypedef SD_WaitForReady()
     	while((response == SD_BUSY_SIGNAL) && ((uint32_t)gettime_ms() < timer))
             response = spi_transfer(SDCARD_SPI_PERIPHERAL, SD_DUMMY_BYTE);
     	if(response == SD_BUSY_SIGNAL)
-            return SD_BUSY_TIMEOUT;
+            return SD_CMD_RSP_TIMEOUT;
     }
 
     sdcard_state.transfer_end = true;
     return SD_OK;
 }
 
-HAL_SD_ErrorTypedef SD_WaitForToken(uint8_t token)
+HAL_SD_ErrorTypedef sd_wait_for_token(uint8_t token)
 {
     uint8_t response = spi_transfer(SDCARD_SPI_PERIPHERAL, SD_DUMMY_BYTE);
     uint32_t timer = (uint32_t)gettime_ms() + TOKEN_RESP_TIMEOUT;
@@ -809,12 +800,12 @@ HAL_SD_ErrorTypedef SD_WaitForToken(uint8_t token)
         response = spi_transfer(SDCARD_SPI_PERIPHERAL, SD_DUMMY_BYTE);
 
     if(response != token)
-        return SD_BUSY_TIMEOUT;
+        return SD_CMD_RSP_TIMEOUT;
 
 	return SD_OK;
 }
 
-HAL_SD_ErrorTypedef SD_WaitForDataResponse()
+HAL_SD_ErrorTypedef sd_wait_for_data_response()
 {
     uint8_t response;
     uint32_t timer = (uint32_t)gettime_ms() + DATA_RESP_TIMEOUT;
@@ -833,7 +824,7 @@ HAL_SD_ErrorTypedef SD_WaitForDataResponse()
 	return SD_ERROR;
 }
 
-HAL_SD_ErrorTypedef SD_WaitForR1Response()
+HAL_SD_ErrorTypedef sd_wait_for_r1()
 {
     uint32_t timer = (uint32_t)gettime_ms() + R1_RESP_TIMEOUT;
     uint8_t response = SD_R1_START;
@@ -872,7 +863,7 @@ HAL_SD_ErrorTypedef SD_WaitForR1Response()
   * @param  crc: The CRC.
  * @retval  one of the HAL_SD_ErrorTypedef codes.
   */
-HAL_SD_ErrorTypedef SD_SendCmd(uint8_t cmd, uint32_t arg)
+HAL_SD_ErrorTypedef sd_send_cmd(uint8_t cmd, uint32_t arg)
 {
 	HAL_SD_ErrorTypedef err;
 	uint8_t frame[6];
@@ -881,7 +872,7 @@ HAL_SD_ErrorTypedef SD_SendCmd(uint8_t cmd, uint32_t arg)
 	// if the command was specified as ACMD, send CMD55
 	if(cmd & SD_ACMD)
 	{
-		err = SD_SendCmd(SD_CMD55, 0);
+		err = sd_send_cmd(SD_CMD55, 0);
 		if(err != SD_ACTIVE && err != SD_IDLE)
 			return err;
 	}
@@ -908,9 +899,14 @@ HAL_SD_ErrorTypedef SD_SendCmd(uint8_t cmd, uint32_t arg)
 		spi_transfer(SDCARD_SPI_PERIPHERAL, SD_DUMMY_BYTE);
 
     // poll for valid R1 response
-    err = SD_WaitForR1Response();
+    err = sd_wait_for_r1();
 
     return err;
+}
+
+HAL_SD_TransferStateTypedef sd_get_transfer_state(void)
+{
+	return sdcard_state.transfer_state;
 }
 
 /**
@@ -918,7 +914,7 @@ HAL_SD_ErrorTypedef SD_SendCmd(uint8_t cmd, uint32_t arg)
   * @param  a pointer to the cardinfo structure.
   * @retval returns one of the HAL_SD_ErrorTypedef codes.
   */
-HAL_SD_ErrorTypedef SD_GetCardInfo(SD_CardInfo *cardinfo)
+HAL_SD_ErrorTypedef sd_get_card_info(HAL_SD_CardInfoTypedef *cardinfo)
 {
   	HAL_SD_ErrorTypedef err;
   	uint8_t data_table[SD_CSD_CID_DATA_LENGTH];
@@ -926,10 +922,10 @@ HAL_SD_ErrorTypedef SD_GetCardInfo(SD_CardInfo *cardinfo)
   	/**
   	 * CSD register
   	 */
-  	err = SD_SendCmd(SD_CMD9, 0);
+  	err = sd_send_cmd(SD_CMD9, 0);
   	if(err != SD_ACTIVE)
   		return err;
-  	err = SD_ReadDataBlock(data_table, SD_CSD_CID_DATA_LENGTH);
+  	err = sd_read_data_block(data_table, SD_CSD_CID_DATA_LENGTH);
   	if(err != SD_OK)
   		return err;
 
@@ -1046,10 +1042,10 @@ HAL_SD_ErrorTypedef SD_GetCardInfo(SD_CardInfo *cardinfo)
   	/**
   	 * CID register
   	 */
-  	err = SD_SendCmd(SD_CMD10, 0);
+  	err = sd_send_cmd(SD_CMD10, 0);
   	if(err != SD_ACTIVE)
   		return err;
-  	err = SD_ReadDataBlock(data_table, SD_CSD_CID_DATA_LENGTH);
+  	err = sd_read_data_block(data_table, SD_CSD_CID_DATA_LENGTH);
   	if(err != SD_OK)
   		return err;
 
@@ -1106,60 +1102,47 @@ HAL_SD_ErrorTypedef SD_GetCardInfo(SD_CardInfo *cardinfo)
 	return err;
 }
 
-/**
-  * @brief  Reads a block of data from the SD.
-  * @param  readbuff: pointer to the buffer that receives the data read from the
-  *                  SD.
-  * @param  sector: sector number from where data are to be read.
-  * @retval  returns SD_OK if successful, or one of the other HAL_SD_ErrorTypedef codes if not.
-  */
-HAL_SD_ErrorTypedef SD_ReadBlock(uint8_t *readbuff, uint32_t sector)//uint8_t* pBuffer, uint32_t sector, uint16_t BlockSize)
+HAL_SD_ErrorTypedef sd_read(uint8_t *readbuff, uint32_t sector, uint32_t sectors)
 {
 	HAL_SD_ErrorTypedef err;
 	if(sdcard_state.card_type != SDIO_HIGH_CAPACITY_SD_CARD)
 		sector *= SD_SECTOR_SIZE;
 
-    err = SD_WaitForReady();
+    err = sd_wait_for_ready();
+
+	sdcard_state.transfer_state = SD_TRANSFER_BUSY;
 
     if(err == SD_OK)
     {
-    	err = SD_SendCmd(SD_CMD17, sector);
-    	if(err == SD_ACTIVE)
-    		err = SD_ReadDataBlock(readbuff, SD_SECTOR_SIZE);
-    }
-	return err;
-}
-
-/**
-  * @brief  Reads multiple block of data from the SD.
-  * @param  readbuff: pointer to the buffer that receives the data read from the
-  *                  SD.
-  * @param  sector: sector number from where data are to be read.
-  * @param  NumberOfBlocks: number of blocks to be read.
-  * @retval  returns SD_OK if successful, or one of the other HAL_SD_ErrorTypedef codes if not.
-  */
-HAL_SD_ErrorTypedef SD_ReadMultiBlocks(uint8_t *readbuff, uint32_t sector, uint32_t NumberOfBlocks)//uint8_t* pBuffer, uint32_t sector, uint16_t BlockSize, uint32_t NumberOfBlocks)
-{
-	HAL_SD_ErrorTypedef err;
-	if(sdcard_state.card_type != SDIO_HIGH_CAPACITY_SD_CARD)
-		sector *= SD_SECTOR_SIZE;
-
-    err = SD_WaitForReady();
-
-    if(err == SD_OK)
-    {
-    	err = SD_SendCmd(SD_CMD18, sector);
-
-    	if(err == SD_ACTIVE)
-    		err = SD_OK;
-    	while((err == SD_OK) && NumberOfBlocks--)
+    	if(sectors == 1)
     	{
-    		err = SD_ReadDataBlock(readbuff, SD_SECTOR_SIZE);
-    		readbuff += SD_SECTOR_SIZE;
+			err = sd_send_cmd(SD_CMD17, sector);
+			if(err == SD_ACTIVE)
+				err = sd_read_data_block(readbuff, SD_SECTOR_SIZE);
+		}
+    	else if(sectors > 1)
+    	{
+			err = sd_send_cmd(SD_CMD18, sector);
+
+			if(err == SD_ACTIVE)
+				err = SD_OK;
+			while((err == SD_OK) && sectors--)
+			{
+				err = sd_read_data_block(readbuff, SD_SECTOR_SIZE);
+				readbuff += SD_SECTOR_SIZE;
+			}
+			if(err == SD_OK)
+				err = sd_send_cmd(SD_CMD12, 0);
     	}
-        if(err == SD_OK)
-            err = SD_SendCmd(SD_CMD12, 0);
+    	else
+    		err = SD_INVALID_PARAMETER;
     }
+
+    if(err == SD_OK)
+    	sdcard_state.transfer_state = SD_TRANSFER_OK;
+    else
+    	sdcard_state.transfer_state = SD_TRANSFER_ERROR;
+
 	return err;
 }
 
@@ -1171,9 +1154,9 @@ HAL_SD_ErrorTypedef SD_ReadMultiBlocks(uint8_t *readbuff, uint32_t sector, uint3
  * @param   length is the length of the read in bytes.
  * @retval  returns SD_OK if successful, or SD_CMD_RSP_TIMEOUT if not.
  */
-HAL_SD_ErrorTypedef SD_ReadDataBlock(uint8_t* data, uint32_t length)
+HAL_SD_ErrorTypedef sd_read_data_block(uint8_t* data, uint32_t length)
 {
-    if(SD_WaitForToken(SD_DATA_START_TOKEN) == SD_OK)
+    if(sd_wait_for_token(SD_DATA_START_TOKEN) == SD_OK)
     {
         // read block
         while(length--)
@@ -1196,82 +1179,69 @@ HAL_SD_ErrorTypedef SD_ReadDataBlock(uint8_t* data, uint32_t length)
   * @param  sector: sector number to where data are to be written.
   * @retval  returns SD_OK if successful, or one of the other HAL_SD_ErrorTypedef codes if not.
   */
-HAL_SD_ErrorTypedef SD_WriteBlock(const uint8_t* writebuf, uint32_t sector)//, uint16_t BlockSize)
+HAL_SD_ErrorTypedef sd_write(uint8_t *writebuf, uint32_t sector, uint32_t sectors)
 {
 	HAL_SD_ErrorTypedef err;
+
 	if(sdcard_state.card_type != SDIO_HIGH_CAPACITY_SD_CARD)
 		sector *= SD_SECTOR_SIZE;
 
-    err = SD_WaitForReady();
+    err = sd_wait_for_ready();
+
+	sdcard_state.transfer_state = SD_TRANSFER_BUSY;
 
     if(err == SD_OK)
     {
-    	err = SD_SendCmd(SD_CMD24, sector);
-    	if(err == SD_ACTIVE)
-        {
-            spi_transfer(SDCARD_SPI_PERIPHERAL, SD_DUMMY_BYTE);
-    		err = SD_WriteDataBlock(writebuf, SD_SECTOR_SIZE, SD_DATA_START_TOKEN);
-            spi_transfer(SDCARD_SPI_PERIPHERAL, SD_DUMMY_BYTE);
-        }
+		if(sectors == 1)
+		{
+			err = sd_send_cmd(SD_CMD24, sector);
+			if(err == SD_ACTIVE)
+			{
+				spi_transfer(SDCARD_SPI_PERIPHERAL, SD_DUMMY_BYTE);
+				err = sd_write_data_block(writebuf, SD_SECTOR_SIZE, SD_DATA_START_TOKEN);
+				spi_transfer(SDCARD_SPI_PERIPHERAL, SD_DUMMY_BYTE);
+			}
+		}
+		else if(sectors > 1)
+		{
+			// specify pre erase number of blocks
+			if(sdcard_state.card_type != SDIO_MULTIMEDIA_CARD)
+				err = sd_send_cmd(SD_ACMD23, sectors);
+			else
+				err = sd_send_cmd(SD_CMD23, sectors);
+
+			if(err == SD_ACTIVE)
+				err = sd_send_cmd(SD_CMD25, sector);
+
+			if(err == SD_ACTIVE)
+			{
+				spi_transfer(SDCARD_SPI_PERIPHERAL, SD_DUMMY_BYTE);
+				err = SD_OK;
+				while(err == SD_OK && sectors--)
+				{
+					sd_wait_for_ready();
+					err = sd_write_data_block(writebuf, SD_SECTOR_SIZE, SD_DATA_MULTI_WRITE_START_TOKEN);
+					writebuf += SD_SECTOR_SIZE;
+					sector++;
+				}
+				if(sdcard_state.card_type != SDIO_MULTIMEDIA_CARD)
+				{
+					sd_wait_for_ready();
+					err = sd_write_data_block(NULL, 0, SD_DATA_MULTI_WRITE_STOP_TOKEN);
+					spi_transfer(SDCARD_SPI_PERIPHERAL, SD_DUMMY_BYTE);
+				}
+			}
+		}
+		else
+			err = SD_INVALID_PARAMETER;
     }
-	return err;
-}
 
-/**
-  * @brief  Writes many blocks on the SD
-  * @param  writebuf: pointer to the buffer containing the data to be written on
-  *                  the SD.
-  * @param  sector: sector number to where data are to be written.
-  * @param  NumberOfBlocks: number of blocks to be written.
-  * @retval  returns SD_OK if successful, or one of the other HAL_SD_ErrorTypedef codes if not.
-  */
-HAL_SD_ErrorTypedef SD_WriteMultiBlocks(const uint8_t* writebuf, uint32_t sector, uint32_t NumberOfBlocks)
-{
-	HAL_SD_ErrorTypedef err = SD_ACTIVE;
-
-    err = SD_WaitForReady();
     if(err == SD_OK)
-    {
-
-        if(sdcard_state.card_type != SDIO_HIGH_CAPACITY_SD_CARD)
-            sector *= SD_SECTOR_SIZE;
-
-        // specify pre erase number of blocks
-        if(sdcard_state.card_type != SDIO_MULTIMEDIA_CARD)
-            err = SD_SendCmd(SD_ACMD23, NumberOfBlocks);
-        else
-            err = SD_SendCmd(SD_CMD23, NumberOfBlocks);
-
-    	if(err == SD_ACTIVE)
-    		err = SD_SendCmd(SD_CMD25, sector);
-
-    	if(err == SD_ACTIVE)
-    	{
-            spi_transfer(SDCARD_SPI_PERIPHERAL, SD_DUMMY_BYTE);
-    		err = SD_OK;
-    		while(err == SD_OK && NumberOfBlocks--)
-    		{
-                SD_WaitForReady();
-    			err = SD_WriteDataBlock(writebuf, SD_SECTOR_SIZE, SD_DATA_MULTI_WRITE_START_TOKEN);
-    			writebuf += SD_SECTOR_SIZE;
-    			sector++;
-    		}
-            if(sdcard_state.card_type != SDIO_MULTIMEDIA_CARD)
-            {
-                SD_WaitForReady();
-        		err = SD_WriteDataBlock(NULL, 0, SD_DATA_MULTI_WRITE_STOP_TOKEN);
-                spi_transfer(SDCARD_SPI_PERIPHERAL, SD_DUMMY_BYTE);
-            }
-    	}
-    }
+    	sdcard_state.transfer_state = SD_TRANSFER_OK;
+    else
+    	sdcard_state.transfer_state = SD_TRANSFER_ERROR;
 
 	return err;
-}
-
-HAL_SD_ErrorTypedef SD_WaitIOOperation(sdio_wait_on_io_t io_flag)
-{
-	(void)io_flag;
-	return SD_OK;
 }
 
 /**
@@ -1287,7 +1257,7 @@ HAL_SD_ErrorTypedef SD_WaitIOOperation(sdio_wait_on_io_t io_flag)
  *              SD_DATA_MULTI_WRITE_STOP_TOKEN (stop multiple block write)
  * @retval  returns SD_OK if successful, or one of the other HAL_SD_ErrorTypedef codes if not.
  */
-HAL_SD_ErrorTypedef SD_WriteDataBlock(const uint8_t* data, uint32_t length, uint8_t token)
+HAL_SD_ErrorTypedef sd_write_data_block(const uint8_t* data, uint32_t length, uint8_t token)
 {
     HAL_SD_ErrorTypedef err = SD_OK;
 
@@ -1305,7 +1275,7 @@ HAL_SD_ErrorTypedef SD_WriteDataBlock(const uint8_t* data, uint32_t length, uint
         spi_transfer(SDCARD_SPI_PERIPHERAL, SD_DUMMY_BYTE);
         spi_transfer(SDCARD_SPI_PERIPHERAL, SD_DUMMY_BYTE);
 
-        err = SD_WaitForDataResponse();
+        err = sd_wait_for_data_response();
     }
 
     sdcard_state.transfer_end = false;
