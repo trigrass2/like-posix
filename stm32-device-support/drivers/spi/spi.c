@@ -154,7 +154,7 @@ uint8_t spi_transfer(SPI_TypeDef* spi, uint8_t data)
     SPI_HandleTypeDef hspi;
     hspi.Instance = spi;
     while(!__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_TXE));
-    spi->DR =  data;
+    spi->DR = data;
     while(!__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_RXNE));
     return spi->DR;
 }
@@ -268,12 +268,19 @@ void spi_init_device(SPI_TypeDef* spi, bool enable)
 	hspi.Init.NSS = SPI_NSS_SOFT;
 	hspi.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
 	hspi.Init.TIMode = SPI_TIMODE_DISABLE;
-	hspi.Init.CRCPolynomial = 0;
+	hspi.Init.CRCPolynomial = 1;
 
     if(enable)
+    {
         HAL_SPI_Init(&hspi);
+        __HAL_SPI_ENABLE(&hspi);
+    }
     else
+    {
         HAL_SPI_DeInit(&hspi);
+        __HAL_SPI_DISABLE(&hspi);
+    }
+
 }
 
 void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)

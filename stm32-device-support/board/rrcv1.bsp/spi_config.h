@@ -41,7 +41,7 @@
  * (comment out those that are not needed)
  */
 #define SPI1_NSS_PORT 	GPIOA
-#define SPI1_NSS_PIN 	GPIO_Pin_15
+#define SPI1_NSS_PIN 	GPIO_PIN_15
 //#define SPI2_NSS_PORT
 //#define SPI2_NSS_PIN
 //#define SPI2_NSS_PORT
