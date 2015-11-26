@@ -95,12 +95,30 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef *heth)
 {
 	GPIO_TypeDef* eth_o_ports[] = ETH_GPIO_PORTS;
 	uint16_t eth_o_pins[] = ETH_GPIO_PINS;
+#if FAMILY == STM32F1
+	GPIO_TypeDef* eth_i_ports[] = ETH_GPIO_INPUT_PORTS;
+	uint16_t eth_i_pins[] = ETH_GPIO_INPUT_PINS;
+#endif
 	GPIO_InitTypeDef GPIO_InitStructure;
 
+	/* Configure PA1, PA2 and PA7 */
+	/* Note : on MB1165 ETH_MDIO is connected to PA2 by default (SB40 is closed) */
 	GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
 	GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
 	GPIO_InitStructure.Pull = GPIO_NOPULL;
+#if FAMILY == STM32F4
+	GPIO_InitStructure.Alternate = GPIO_AF0_MCO;
+#endif
+
+#ifdef ETH_USE_MCO
+	// Configure MCO
+	GPIO_InitStructure.Pin = ETH_MCO_PIN;
+	HAL_GPIO_Init(ETH_MCO_PORT, &GPIO_InitStructure);
+#endif
+
+#if FAMILY == STM32F4
 	GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
+#endif
 
 	for(uint8_t i = 0; i < sizeof(eth_o_pins)/sizeof(eth_o_pins[0]); i++)
   	{
@@ -108,10 +126,15 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef *heth)
   		HAL_GPIO_Init(eth_o_ports[i], &GPIO_InitStructure);
   	}
 
-#ifdef ETH_USE_MCO
-	GPIO_InitStructure.Pin = ETH_MCO_PIN;
-	GPIO_InitStructure.Alternate = GPIO_AF0_MCO;
-	HAL_GPIO_Init(ETH_MCO_PORT, &GPIO_InitStructure);
+#if FAMILY == STM32F1
+	// STM32F1 requires input pins configured as inputs
+	GPIO_InitStructure.Mode = GPIO_MODE_INPUT;
+
+	for(uint8_t i = 0; i < sizeof(eth_i_pins)/sizeof(eth_i_pins[0]); i++)
+	{
+		GPIO_InitStructure.Pin = eth_i_pins[i];
+		HAL_GPIO_Init(eth_i_ports[i], &GPIO_InitStructure);
+	}
 #endif
 
 	__HAL_RCC_ETH_CLK_ENABLE();
@@ -151,10 +174,9 @@ static void low_level_init(struct netif *netif)
 #endif
 
   /* configure ethernet peripheral (GPIOs, clocks, MAC, DMA) */
-  if (HAL_ETH_Init(&EthHandle) == HAL_OK)
+  if (HAL_ETH_Init(&EthHandle) != HAL_OK)
   {
-    /* Set netif link flag */
-//    netif->flags |= NETIF_FLAG_LINK_UP;
+	  // TODO - do what?
   }
 
   /* Initialize Tx Descriptors list: Chain Mode */
