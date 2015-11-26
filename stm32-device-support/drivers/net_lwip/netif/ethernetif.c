@@ -93,115 +93,35 @@ bool eth_link_full_duplex()
   */
 void HAL_ETH_MspInit(ETH_HandleTypeDef *heth)
 {
-  GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_TypeDef* eth_o_ports[] = ETH_GPIO_PORTS;
+	uint16_t eth_o_pins[] = ETH_GPIO_PINS;
+	GPIO_InitTypeDef GPIO_InitStructure;
 
-  /* Enable GPIOs clocks */
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOE_CLK_ENABLE();
-  __HAL_RCC_GPIOF_CLK_ENABLE();
-  __HAL_RCC_GPIOG_CLK_ENABLE();
-  __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOI_CLK_ENABLE();
+	GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
+	GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+	GPIO_InitStructure.Pull = GPIO_NOPULL;
+	GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
 
-/* Ethernet pins configuration ************************************************/
-  /*
-        ETH_MDIO -------------------------> PA2
-        ETH_MDC --------------------------> PC1
-        ETH_PPS_OUT ----------------------> PB5
-        ETH_MII_RXD2 ---------------------> PH6
-        ETH_MII_RXD3 ---------------------> PH7
-        ETH_MII_TX_CLK -------------------> PC3
-        ETH_MII_TXD2 ---------------------> PC2
-        ETH_MII_TXD3 ---------------------> PE2
-        ETH_MII_RX_CLK -------------------> PA1
-        ETH_MII_RX_DV --------------------> PA7
-        ETH_MII_RXD0 ---------------------> PC4
-        ETH_MII_RXD1 ---------------------> PC5
-        ETH_MII_TX_EN --------------------> PG11
-        ETH_MII_TXD0 ---------------------> PG13
-        ETH_MII_TXD1 ---------------------> PG14
-        ETH_MII_RX_ER --------------------> PI10 (not configured)
-        ETH_MII_CRS ----------------------> PA0  (not configured)
-        ETH_MII_COL ----------------------> PH3  (not configured)
-  */
-
-  /* Configure PA1, PA2 and PA7 */
-  /* Note : on MB1165 ETH_MDIO is connected to PA2 by default (SB40 is closed) */
-  GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
-  GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStructure.Pull = GPIO_NOPULL;
-  GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
-  GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-
-  /* Configure PB5 */
-  GPIO_InitStructure.Pin = GPIO_PIN_5;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-  /* Configure PE2 */
-  GPIO_InitStructure.Pin = GPIO_PIN_2;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStructure);
-
-  /* Configure PC1, PC2, PC3, PC4 and PC5 */
-  /* Note : on MB1165 ETH pins PC1..5 are connected by default (bridges are closed): */
-  /* PC1 (sb31), PC2 (r233), PC3 (sb54) PC4 (sb53), PC5 (sb73) */
-  GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
-
-
-  /* Configure PG11, PG14 and PG13 */
-  GPIO_InitStructure.Pin =  GPIO_PIN_11 | GPIO_PIN_13 | GPIO_PIN_14;
-  HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
-
-  /* Configure PH6, PH7 */
-  GPIO_InitStructure.Pin =  GPIO_PIN_6 | GPIO_PIN_7;
-  HAL_GPIO_Init(GPIOH, &GPIO_InitStructure);
-
-  /* Configure PA0
-  GPIO_InitStructure.Pin =  GPIO_PIN_0;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-  Note: Ethernet Full duplex mode works properly in the default setting
-  (which MII_CRS is not connected to PA0 of STM32F469I) because PA0 is shared
-  with MC_ENA.
-  If Half duplex mode is needed, uncomment PA0 configuration code source (above
-  the note) and close the SB48 solder bridge of the STM32469I-EVAL board .
-  */
-
-  /* Configure PH3
-  GPIO_InitStructure.Pin =  GPIO_PIN_3;
-  HAL_GPIO_Init(GPIOH, &GPIO_InitStructure);
-
-  Note: Ethernet Full duplex mode works properly in the default setting
-  (which MII_COL is not connected to PH3 of STM32F469I) because PH3 is shared
-  with SDRAM chip select SDNE0.
-  If Half duplex mode is needed, uncomment PH3 configuration code source (above
-  the note)  then remove R243 and close SB63 solder bridge of the STM32469I-EVAL board.
-  */
-
-  /* Configure PI10
-  GPIO_InitStructure.Pin = GPIO_PIN_10;
-  HAL_GPIO_Init(GPIOI, &GPIO_InitStructure);
-
-  Note: Ethernet works properly in the default setting (which RX_ER is not
-  connected to PI10 of STM32F469I) because PI10 is shared with data signal
-  of SDRAM.
-  If RX_ER signal is needed, uncomment PI10 configuration code source (above
-  the note) then remove R244 and solder SB12 of the STM32469I-EVAL board.
-  */
+	for(uint8_t i = 0; i < sizeof(eth_o_pins)/sizeof(eth_o_pins[0]); i++)
+  	{
+  		GPIO_InitStructure.Pin = eth_o_pins[i];
+  		HAL_GPIO_Init(eth_o_ports[i], &GPIO_InitStructure);
+  	}
 
 #ifdef ETH_USE_MCO
-	// Configure MCO
 	GPIO_InitStructure.Pin = ETH_MCO_PIN;
 	GPIO_InitStructure.Alternate = GPIO_AF0_MCO;
 	HAL_GPIO_Init(ETH_MCO_PORT, &GPIO_InitStructure);
 #endif
 
-  /* Enable ETHERNET clock  */
-  __HAL_RCC_ETH_CLK_ENABLE();
+	__HAL_RCC_ETH_CLK_ENABLE();
+
+	HAL_NVIC_SetPriority(ETH_IRQn, 0x7, 0);
+	HAL_NVIC_EnableIRQ(ETH_IRQn);
+
+	__HAL_RCC_ETHMAC_CLK_ENABLE();
+	__HAL_RCC_ETHMACTX_CLK_ENABLE();
+	__HAL_RCC_ETHMACRX_CLK_ENABLE();
 }
 
 /**
@@ -216,12 +136,13 @@ static void low_level_init(struct netif *netif)
   uint32_t regvalue = 0;
 
   EthHandle.Instance = ETH;
+  EthHandle.State = HAL_ETH_STATE_RESET;
   EthHandle.Init.MACAddr = netif->hwaddr;
   EthHandle.Init.AutoNegotiation = ETH_AUTONEGOTIATION_ENABLE;
   EthHandle.Init.Speed = ETH_SPEED_100M;
   EthHandle.Init.DuplexMode = ETH_MODE_FULLDUPLEX;
   EthHandle.Init.MediaInterface = ETH_MEDIA_INTERFACE_MII;
-  EthHandle.Init.RxMode = ETH_RXPOLLING_MODE;
+  EthHandle.Init.RxMode = ETH_RXINTERRUPT_MODE;
   EthHandle.Init.ChecksumMode = ETH_CHECKSUM_BY_HARDWARE;
   EthHandle.Init.PhyAddress = PHY_ADDRESS;
 
@@ -233,7 +154,7 @@ static void low_level_init(struct netif *netif)
   if (HAL_ETH_Init(&EthHandle) == HAL_OK)
   {
     /* Set netif link flag */
-    netif->flags |= NETIF_FLAG_LINK_UP;
+//    netif->flags |= NETIF_FLAG_LINK_UP;
   }
 
   /* Initialize Tx Descriptors list: Chain Mode */
@@ -249,17 +170,16 @@ static void low_level_init(struct netif *netif)
   /* Read Register Configuration */
   HAL_ETH_ReadPHYRegister(&EthHandle, PHY_MICR, &regvalue);
 
-  // TODO - what is PHY_MICR_INT_OE
 //  regvalue |= (PHY_MICR_INT_EN | PHY_MICR_INT_OE);
   regvalue |= (PHY_MICR_INT_EN);
 
   /* Enable Interrupts */
-  HAL_ETH_WritePHYRegister(&EthHandle, PHY_MICR, regvalue );
+  HAL_ETH_WritePHYRegister(&EthHandle, PHY_MICR, regvalue);
 
   /* Read Register Configuration */
   HAL_ETH_ReadPHYRegister(&EthHandle, PHY_MISR, &regvalue);
 
-  regvalue |= PHY_MISR_LINK_INT_EN;
+  regvalue &= ~(PHY_MISR_LINK_INT_EN);
 
   /* Enable Interrupt on change of link status */
   HAL_ETH_WritePHYRegister(&EthHandle, PHY_MISR, regvalue);
@@ -277,7 +197,7 @@ static void low_level_init(struct netif *netif)
   *
   * @note Returning ERR_MEM here if a DMA queue of your MAC is full can lead to
   *       strange results. You might consider waiting for space in the DMA queue
-  *       to become availale since the stack doesn't retry to send a packet
+  *       to become available since the stack doesn't retry to send a packet
   *       dropped because of memory failure (except for the TCP timers).
   */
 static err_t low_level_output(struct netif *netif, struct pbuf *p)
@@ -367,9 +287,8 @@ error:
   */
 static struct pbuf * low_level_input(struct netif *netif)
 {
-  struct pbuf *p = NULL;
-  struct pbuf *q;
-  uint16_t len;
+  struct pbuf *p = NULL, *q = NULL;
+  uint16_t len = 0;
   uint8_t *buffer;
   __IO ETH_DMADescTypeDef *dmarxdesc;
   uint32_t bufferoffset = 0;
@@ -377,7 +296,8 @@ static struct pbuf * low_level_input(struct netif *netif)
   uint32_t byteslefttocopy = 0;
   uint32_t i=0;
   
-  if (HAL_ETH_GetReceivedFrame(&EthHandle) != HAL_OK)
+  /* get received frame */
+  if(HAL_ETH_GetReceivedFrame_IT(&EthHandle) != HAL_OK)
     return NULL;
   
   /* Obtain the size of the packet and put it into the "len" variable. */
@@ -420,7 +340,6 @@ static struct pbuf * low_level_input(struct netif *netif)
       bufferoffset = bufferoffset + byteslefttocopy;
     }
 
-
     /* Release descriptors to DMA */
     /* Point to first descriptor */
     dmarxdesc = EthHandle.RxFrameInfos.FSRxDesc;
@@ -444,6 +363,122 @@ static struct pbuf * low_level_input(struct netif *netif)
     EthHandle.Instance->DMARPDR = 0;
   }
   return p;
+}
+
+void ETH_IRQHandler(void)
+{
+	HAL_ETH_IRQHandler(&EthHandle);
+}
+
+// TODO - this should be included but need to hook up some way of determining link state without GPIO interrupt lines
+/**
+  * @brief  This function sets the netif link status.
+  * @param  netif: the network interface
+  * @retval None
+  */
+//void ethernetif_set_link(struct netif *netif)
+//{
+//	uint32_t regvalue = 0;
+//
+//	HAL_ETH_ReadPHYRegister(&EthHandle, PHY_MISR, &regvalue);
+//
+//	/* Check whether the link is up or down*/
+//	if(regvalue & PHY_LINK_INTERRUPT)
+//	{
+//	  netif_set_link_up(netif);
+//	}
+//	else
+//	{
+//	  netif_set_link_down(netif);
+//	}
+//}
+
+// TODO - not this function is only called by way of ethernetif_set_link(), which isnt used
+/**
+  * @brief  Link callback function, this function is called on change of link status
+  *         to update low level driver configuration.
+  * @param  netif: The network interface
+  * @retval None
+  */
+void ethernetif_update_config(struct netif *netif)
+{
+  __IO uint32_t tickstart = 0;
+  uint32_t regvalue = 0;
+
+  if(netif_is_link_up(netif))
+  {
+    /* Restart the auto-negotiation */
+    if(EthHandle.Init.AutoNegotiation != ETH_AUTONEGOTIATION_DISABLE)
+    {
+      /* Enable Auto-Negotiation */
+      HAL_ETH_WritePHYRegister(&EthHandle, PHY_BCR, PHY_AUTONEGOTIATION);
+
+      /* Get tick */
+      tickstart = HAL_GetTick();
+
+      /* Wait until the auto-negotiation will be completed */
+      do
+      {
+        HAL_ETH_ReadPHYRegister(&EthHandle, PHY_BSR, &regvalue);
+
+        /* Check for the Timeout ( 1s ) */
+        if((HAL_GetTick() - tickstart ) > 1000)
+        {
+          /* In case of timeout */
+          goto error;
+        }
+
+      } while (((regvalue & PHY_AUTONEGO_COMPLETE) != PHY_AUTONEGO_COMPLETE));
+
+      /* Read the result of the auto-negotiation */
+      HAL_ETH_ReadPHYRegister(&EthHandle, PHY_SR, &regvalue);
+
+      /* Configure the MAC with the Duplex Mode fixed by the auto-negotiation process */
+      if((regvalue & PHY_DUPLEX_STATUS) != (uint32_t)RESET)
+      {
+        /* Set Ethernet duplex mode to Full-duplex following the auto-negotiation */
+        EthHandle.Init.DuplexMode = ETH_MODE_FULLDUPLEX;
+      }
+      else
+      {
+        /* Set Ethernet duplex mode to Half-duplex following the auto-negotiation */
+        EthHandle.Init.DuplexMode = ETH_MODE_HALFDUPLEX;
+      }
+      /* Configure the MAC with the speed fixed by the auto-negotiation process */
+      if(regvalue & PHY_SPEED_STATUS)
+      {
+        /* Set Ethernet speed to 10M following the auto-negotiation */
+        EthHandle.Init.Speed = ETH_SPEED_10M;
+      }
+      else
+      {
+        /* Set Ethernet speed to 100M following the auto-negotiation */
+        EthHandle.Init.Speed = ETH_SPEED_100M;
+      }
+    }
+    else /* AutoNegotiation Disable */
+    {
+    error :
+      /* Check parameters */
+      assert_param(IS_ETH_SPEED(EthHandle.Init.Speed));
+      assert_param(IS_ETH_DUPLEX_MODE(EthHandle.Init.DuplexMode));
+
+      /* Set MAC Speed and Duplex Mode to PHY */
+      HAL_ETH_WritePHYRegister(&EthHandle, PHY_BCR, ((uint16_t)(EthHandle.Init.DuplexMode >> 3) |
+                                                     (uint16_t)(EthHandle.Init.Speed >> 1)));
+    }
+
+    /* ETHERNET MAC Re-Configuration */
+    HAL_ETH_ConfigMAC(&EthHandle, (ETH_MACInitTypeDef *) NULL);
+
+    /* Restart MAC interface */
+    HAL_ETH_Start(&EthHandle);
+  }
+  else
+  {
+    /* Stop MAC interface */
+    HAL_ETH_Stop(&EthHandle);
+  }
 }
 
 

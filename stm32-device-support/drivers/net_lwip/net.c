@@ -67,12 +67,12 @@ static void link_callback(struct netif *netif);
 static void status_callback(struct netif *netif);
 static void tcpip_init_done(void *arg);
 
-extern struct netif *netif_list;
+netconf_t* netconf_default;
 
 void net_init(netconf_t* netconf)
 {
 	log_init(&netconf->log, "net_init");
-
+	netconf_default = netconf;
 	netconf->net_task_enabled = true;
 
 #if NO_SYS
@@ -88,16 +88,17 @@ void net_init(netconf_t* netconf)
 
     netconf->address_ok = xSemaphoreCreateBinary();
     assert_true(netconf->address_ok != NULL);
-    xSemaphoreTake(netconf->address_ok, 100/portTICK_RATE_MS);
+    netconf->rxpkt = xSemaphoreCreateBinary();
+    assert_true(netconf->rxpkt != NULL);
 
 #if LWIP_DHCP
     if(netconf->resolv == NET_RESOLV_DHCP)
         dhcp_begin(netconf);
     else
     {
+    	netif_set_up(&netconf->netif);
     	dns_setserver(0, &netconf->addr_cache[3]);
     	dns_setserver(1, &netconf->addr_cache[4]);
-        netif_set_up(&netconf->netif);
         xSemaphoreGive(netconf->address_ok);
     }
 #endif
@@ -122,34 +123,23 @@ bool wait_for_address(netconf_t* netconf)
     return xSemaphoreTake(netconf->address_ok, 10000/portTICK_RATE_MS) == pdTRUE;
 }
 
+void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef *heth)
+{
+	static BaseType_t xHigherPriorityTaskWoken;
+	xHigherPriorityTaskWoken = pdFALSE;
+	xSemaphoreGiveFromISR(netconf_default->rxpkt, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
 void net_task(void *pvParameters)
 {
-#if NO_SYS
-	uint32_t localtime;
-#endif
-	err_t e;
 	netconf_t* netconf = (netconf_t*)pvParameters;
 
     while(netconf->net_task_enabled)
     {
-    	// TODO - use a semaphore to trigger ethernetif_input from an packet received interrupt.
-    	// run the other TCP stuff in a separate thread in that case...
-
-        e = ethernetif_incoming();
-
-		if(e == ERR_OK)
-		{
-#if !NO_SYS
-		    LOCK_TCPIP_CORE();
-			e = ethernetif_input(&netconf->netif);
-			UNLOCK_TCPIP_CORE();
-#else
-			e = ethernetif_input(&netconf->netif);
-#endif
-		}
-
-		if(e != ERR_OK)
-		    vTaskDelay(1/portTICK_RATE_MS); // TODO - sort this out!! required in some cases to get CPU time for other tasks :|
+    	// TODO - do I need to use the TCP core lock here?
+    	if(xSemaphoreTake(netconf->rxpkt, 100/portTICK_RATE_MS) == pdTRUE)
+    		ethernetif_input(&netconf->netif);
 
 #if LWIP_DHCP
 	    if(netconf->resolv == NET_RESOLV_DHCP)
@@ -157,23 +147,8 @@ void net_task(void *pvParameters)
 #endif
 
 #if NO_SYS
-		// only need the following if we specify NO_SYS
-#if LWIP_TCP
-        /* TCP periodic process every 250 ms */
-        if (localtime - netconf->tcp_timer >= TCP_TMR_INTERVAL)
-        {
-            netconf->tcp_timer = localtime;
-            tcp_tmr();
-        }
+	    sys_check_timeouts();
 #endif
-        /* ARP periodic process every 5s */
-        if ((localtime - netconf->arp_timer) >= ARP_TMR_INTERVAL)
-        {
-            netconf->arp_timer = localtime;
-            etharp_tmr();
-        }
-#endif
-		taskYIELD();
     }
 
     vTaskDelete(NULL);
@@ -215,7 +190,7 @@ void dhcp_process(netconf_t* netconf)
         switch(netconf->dhcp_state)
         {
             case DHCP_STATE_INIT:
-                netif_set_down(&netconf->netif);
+            	netif_set_down(&netconf->netif);
                 netconf->dhcp_state = DHCP_STATE_DISCOVER;
             break;
 
@@ -225,7 +200,7 @@ void dhcp_process(netconf_t* netconf)
 #endif
                 if(netconf->netif.dhcp->state == DHCP_BOUND)
                 {
-                    netif_set_up(&netconf->netif);
+                	netif_set_up(&netconf->netif);
                     netconf->dhcp_state = DHCP_STATE_DONE;
                     xSemaphoreGive(netconf->address_ok);
                     log_info(&netconf->log, "DHCP finished");
@@ -244,19 +219,17 @@ void dhcp_process(netconf_t* netconf)
 
 /**
  * link notification
- * TODO make this do something useful
  */
 void link_callback(struct netif *netif)
 {
-	logger_t link_cb_log;
-	log_init(&link_cb_log, "net_link_callback");
-	(void)netif;
-	log_info(&link_cb_log, "link info....");
+	logger_t status_cb_log;
+	log_init(&status_cb_log, "link_callback");
+	log_info(&status_cb_log, "link state: %s", netif_is_up(netif) ? "up" : "down");
+	ethernetif_update_config(netif);
 }
 
 /**
  * status notification
- * TODO make this do something useful
  */
 void status_callback(struct netif *netif)
 {
@@ -288,7 +261,7 @@ void tcpip_init_done(void *arg)
 	log_init(&tcp_cb_log, "tcpip_init_done");
 #if USE_LOGGER
 	struct netif* netif = (struct netif*)arg;
-	log_info(&tcp_cb_log, "%s, %s", __FUNCTION__, netif->hostname);
+	log_info(&tcp_cb_log, "hostname: %s", netif->hostname);
 #else
 	(void)arg;
 #endif
@@ -296,7 +269,7 @@ void tcpip_init_done(void *arg)
 
 bool net_is_up()
 {
-    return netif_is_up(netif_list);
+    return netif_is_up(&netconf_default->netif);
 }
 
 unsigned long net_ip_packets_sent()
@@ -321,32 +294,32 @@ unsigned long net_ip_errors()
 
 unsigned short net_mtu()
 {
-    return netif_list->mtu;
+    return netconf_default->netif.mtu;
 }
 
 unsigned char* net_hwaddr()
 {
-    return netif_list->hwaddr;
+    return netconf_default->netif.hwaddr;
 }
 
 ip_addr_t net_ipaddr()
 {
-    return netif_list->ip_addr;
+    return netconf_default->netif.ip_addr;
 }
 
 ip_addr_t net_gwaddr()
 {
-    return netif_list->gw;
+    return netconf_default->netif.gw;
 }
 
 ip_addr_t net_netmask()
 {
-    return netif_list->netmask;
+    return netconf_default->netif.netmask;
 }
 
 const char* net_hostname()
 {
-    return netif_list->hostname;
+    return netconf_default->netif.hostname;
 }
 
 static char mac[18];
@@ -355,12 +328,12 @@ const char* net_mac()
 {
     // get the local IP address
     sprintf(mac, "%02x:%02x:%02x:%02x:%02x:%02x",
-             ((char*)&netif_list->hwaddr)[0],
-             ((char*)&netif_list->hwaddr)[1],
-             ((char*)&netif_list->hwaddr)[2],
-             ((char*)&netif_list->hwaddr)[3],
-             ((char*)&netif_list->hwaddr)[4],
-             ((char*)&netif_list->hwaddr)[5]);
+             ((char*)&netconf_default->netif.hwaddr)[0],
+             ((char*)&netconf_default->netif.hwaddr)[1],
+             ((char*)&netconf_default->netif.hwaddr)[2],
+             ((char*)&netconf_default->netif.hwaddr)[3],
+             ((char*)&netconf_default->netif.hwaddr)[4],
+             ((char*)&netconf_default->netif.hwaddr)[5]);
     return (const char*)mac;
 }
 
@@ -370,9 +343,9 @@ const char* net_lip()
 {
     // get the local IP address
     sprintf(lip, "%d.%d.%d.%d",
-             ((char*)&netif_list->ip_addr)[0],
-             ((char*)&netif_list->ip_addr)[1],
-             ((char*)&netif_list->ip_addr)[2],
-             ((char*)&netif_list->ip_addr)[3]);
+             ((char*)&netconf_default->netif.ip_addr)[0],
+             ((char*)&netconf_default->netif.ip_addr)[1],
+             ((char*)&netconf_default->netif.ip_addr)[2],
+             ((char*)&netconf_default->netif.ip_addr)[3]);
     return (const char*)lip;
 }
