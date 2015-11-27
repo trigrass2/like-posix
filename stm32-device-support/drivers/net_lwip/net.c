@@ -58,6 +58,22 @@
 #include "leds.h"
 #endif
 
+
+#define give_rx_ready_from_isr() \
+	static BaseType_t xHigherPriorityTaskWoken; \
+	xHigherPriorityTaskWoken = pdFALSE; \
+	xSemaphoreGiveFromISR(netconf_default->rxpkt, &xHigherPriorityTaskWoken); \
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+
+#define give_rx_ready() xSemaphoreGive(netconf_default->rxpkt)
+
+#if USE_DRIVER_MII_RMII_PHY
+#define wait_for_rx_ready() (xSemaphoreTake(netconf->rxpkt, 100/portTICK_RATE_MS) == pdTRUE)
+#elif USE_DRIVER_ENC28J60_PHY
+#define wait_for_rx_ready() enc28j60_check_incoming()
+#endif
+
+
 #if LWIP_DHCP
 static void dhcp_begin(netconf_t* netconf);
 static void dhcp_process(netconf_t* netconf);
@@ -123,13 +139,14 @@ bool wait_for_address(netconf_t* netconf)
     return xSemaphoreTake(netconf->address_ok, 10000/portTICK_RATE_MS) == pdTRUE;
 }
 
+#if USE_DRIVER_MII_RMII_PHY
+
 void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef *heth)
 {
-	static BaseType_t xHigherPriorityTaskWoken;
-	xHigherPriorityTaskWoken = pdFALSE;
-	xSemaphoreGiveFromISR(netconf_default->rxpkt, &xHigherPriorityTaskWoken);
-    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	give_rx_ready_from_isr();
 }
+
+#endif
 
 void net_task(void *pvParameters)
 {
@@ -138,7 +155,7 @@ void net_task(void *pvParameters)
     while(netconf->net_task_enabled)
     {
     	// TODO - do I need to use the TCP core lock here?
-    	if(xSemaphoreTake(netconf->rxpkt, 100/portTICK_RATE_MS) == pdTRUE)
+    	if(wait_for_rx_ready())
     		ethernetif_input(&netconf->netif);
 
 #if LWIP_DHCP

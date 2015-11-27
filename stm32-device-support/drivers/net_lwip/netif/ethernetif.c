@@ -561,6 +561,12 @@ static struct pbuf * low_level_input(struct netif *netif)
     return p;
 }
 
+
+void ethernetif_update_config(struct netif *netif)
+{
+	(void)netif;
+}
+
 #else
 #error "invalid ethernet device configuration"
 #endif
