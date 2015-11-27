@@ -389,8 +389,13 @@ void spi_init_gpio(SPI_TypeDef* spi)
         __HAL_AFIO_REMAP_SPI3_ENABLE();
 #endif
 #elif FAMILY == STM32F4
+#if defined(STM32F407xx) || defined(STM32F417xx)
+        GPIO_InitStructure_tx.Alternate = GPIO_AF6_SPI3;
+        GPIO_InitStructure_rx.Alternate = GPIO_AF6_SPI3;
+#else
         GPIO_InitStructure_tx.Alternate = GPIO_AF5_SPI3;
         GPIO_InitStructure_rx.Alternate = GPIO_AF5_SPI3;
+#endif
 #endif
 
         GPIO_InitStructure_rx.Pin = SPI3_MISO_PIN;
