@@ -20,7 +20,9 @@ SOURCE += $(STM32_CM4_DIR)/cube_drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_d
 SOURCE += $(STM32_CM4_DIR)/cube_drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c
 SOURCE += $(STM32_CM4_DIR)/cube_drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma_ex.c
 SOURCE += $(STM32_CM4_DIR)/cube_drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dsi.c
+ifeq ($(USE_DRIVER_MII_RMII_PHY), 1)
 SOURCE += $(STM32_CM4_DIR)/cube_drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_eth.c
+endif
 SOURCE += $(STM32_CM4_DIR)/cube_drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c
 SOURCE += $(STM32_CM4_DIR)/cube_drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ex.c
 SOURCE += $(STM32_CM4_DIR)/cube_drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ramfunc.c
