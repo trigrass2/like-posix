@@ -36,37 +36,21 @@
 #define NET_TASK_PRIORITY       2
 #define NET_TASK_STACK          64
 
-#define MAX_ETH_PAYLOAD     600
-
 #define NET_LINK_LED            LED2
 
-#define ENC28J60_PHY
-//#define DP83848_PHY
-//#define LAN8700_PHY
-//#define BCM5241_PHY
+/* Definition of the Ethernet driver buffers size and count */
+#define ETH_MAX_ETH_PAYLOAD     	   600
+#define ETH_RX_BUF_SIZE                ETH_MAX_PACKET_SIZE /* buffer size for receive               */
+#define ETH_TX_BUF_SIZE                ETH_MAX_PACKET_SIZE /* buffer size for transmit              */
+#define ETH_RXBUFNB                    ((uint32_t)4)       /* 4 Rx buffers of size ETH_RX_BUF_SIZE  */
+#define ETH_TXBUFNB                    ((uint32_t)8)       /* 4 Tx buffers of size ETH_TX_BUF_SIZE  */
+
 
 #define ENC28J60_SPI_PERIPH     		SPI3
-#define ENC28J60_SPI_CLOCK     			RCC_APB1Periph_SPI3
-#define ENC28J60_SPI_PRESCALER          SPI_BaudRatePrescaler_4
-#define ENC28J60_SPI_NSS_PORT   		GPIOA
-#define ENC28J60_SPI_NSS_PIN    		GPIO_Pin_15
-#define ENC28J60_SPI_NSS_PINSOURCE    	GPIO_PinSource15
-#define ENC28J60_SPI_MOSI_PORT   		GPIOB
-#define ENC28J60_SPI_MOSI_PIN    		GPIO_Pin_5
-#define ENC28J60_SPI_MOSI_PINSOURCE    	GPIO_PinSource5
-#define ENC28J60_SPI_MISO_PORT   		GPIOB
-#define ENC28J60_SPI_MISO_PIN    		GPIO_Pin_4
-#define ENC28J60_SPI_MISO_PINSOURCE    	GPIO_PinSource4
-#define ENC28J60_SPI_SCK_PORT   		GPIOB
-#define ENC28J60_SPI_SCK_PIN    		GPIO_Pin_3
-#define ENC28J60_SPI_SCK_PINSOURCE    	GPIO_PinSource3
+#define ENC28J60_SPI_BAUDRATE           10000000
 #define ENC28J60_SPI_NRST_PORT   		GPIOB
-#define ENC28J60_SPI_NRST_PIN    		GPIO_Pin_7
-#define ENC28J60_SPI_NRST_PINSOURCE    	GPIO_PinSource7
+#define ENC28J60_SPI_NRST_PIN    		GPIO_PIN_7
 #define ENC28J60_SPI_NINT_PORT   		GPIOB
-#define ENC28J60_SPI_NINT_PIN    		GPIO_Pin_6
-#define ENC28J60_SPI_NINT_PINSOURCE    	GPIO_PinSource6
-
-#define ENC28J60_SPI_ALT_FUNCTION		GPIO_AF_SPI3
+#define ENC28J60_SPI_NINT_PIN    		GPIO_PIN_6
 
 #endif // NET_CONF_H_
