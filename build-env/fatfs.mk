@@ -11,7 +11,7 @@ CFLAGS += -DUSE_DRIVER_FAT_FILESYSTEM=$(USE_DRIVER_FAT_FILESYSTEM)
 ifeq ($(USE_DRIVER_FAT_FILESYSTEM), 1)
 
 ifneq ($(USE_DRIVER_SDCARD), 1) 
-$(error to use FATFS, USE_DRIVER_SDCARD must be set to 1)
+$(error to use FATFS, set USE_DRIVER_SDCARD=1 (for SDIO mode) or USE_DRIVER_SPI=1 (for SPI mode). the mode is set in boardname.bsp/sdcard_config.h)
 endif
 
 SOURCE += $(FATFS_DIR)/core/option/syscall.c
