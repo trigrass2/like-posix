@@ -102,9 +102,26 @@ $(error to use the SDIO driver, USE_DRIVER_SYSTEM_TIMER must be set to 1)
 endif
 
 SOURCE += $(DRIVERSDIR)/sdcard/sdcard.c
-SOURCE += $(DRIVERSDIR)/sdcard/sdfs.c
 CFLAGS += -I$(DRIVERSDIR)/sdcard
+SOURCE += $(DRIVERSDIR)/diskdrive/sdcard_diskio.c
+use_disk_drive = yes
 endif
+
+## RAMDISK
+CFLAGS += -DUSE_DRIVER_RAMDISK=$(USE_DRIVER_RAMDISK)
+ifeq ($(USE_DRIVER_RAMDISK), 1)
+SOURCE += $(DRIVERSDIR)/diskdrive/ram_diskio.c
+use_disk_drive = yes
+endif
+
+# Disk drive common files
+ifdef use_disk_drive
+SOURCE += $(DRIVERSDIR)/diskdrive/diskdrive.c
+SOURCE += $(DRIVERSDIR)/diskdrive/diskio.c
+CFLAGS += -I$(DRIVERSDIR)/diskdrive
+endif
+
+
 
 ## Networking
 

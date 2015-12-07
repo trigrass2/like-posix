@@ -18,8 +18,6 @@ SOURCE += $(FATFS_DIR)/core/option/syscall.c
 SOURCE += $(FATFS_DIR)/core/option/ccsbcs.c
 SOURCE += $(FATFS_DIR)/core/ff.c
 
-SOURCE += $(FATFS_DIR)/diskio_stm32.c
-
 CFLAGS += -I$(FATFS_DIR)/core
 
 CFLAGS += -D _FS_LOCK=$(_FS_LOCK)

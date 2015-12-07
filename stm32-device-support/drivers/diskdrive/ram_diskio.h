@@ -24,49 +24,26 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the Appleseed project, <https://github.com/drmetal/appleseed>
+ * This file is part of the Appleseed project, <https://github.com/drmetal/app-l-seed>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
  */
 
-/**
- * @defgroup sdfs
- *
- * @file sdfs.h
- * @{
- */
-#include <stdio.h>
-#include "sdcard_config.h"
-#include "diskio.h"
-#include "ff.h"
-#include "sdcard.h"
+#ifndef RAMDISK_H_
+#define RAMDISK_H_
 
-#if USE_FREERTOS
-#include "FreeRTOS.h"
-#include "task.h"
-#endif
+#include "diskdrive.h"
 
-#ifndef SDFS_H_
-#define SDFS_H_
+#define RAMDISK_MIN_SECTOR_COUNT 128
+#define RAMDISK_SS 512
+#define RAMDISK_CLUSTER_SIZE (RAMDISK_SS * 1)
 
-bool sdfs_init(void);
+typedef struct {
+	unsigned char* memory;
+	unsigned long sizebytes;
+}ramdisk_t;
 
-bool sdfs_ready();
+FRESULT ramdisk_mount(disk_interface_t* disk, int drive, ramdisk_t* ramdisk, void* memory, unsigned long sizebytes);
 
-uint8_t sdfs_card_type();
-uint32_t sdfs_card_capacity();
-uint32_t sdfs_sector_size();
-uint32_t sdfs_sector_count();
-uint32_t sdfs_clusters_free();
-uint32_t sdfs_cluster_size();
-
-char* sdfs_drive_mapping();
-char* sdfs_drive_name();
-char* sdfs_mountpoint();
-
-#endif // SDFS_H_
-
-/**
- * @}
- */
+#endif // RAMDISK_H_

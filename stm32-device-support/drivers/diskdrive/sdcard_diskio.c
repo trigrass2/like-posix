@@ -24,17 +24,13 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the Appleseed project, <https://github.com/drmetal/app-l-seed>
+ * This file is part of the Appleseed project, <https://github.com/drmetal/appleseed>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
  */
 
 #include "sdcard_diskio.h"
-
-#include <time.h>
-#include <unistd.h>
-#include <stdio.h>
 #include "sdcard.h"
 
 
@@ -43,7 +39,6 @@ static DRESULT sdcard_read(disk_interface_t* disk, BYTE *buff, DWORD sector, UIN
 static DRESULT sdcard_write(disk_interface_t* disk, const BYTE *buff, DWORD sector, UINT count);
 static DRESULT sdcard_ioctl(disk_interface_t* disk, BYTE ctrl, void *buff);
 static void sdcard_status(disk_interface_t* disk);
-
 
 FRESULT sdcard_mount(disk_interface_t* disk, int drive)
 {
@@ -64,19 +59,19 @@ FRESULT sdcard_mount(disk_interface_t* disk, int drive)
 
 void sdcard_initialize(disk_interface_t* disk)
 {
-	SD_CardInfo cardinfo;
+	HAL_SD_CardInfoTypedef cardinfo;
 
     disk->status = STA_NOINIT | STA_PROTECT | STA_NODISK;
 
-    if((SD_Detect() == SD_PRESENT))
+    if((sd_detect() == SD_PRESENT))
         disk->status &= ~STA_NODISK;
 
-    if(SD_WPDetect() != SD_WRITE_PROTECTED)
+    if(sd_write_protected() != SD_WRITE_PROTECTED)
         disk->status &= ~STA_PROTECT;
 
     if(disk->status == STA_NOINIT)
     {
-        if(SD_Init(&cardinfo) == SD_OK)
+        if(sd_init(&cardinfo) == SD_OK)
         {
             disk->status &= ~STA_NOINIT;
 
@@ -90,68 +85,27 @@ void sdcard_initialize(disk_interface_t* disk)
 
 DRESULT sdcard_read(disk_interface_t* disk, BYTE *buff, DWORD sector, UINT count)
 {
-    DRESULT res = RES_ERROR;
-    SD_Error err = SD_OK;
-    SDCardState cardstate = SD_CARD_ERROR;
-
     if(disk->status & (STA_NODISK | STA_NOINIT))
         return RES_NOTRDY;
 
+    if(sd_read((uint8_t*)buff, sector, count) != SD_OK)
+        return RES_ERROR;
 
-    if(count == 1)
-        err = SD_ReadBlock((uint8_t*)buff, sector);
-    else
-        err = SD_ReadMultiBlocks((uint8_t*)buff, sector, count);
-
-    if(err == SD_OK)
-        err = SD_WaitIOOperation(WAIT_WHILE_RX_ACTIVE);
-
-    while(err == SD_OK)
-    {
-        err = SD_QueryStatus(&cardstate);
-        if(cardstate == SD_CARD_TRANSFER)
-        {
-            res = RES_OK;
-            break;
-        }
-        usleep(1000);
-    }
-
-    return res;
+    return RES_OK;
 }
 
 DRESULT sdcard_write (disk_interface_t* disk, const BYTE *buff, DWORD sector, UINT count)
 {
-    DRESULT res = RES_ERROR;
-    SD_Error err = SD_OK;
-    SDCardState cardstate = SD_CARD_ERROR;
-
     if(disk->status & (STA_NODISK | STA_NOINIT))
         return RES_NOTRDY;
 
     if(disk->status & STA_PROTECT)
         return RES_WRPRT;
 
-    if(count == 1)
-        err = SD_WriteBlock((const uint8_t*)buff, sector);
-    else if(count > 1)
-        err = SD_WriteMultiBlocks((const uint8_t*)buff, sector, count);
+    if(sd_write((uint8_t*)buff, sector, count) != SD_OK)
+        return RES_ERROR;
 
-    if(err == SD_OK)
-        err = SD_WaitIOOperation(WAIT_WHILE_TX_ACTIVE);
-
-    while(err == SD_OK)
-    {
-        err = SD_QueryStatus(&cardstate);
-        if(cardstate == SD_CARD_TRANSFER)
-        {
-            res = RES_OK;
-            break;
-        }
-        usleep(1000);
-    }
-
-    return res;
+    return RES_OK;
 }
 
 
@@ -165,7 +119,7 @@ DRESULT sdcard_ioctl(disk_interface_t* disk, BYTE ctrl, void *buff)
     switch (ctrl)
     {
       case CTRL_SYNC :        // error if transfer not complete
-          if(SD_GetTransferState() == SD_TRANSFER_BUSY)
+          if(sd_get_transfer_state() == SD_TRANSFER_BUSY)
               res = RES_ERROR;
       break;
       case GET_SECTOR_COUNT : // Get number of sectors on the disk
@@ -192,14 +146,14 @@ DRESULT sdcard_ioctl(disk_interface_t* disk, BYTE ctrl, void *buff)
       case MMC_GET_SDSTAT:
 
       break;
-      case CTRL_POWER :
-        if(*(BYTE*)buff == 0)
-            SD_PowerOFF();
-        if(*(BYTE*)buff == 1)
-            SD_PowerON();
-      break;
+//      case CTRL_POWER :
+//        if(*(BYTE*)buff == 0)
+//            SD_PowerOFF();
+//        if(*(BYTE*)buff == 1)
+//            SD_PowerON();
+//      break;
 //      case CTRL_ERASE_SECTOR:
-//          SD_Erase(*(((DWORD*)buff)), *(((DWORD*)buff)+1));
+//          sd_erase(*(((DWORD*)buff)), *(((DWORD*)buff)+1));
 //      break;
       default:
          res = RES_PARERR;
@@ -219,13 +173,12 @@ void sdcard_status(disk_interface_t* disk)
 {
     // update status, based on card inserted state
 
-    // SD card must be present and drive number set to 0
-    if((SD_Detect() == SD_PRESENT))
+    if((sd_detect() == SD_PRESENT))
        disk->status &= ~STA_NODISK;         // indicate disk present
    else
        disk->status |= STA_NODISK;         // indicate no-disk
 
-    if(SD_WPDetect() == SD_WRITE_PROTECTED)
+   if(sd_write_protected() == SD_WRITE_PROTECTED)
        disk->status |= STA_PROTECT;     // indicate write protected
    else
        disk->status &= ~STA_PROTECT;     // indicate not write protected

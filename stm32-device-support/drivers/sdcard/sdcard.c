@@ -46,7 +46,7 @@
 #include "queue.h"
 #include "semphr.h"
 
-// TODO - add queue logic to makew driver block the calling thread while performing IO
+// TODO - add queue logic to make driver block the calling thread while performing IO
 #endif
 
 uint8_t sd_detect(void)
