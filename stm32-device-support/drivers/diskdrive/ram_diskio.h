@@ -38,6 +38,7 @@
 #define RAMDISK_MIN_SECTOR_COUNT 128
 #define RAMDISK_SS 512
 #define RAMDISK_CLUSTER_SIZE (RAMDISK_SS * 1)
+#define RAMDISK_VOLUME_LABLE "ramdisk"
 
 typedef struct {
 	unsigned char* memory;

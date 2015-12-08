@@ -70,6 +70,8 @@ FRESULT ramdisk_mount(disk_interface_t* disk, int drive, ramdisk_t* ramdisk, voi
 	if(res == FR_NO_FILESYSTEM)
 		res = f_mkfs(disk->mapping.drivemapping, 1, RAMDISK_CLUSTER_SIZE);
 
+	f_setlabel(RAMDISK_VOLUME_LABLE);
+
 	return res;
 }
 

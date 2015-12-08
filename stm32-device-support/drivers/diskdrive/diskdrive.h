@@ -50,7 +50,7 @@ typedef struct {
 
 typedef struct {
     FATFS fs;
-    char drivemapping[4];
+    char drivemapping[3];
     char* mountpoint;
     char drivename[13];
 }disk_mapping_t;
@@ -76,8 +76,8 @@ char* diskdrive_mountpoint(int drive);
 uint32_t diskdrive_sector_count(int drive);
 uint32_t diskdrive_sector_size(int drive);
 uint8_t diskdrive_card_type(int drive);
-char* diskdrive_drive_name(int drive);
-char* diskdrive_drive_mapping(int drive);
+char* diskdrive_volume_label(int drive);
+char* diskdrive_logical_drive_number(int drive);
 uint32_t diskdrive_clusters_free(int drive);
 uint32_t diskdrive_cluster_size(int drive);
 

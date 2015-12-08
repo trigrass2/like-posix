@@ -95,8 +95,7 @@ uint8_t diskdrive_card_type(int drive)
     return cardtype;
 }
 
-
-char* diskdrive_drive_name(int drive)
+char* diskdrive_volume_label(int drive)
 {
 	disk_interface_t* disk = diskdrive_get_disk(drive);
 	DWORD vsn;
@@ -104,7 +103,7 @@ char* diskdrive_drive_name(int drive)
 	return disk->mapping.drivename;
 }
 
-char* diskdrive_drive_mapping(int drive)
+char* diskdrive_logical_drive_number(int drive)
 {
 	disk_interface_t* disk = diskdrive_get_disk(drive);
 	return disk->mapping.drivemapping;
