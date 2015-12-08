@@ -31,6 +31,7 @@
  */
 
 #include "diskdrive.h"
+#include "ff.h"
 
 static disk_interface_t* disks[DISKDRIVE_NUM_DRIVES];
 

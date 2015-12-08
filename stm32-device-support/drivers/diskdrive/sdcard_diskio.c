@@ -49,11 +49,17 @@ FRESULT sdcard_mount(disk_interface_t* disk, int drive)
 	disk->disk_ioctl = sdcard_ioctl;
 	disk->disk_status = sdcard_status;
 
+	diskdrive_add_drive(disk, drive);
+
 	sprintf(disk->mapping.drivemapping, "%d:", drive);
 	disk->mapping.drivename[0] = '\0';
 	disk->mapping.mountpoint = "/";
 
 	res = f_mount(&disk->mapping.fs, disk->mapping.drivemapping, 1);
+
+	if(res == FR_NO_FILESYSTEM)
+		res = f_mkfs(disk->mapping.drivemapping, 0, 0);
+
 	return res;
 }
 

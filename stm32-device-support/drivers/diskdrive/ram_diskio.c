@@ -59,20 +59,24 @@ FRESULT ramdisk_mount(disk_interface_t* disk, int drive, ramdisk_t* ramdisk, voi
 	ramdisk->memory = memory;
 	ramdisk->sizebytes = sizebytes;
 
+	diskdrive_add_drive(disk, drive);
+
 	sprintf(disk->mapping.drivemapping, "%d:", drive);
 	disk->mapping.drivename[0] = '\0';
 	disk->mapping.mountpoint = "/";
 
 	res = f_mount(&disk->mapping.fs, disk->mapping.drivemapping, 1);
-	if(res == FR_OK)
+
+	if(res == FR_NO_FILESYSTEM)
 		res = f_mkfs(disk->mapping.drivemapping, 1, RAMDISK_CLUSTER_SIZE);
+
 	return res;
 }
 
 void ramdisk_initialize(disk_interface_t* disk)
 {
 	ramdisk_t* ramdisk = (ramdisk_t*)disk->ctx;
-	disk->status = STA_NOINIT;
+	disk->status = 0;
 
     disk->info.block_size = RAMDISK_SS;
     disk->info.erase_block_size = 1;
@@ -122,6 +126,9 @@ DRESULT ramdisk_ioctl(disk_interface_t* disk, BYTE ctrl, void *buff)
 
 	switch (ctrl)
 	{
+	 	case CTRL_SYNC :
+
+	    break;
 		case GET_SECTOR_COUNT : // Get number of sectors on the disk
 			*(DWORD*)buff = disk->info.capacity;
 		break;

@@ -36,7 +36,7 @@
 #include "ff.h"
 #include "diskio.h"
 
-#define DISKDRIVE_NUM_DRIVES  4
+#define DISKDRIVE_NUM_DRIVES  _VOLUMES // set in ffconf.h
 
 
 typedef struct _disk_interface_t disk_interface_t;
