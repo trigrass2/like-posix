@@ -66,7 +66,7 @@ diskdrive_chdrive(SDCARD_DISKNUM);
 there are two ways to to disk and file IO,
 
  - raw FatFs, use the file IO functions from **ff.h**
- - Posix, in the project makefile set USE_LIKEPOSIX=1, use the file IO functions from **stdio.h, fcntl.h, unistd.h, dirent.h**, among others.
+ - Posix style, in the project makefile set USE_LIKEPOSIX=1, use the file IO functions from **stdio.h, fcntl.h, unistd.h, dirent.h**, among others.
  
 
 
