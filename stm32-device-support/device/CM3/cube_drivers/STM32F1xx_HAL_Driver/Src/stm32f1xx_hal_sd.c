@@ -2232,10 +2232,13 @@ static void SD_DMA_RxCplt(DMA_HandleTypeDef *hdma)
   /* DMA transfer is complete */
   hsd->DmaTransferCplt = 1;
   
-  /* Wait until SD transfer is complete */
-  while(hsd->SdTransferCplt == 0)
-  {
-  }
+  /**
+   * modified by Mike Stuart - looping here ensures that the SDIO ISR cant fire (cant do nested interrupts on stm32)
+   */
+//  /* Wait until SD transfer is complete */
+//  while(hsd->SdTransferCplt == 0)
+//  {
+//  }
   
   /* Transfer complete user callback */
   HAL_SD_DMA_RxCpltCallback(hsd->hdmarx);   
@@ -2267,11 +2270,14 @@ static void SD_DMA_TxCplt(DMA_HandleTypeDef *hdma)
   
   /* DMA transfer is complete */
   hsd->DmaTransferCplt = 1;
-  
-  /* Wait until SD transfer is complete */
-  while(hsd->SdTransferCplt == 0)
-  {
-  }
+
+  /**
+   * modified by Mike Stuart - looping here ensures that the SDIO ISR cant fire (cant do nested interrupts on stm32)
+   */
+//  /* Wait until SD transfer is complete */
+//  while(hsd->SdTransferCplt == 0)
+//  {
+//  }
   
   /* Transfer complete user callback */
   HAL_SD_DMA_TxCpltCallback(hsd->hdmatx);  
