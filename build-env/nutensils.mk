@@ -61,9 +61,6 @@ ifeq ($(USE_SHELL), 1)
 #$(error USE_SHELL is set. shell requires USE_THREADED_SERVER set to 1)
 #endif
 #
-#ifeq ($(USE_HTTP_UTILS), 0)
-#$(error USE_SHELL is set. shell requires USE_HTTP_UTILS set to 1)
-#endif
 
 SOURCE += $(NUTENSILS_DIR)/shell/shell.c
 SOURCE += $(NUTENSILS_DIR)/shell/startup_script.c
@@ -71,17 +68,28 @@ SOURCE += $(NUTENSILS_DIR)/shell/shell_command.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell
 SOURCE += $(NUTENSILS_DIR)/shell/commands/builtins/builtins.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/builtins
+SOURCE += $(NUTENSILS_DIR)/shell/commands/os_cmds/os_cmds.c
+CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/os_cmds
+
+ifeq ($(USE_DRIVER_FAT_FILESYSTEM), 1)
 SOURCE += $(NUTENSILS_DIR)/shell/commands/filesystem_cmds/fs_cmds.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/filesystem_cmds
 SOURCE += $(NUTENSILS_DIR)/shell/commands/texted/texted.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/texted
-SOURCE += $(NUTENSILS_DIR)/shell/commands/os_cmds/os_cmds.c
-CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/os_cmds
+endif
+
 ifeq ($(USE_DRIVER_LWIP_NET), 1)
+ifneq ($(USE_SOCK_UTILS), 1)
+$(error USE_SHELL is set. http utils requires USE_SOCK_UTILS set to 1)
+endif
+ifneq ($(USE_HTTP_UTILS), 1)
+$(error USE_SHELL and USE_DRIVER_LWIP_NET are set. shell requires USE_HTTP_UTILS set to 1)
+endif
 SOURCE += $(NUTENSILS_DIR)/shell/commands/network_cmds/net_cmds.c
 CFLAGS += -I $(NUTENSILS_DIR)/shell/commands/network_cmds
 endif
 endif
+
 
 USE_HTTP_SERVER_VALUES = 0 1
 

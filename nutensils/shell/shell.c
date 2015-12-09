@@ -194,6 +194,8 @@ int start_shell(shellserver_t* shell, shell_cmd_t* commandset, const char* confi
     {
 #if INCLUDE_REMOTE_SHELL_SUPPORT
     	return start_threaded_server(&shell->server, configfile, shell_server_thread, shell, SHELL_TASK_STACK_SIZE, SHELL_TASK_PRIORITY);
+#else
+    	log_error(NULL, "configfile and threaded operation are requested but INCLUDE_REMOTE_SHELL_SUPPORT is set to 0.");
 #endif
     }
     else if(threaded)

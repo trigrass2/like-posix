@@ -42,7 +42,7 @@
 #include "confparse.h"
 #include "fs_cmds.h"
 #include "shell.h"
-#include "sdfs.h"
+#include "diskdrive.h"
 #include "fs_cmds.h"
 #if USE_CONFPARSE
 #include "confparse.h"
