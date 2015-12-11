@@ -34,92 +34,122 @@
 #include "ff.h"
 
 static disk_interface_t* disks[DISKDRIVE_NUM_DRIVES];
+static char current_drive; // current drive is set to 0. this has to be the case, to match the default in ff.c
 
-
-void diskdrive_add_drive(disk_interface_t* disk, int drive)
+static char get_drive_number(disk_interface_t* disk)
 {
+	return disk->volume.lvn[0] - '0';
+}
+
+void diskdrive_add_drive(disk_interface_t* disk)
+{
+	char drive = get_drive_number(disk);
+
 	if(drive < DISKDRIVE_NUM_DRIVES && !disks[drive])
 	{
 		disks[drive] = disk;
 	}
 }
 
-disk_interface_t* diskdrive_get_disk(int drive)
+disk_interface_t* diskdrive_get_disk(char drive)
 {
 	if(drive < DISKDRIVE_NUM_DRIVES)
 		return disks[drive];
 	return NULL;
 }
 
-void diskdrive_chdrive(int drive)
+int diskdrive_chdrive(char* ldn)
 {
+	char drive = get_drive_number(ldn);
 	disk_interface_t* disk = diskdrive_get_disk(drive);
-	f_chdrive(disk->mapping.drivemapping);
+	if(disk)
+	{
+		if(f_chdrive(disk->volume.lvn) == FR_OK)
+		{
+			current_drive = drive;
+			return 0;
+		}
+	}
+	return -1;
 }
 
-uint32_t diskdrive_card_capacity(int drive)
+uint32_t diskdrive_card_capacity()
 {
     uint32_t capacity = 0;
     uint32_t sectorsize = 0;
     uint32_t sectorcount = 0;
-    disk_ioctl(drive, GET_SECTOR_SIZE, &sectorsize);
-    disk_ioctl(drive, GET_SECTOR_COUNT, &sectorcount);
+    disk_ioctl(current_drive, GET_SECTOR_SIZE, &sectorsize);
+    disk_ioctl(current_drive, GET_SECTOR_COUNT, &sectorcount);
     capacity = sectorsize * (sectorcount / 1024);
     return capacity;
 }
 
-char* diskdrive_mountpoint(int drive)
+char* diskdrive_mountpoint()
 {
-	disk_interface_t* disk = diskdrive_get_disk(drive);
-	return disk->mapping.mountpoint;
+	disk_interface_t* disk = diskdrive_get_disk(current_drive);
+	if(disk)
+		return disk->volume.mountpoint;
+	return NULL;
 }
 
-uint32_t diskdrive_sector_count(int drive)
+uint32_t diskdrive_sector_count()
 {
     uint32_t sectorcount = 0;
-    disk_ioctl(drive, GET_SECTOR_COUNT, &sectorcount);
+    disk_ioctl(current_drive, GET_SECTOR_COUNT, &sectorcount);
     return sectorcount;
 }
 
-uint32_t diskdrive_sector_size(int drive)
+uint32_t diskdrive_sector_size()
 {
     uint32_t sectorsize = 0;
-    disk_ioctl(drive, GET_SECTOR_SIZE, &sectorsize);
+    disk_ioctl(current_drive, GET_SECTOR_SIZE, &sectorsize);
     return sectorsize;
 }
 
-uint8_t diskdrive_card_type(int drive)
+uint8_t diskdrive_card_type()
 {
     uint8_t cardtype = 255;
-    disk_ioctl(drive, MMC_GET_TYPE, &cardtype);
+    disk_ioctl(current_drive, MMC_GET_TYPE, &cardtype);
     return cardtype;
 }
 
-char* diskdrive_volume_label(int drive)
+char* diskdrive_volume_label()
 {
-	disk_interface_t* disk = diskdrive_get_disk(drive);
-	DWORD vsn;
-	f_getlabel(disk->mapping.drivemapping, disk->mapping.drivename, &vsn);
-	return disk->mapping.drivename;
+	disk_interface_t* disk = diskdrive_get_disk(current_drive);
+	if(disk)
+	{
+		DWORD vsn;
+		f_getlabel(disk->volume.lvn, disk->volume.label, &vsn);
+		return disk->volume.label;
+	}
+	return NULL;
 }
 
-char* diskdrive_logical_drive_number(int drive)
+char* diskdrive_logical_drive_number()
 {
-	disk_interface_t* disk = diskdrive_get_disk(drive);
-	return disk->mapping.drivemapping;
+	disk_interface_t* disk = diskdrive_get_disk(current_drive);
+	if(disk)
+		return disk->volume.lvn;
+	return NULL;
 }
 
-uint32_t diskdrive_clusters_free(int drive)
+uint32_t diskdrive_clusters_free()
 {
-	disk_interface_t* disk = diskdrive_get_disk(drive);
-	FATFS *fs;
-	DWORD nclst;
-    f_getfree(disk->mapping.drivemapping, &nclst, &fs);
-    return nclst;
+	disk_interface_t* disk = diskdrive_get_disk(current_drive);
+	if(disk)
+	{
+		FATFS *fs;
+		DWORD nclst;
+		f_getfree(disk->volume.lvn, &nclst, &fs);
+		return nclst;
+	}
+	return 0;
 }
 
-uint32_t diskdrive_cluster_size(int drive)
+uint32_t diskdrive_cluster_size()
 {
-	disk_interface_t* disk = diskdrive_get_disk(drive);
-    return disk->mapping.fs.csize;
+	disk_interface_t* disk = diskdrive_get_disk(current_drive);
+	if(disk)
+		return disk->volume.fs.csize;
+	return 0;
 }

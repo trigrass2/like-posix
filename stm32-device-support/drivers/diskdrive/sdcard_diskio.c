@@ -40,7 +40,7 @@ static DRESULT sdcard_write(disk_interface_t* disk, const BYTE *buff, DWORD sect
 static DRESULT sdcard_ioctl(disk_interface_t* disk, BYTE ctrl, void *buff);
 static void sdcard_status(disk_interface_t* disk);
 
-FRESULT sdcard_mount(disk_interface_t* disk, int drive)
+FRESULT sdcard_mount(disk_interface_t* disk, char drive)
 {
 	FRESULT res;
 	disk->disk_initialize = sdcard_initialize;
@@ -49,16 +49,16 @@ FRESULT sdcard_mount(disk_interface_t* disk, int drive)
 	disk->disk_ioctl = sdcard_ioctl;
 	disk->disk_status = sdcard_status;
 
-	diskdrive_add_drive(disk, drive);
+	sprintf(disk->volume.lvn, "%d:", drive);
+	disk->volume.label[0] = '\0';
+	disk->volume.mountpoint = "/";
 
-	sprintf(disk->mapping.drivemapping, "%d:", drive);
-	disk->mapping.drivename[0] = '\0';
-	disk->mapping.mountpoint = "/";
+	diskdrive_add_drive(disk);
 
-	res = f_mount(&disk->mapping.fs, disk->mapping.drivemapping, 1);
+	res = f_mount(&disk->volume.fs, disk->volume.lvn, 1);
 
 	if(res == FR_NO_FILESYSTEM)
-		res = f_mkfs(disk->mapping.drivemapping, 0, 0);
+		res = f_mkfs(disk->volume.lvn, 0, 0);
 
 	return res;
 }

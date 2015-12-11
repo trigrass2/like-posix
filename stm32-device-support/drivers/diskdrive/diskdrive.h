@@ -50,10 +50,10 @@ typedef struct {
 
 typedef struct {
     FATFS fs;
-    char drivemapping[3];
+    char lvn[3]; ///< logical drive number
     char* mountpoint;
-    char drivename[13];
-}disk_mapping_t;
+    char label[13];
+}disk_volume_t;
 
 struct _disk_interface_t {
 	void(*disk_initialize)(disk_interface_t*);
@@ -63,22 +63,22 @@ struct _disk_interface_t {
 	DRESULT(*disk_ioctl)(disk_interface_t*, BYTE, void*);
 	DSTATUS status;
 	disk_info_t info;
-	disk_mapping_t mapping;
+	disk_volume_t volume;
 	void* ctx;
 };
 
-void diskdrive_add_drive(disk_interface_t* disk, int drive);
-disk_interface_t* diskdrive_get_disk(int drive);
+void diskdrive_add_drive(disk_interface_t* disk);
+disk_interface_t* diskdrive_get_disk(char drive);
+int diskdrive_chdrive(char* ldn);
 
-void diskdrive_chdrive(int drive);
-uint32_t diskdrive_card_capacity(int drive);
-char* diskdrive_mountpoint(int drive);
-uint32_t diskdrive_sector_count(int drive);
-uint32_t diskdrive_sector_size(int drive);
-uint8_t diskdrive_card_type(int drive);
-char* diskdrive_volume_label(int drive);
-char* diskdrive_logical_drive_number(int drive);
-uint32_t diskdrive_clusters_free(int drive);
-uint32_t diskdrive_cluster_size(int drive);
+uint32_t diskdrive_card_capacity();
+char* diskdrive_mountpoint();
+uint32_t diskdrive_sector_count();
+uint32_t diskdrive_sector_size();
+uint8_t diskdrive_card_type();
+char* diskdrive_volume_label();
+char* diskdrive_logical_drive_number();
+uint32_t diskdrive_clusters_free();
+uint32_t diskdrive_cluster_size();
 
 #endif /* FATFS_DISK_INTERFACE_H_ */

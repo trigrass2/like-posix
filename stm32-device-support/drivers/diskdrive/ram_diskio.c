@@ -47,7 +47,7 @@ static DRESULT ramdisk_write(disk_interface_t* disk, const BYTE *buff, DWORD sec
 static DRESULT ramdisk_ioctl(disk_interface_t* disk, BYTE ctrl, void *buff);
 static void ramdisk_status(disk_interface_t* disk);
 
-FRESULT ramdisk_mount(disk_interface_t* disk, int drive, ramdisk_t* ramdisk, void* memory, unsigned long sizebytes)
+FRESULT ramdisk_mount(disk_interface_t* disk, char drive, ramdisk_t* ramdisk, void* memory, unsigned long sizebytes)
 {
 	FRESULT res;
 	disk->disk_initialize = ramdisk_initialize;
@@ -59,16 +59,17 @@ FRESULT ramdisk_mount(disk_interface_t* disk, int drive, ramdisk_t* ramdisk, voi
 	ramdisk->memory = memory;
 	ramdisk->sizebytes = sizebytes;
 
-	diskdrive_add_drive(disk, drive);
 
-	sprintf(disk->mapping.drivemapping, "%d:", drive);
-	disk->mapping.drivename[0] = '\0';
-	disk->mapping.mountpoint = "/";
+	sprintf(disk->volume.lvn, "%d:", drive);
+	disk->volume.label[0] = '\0';
+	disk->volume.mountpoint = "/";
 
-	res = f_mount(&disk->mapping.fs, disk->mapping.drivemapping, 1);
+	diskdrive_add_drive(disk);
+
+	res = f_mount(&disk->volume.fs, disk->volume.lvn, 1);
 
 	if(res == FR_NO_FILESYSTEM)
-		res = f_mkfs(disk->mapping.drivemapping, 1, RAMDISK_CLUSTER_SIZE);
+		res = f_mkfs(disk->volume.lvn, 1, RAMDISK_CLUSTER_SIZE);
 
 	f_setlabel(RAMDISK_VOLUME_LABLE);
 

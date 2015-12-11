@@ -45,6 +45,6 @@ typedef struct {
 	unsigned long sizebytes;
 }ramdisk_t;
 
-FRESULT ramdisk_mount(disk_interface_t* disk, int drive, ramdisk_t* ramdisk, void* memory, unsigned long sizebytes);
+FRESULT ramdisk_mount(disk_interface_t* disk, char drive, ramdisk_t* ramdisk, void* memory, unsigned long sizebytes);
 
 #endif // RAMDISK_H_

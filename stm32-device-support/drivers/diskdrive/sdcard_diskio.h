@@ -35,6 +35,6 @@
 
 #include "diskdrive.h"
 
-FRESULT sdcard_mount(disk_interface_t* disk, int drive);
+FRESULT sdcard_mount(disk_interface_t* disk, char drive);
 
 #endif // SDMMCCARD_H_
