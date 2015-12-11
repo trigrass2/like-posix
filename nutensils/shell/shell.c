@@ -714,6 +714,7 @@ void parse_input_line(shell_instance_t* shell_inst)
 		// match input args[0] (the command) to one of the commands
 		while(head && head->name)
 		{
+			@@@@@@@ HERE!!
 			if(!strncmp((const char*)shell_inst->input_cmd.args[0], (const char*)head->name, sizeof(shell_inst->input_buffer)-1))
 				break;
 			head = head->next;

@@ -51,7 +51,7 @@
 #pragma message "building shell::fs_cmds without config parser support"
 #endif
 
-#define IS_NOT_A_DIRECTORY          " is not a directory"
+#define IS_NOT_A_DIRECTORY          " is not a drive or directory"
 #define FORMATTING_SDCARD           "formatting sdcard"
 #define ARGUMENT_NOT_SPECIFIED      "argument not specified"
 #define ERROR_OPENING_SOURCE_FILE      "couldnt open source file"
@@ -176,14 +176,17 @@ int sh_cd(int fdes, const char** args, unsigned char nargs)
     const char* path;
 
     if(!nargs)
-        path = sdfs_mountpoint();
+        path = diskdrive_mountpoint();
     else
         path = arg_by_index(0, args, nargs);
 
-    if(chdir(path) == -1)
+    if(chdir(path) != 0)
     {
-      write(fdes, path, strlen(path));
-      write(fdes, IS_NOT_A_DIRECTORY, sizeof(IS_NOT_A_DIRECTORY)-1);
+    	if(diskdrive_chdrive(path) != 0)
+    	{
+    		write(fdes, path, strlen(path));
+    		write(fdes, IS_NOT_A_DIRECTORY, sizeof(IS_NOT_A_DIRECTORY)-1);
+    	}
     }
 
     return SHELL_CMD_CHDIR;
@@ -346,9 +349,9 @@ int sh_df(int fdes, const char** args, unsigned char nargs)
 	(void)nargs;
 	(void)args;
     char* buffer = malloc(DF_CMD_BUFFER_SIZE);
-    uint32_t sectors = sdfs_sector_count();
-    uint32_t free_clusters = sdfs_clusters_free();
-    uint32_t sectors_per_cluster = sdfs_cluster_size();
+    uint32_t sectors = diskdrive_sector_count();
+    uint32_t free_clusters = diskdrive_clusters_free();
+    uint32_t sectors_per_cluster = diskdrive_cluster_size();
     uint32_t used = (sectors - (free_clusters*sectors_per_cluster))/2;
     uint32_t available = (free_clusters*sectors_per_cluster)/2;
 
@@ -356,7 +359,7 @@ int sh_df(int fdes, const char** args, unsigned char nargs)
     {
 		write(fdes, DF_CMD_HEADING SHELL_NEWLINE, sizeof(DF_CMD_HEADING SHELL_NEWLINE)-1);
 		int length = sprintf(buffer, DF_CMD_ROW SHELL_NEWLINE,
-				sdfs_drive_name(), sdfs_drive_mapping(), sectors/2, used, available, used/available, sdfs_mountpoint());
+				diskdrive_volume_label(), diskdrive_logical_drive_number(), sectors/2, used, available, used/available, diskdrive_mountpoint());
 		write(fdes, (char*)buffer, length);
 		free(buffer);
     }
