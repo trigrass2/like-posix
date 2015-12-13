@@ -180,9 +180,9 @@ int sh_cd(int fdes, const char** args, unsigned char nargs)
     else
         path = arg_by_index(0, args, nargs);
 
-    if(chdir(path) != 0)
+    if(diskdrive_chdrive(path) != 0)
     {
-    	if(diskdrive_chdrive(path) != 0)
+    	if(chdir(path) != 0)
     	{
     		write(fdes, path, strlen(path));
     		write(fdes, IS_NOT_A_DIRECTORY, sizeof(IS_NOT_A_DIRECTORY)-1);
