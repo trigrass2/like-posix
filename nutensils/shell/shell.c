@@ -120,7 +120,7 @@
 #endif
 
 
-static char shell_cwd[SHELL_CWD_LENGTH_MAX];
+static char shell_prompt_string[SHELL_CWD_LENGTH_MAX];
 
 typedef struct
 {
@@ -163,6 +163,7 @@ static void open_output_file(shell_instance_t* shell_inst);
 static void close_output_file(shell_instance_t* shell_inst);
 static bool open_input_file(shell_instance_t* shell_inst);
 static char close_input_file(shell_instance_t* shell_inst, char input_char);
+static void make_prompt();
 
 /**
  * starts a shell server, or single shell instance.
@@ -294,6 +295,15 @@ void shell_server_thread(sock_conn_t* conn)
 #endif
 
 /**
+ * gets the current cwd and drive, appends the prompt.
+ */
+static void make_prompt()
+{
+	getcwd(shell_prompt_string, SHELL_CWD_LENGTH_MAX);
+	strcat(shell_prompt_string, SHELL_PROMPT);
+}
+
+/**
  * this function runs a shell instance.
  * when exit_on_eof is true, blocks till the file descriptors become invalid, or timeout occurs, or until the exit command is issued (used for shell server)
  * when exit_on_eof is true, blocks till the file descriptors become invalid, or the exit command is issued (used for single instance, local shell)
@@ -304,7 +314,7 @@ void shell_instance(shellserver_t* shell, const char* inputstr)
 
 	if(shell_inst)
 	{
-		getcwd(shell_cwd, SHELL_CWD_LENGTH_MAX);
+		make_prompt();
 		shell_inst->exitflag = false;
 		shell_inst->input_index = 0;
 		shell_inst->cursor_index = 0;
@@ -596,20 +606,11 @@ void clear_prompt(shell_instance_t* shell_inst)
  */
 void put_prompt(shell_instance_t* shell_inst, const char* argstr, bool newline)
 {
-	int len = strlen(shell_cwd);
-
 	write(shell_inst->wrfd, "\r", 1);
 	if(newline)
 		write(shell_inst->wrfd, "\n", 1);
 
-	if(len > 0)
-	{
-		write(shell_inst->wrfd, SHELL_DRIVE, sizeof(SHELL_DRIVE)-1);
-		write(shell_inst->wrfd, shell_cwd, len);
-		write(shell_inst->wrfd, SHELL_PROMPT, sizeof(SHELL_PROMPT)-1);
-	}
-	else
-		write(shell_inst->wrfd, SHELL_ROOT_PROMPT, sizeof(SHELL_ROOT_PROMPT)-1);
+	write(shell_inst->wrfd, shell_prompt_string, strlen(shell_prompt_string));
 
 	if(argstr)
 		write(shell_inst->wrfd, argstr, strlen((const char*)argstr));
@@ -714,7 +715,6 @@ void parse_input_line(shell_instance_t* shell_inst)
 		// match input args[0] (the command) to one of the commands
 		while(head && head->name)
 		{
-			@@@@@@@ HERE!!
 			if(!strncmp((const char*)shell_inst->input_cmd.args[0], (const char*)head->name, sizeof(shell_inst->input_buffer)-1))
 				break;
 			head = head->next;
@@ -873,7 +873,7 @@ void return_code_catcher(shell_instance_t* shell_inst, int code)
 			shell_inst->exitflag = true;
 		break;
         case SHELL_CMD_CHDIR:
-            getcwd(shell_cwd, SHELL_CWD_LENGTH_MAX);
+    		make_prompt();
         break;
 		case SHELL_CMD_PRINT_CMDS:
 			head = *shell_inst->head_cmd;
