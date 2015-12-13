@@ -58,8 +58,8 @@
 #define ERROR_OPENING_DEST_FILE      "couldnt open destination file"
 #define ERROR_MOVING_FILE            "error moving file"
 // 16 characters per column
-#define DF_CMD_HEADING            "      Filesystem         1K-blocks            Used       Available            Use%      Mounted on"
-#define DF_CMD_ROW            	  "%13s:%s%18u%16u%16u%15u%%%16s"
+#define DF_CMD_HEADING            "   Filesystem       1K-blocks            Used       Available Use% Mounted on"
+#define DF_CMD_ROW            	  "%13s%16u%16u%16u%4u%% %s%s"
 
 #define CONFIG_CMD_BUFFER_SIZE 		512
 #define LS_CMD_BUFFER_SIZE 		256
@@ -349,17 +349,17 @@ int sh_df(int fdes, const char** args, unsigned char nargs)
 	(void)nargs;
 	(void)args;
     char* buffer = malloc(DF_CMD_BUFFER_SIZE);
-    uint32_t sectors = diskdrive_sector_count();
+    uint32_t sectors_1k = diskdrive_sector_count()/2;
     uint32_t free_clusters = diskdrive_clusters_free();
     uint32_t sectors_per_cluster = diskdrive_cluster_size();
-    uint32_t used = (sectors - (free_clusters*sectors_per_cluster))/2;
-    uint32_t available = (free_clusters*sectors_per_cluster)/2;
+    uint32_t available_1k = (free_clusters*sectors_per_cluster)/2;
+    uint32_t used_1k = sectors_1k - available_1k;
 
     if(buffer)
     {
 		write(fdes, DF_CMD_HEADING SHELL_NEWLINE, sizeof(DF_CMD_HEADING SHELL_NEWLINE)-1);
 		int length = sprintf(buffer, DF_CMD_ROW SHELL_NEWLINE,
-				diskdrive_volume_label(), diskdrive_logical_drive_number(), sectors/2, used, available, used/available, diskdrive_mountpoint());
+				diskdrive_volume_label(), sectors_1k, used_1k, available_1k, (100*used_1k)/sectors_1k, diskdrive_logical_drive_number(), diskdrive_mountpoint());
 		write(fdes, (char*)buffer, length);
 		free(buffer);
     }

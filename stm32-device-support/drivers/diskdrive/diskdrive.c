@@ -95,9 +95,12 @@ char* diskdrive_mountpoint()
 
 uint32_t diskdrive_sector_count()
 {
-    uint32_t sectorcount = 0;
-    disk_ioctl(current_drive, GET_SECTOR_COUNT, &sectorcount);
-    return sectorcount;
+	disk_interface_t* disk = diskdrive_get_disk(current_drive);
+    FATFS *fs;
+    DWORD fre_clust, fre_sect, tot_sect;
+    f_getfree(disk->volume.lvn, &fre_clust, &fs);
+    tot_sect = (fs->n_fatent - 2) * fs->csize;
+    return (uint32_t)tot_sect;
 }
 
 uint32_t diskdrive_sector_size()
