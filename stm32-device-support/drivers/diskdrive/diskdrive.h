@@ -69,7 +69,7 @@ struct _disk_interface_t {
 
 void diskdrive_add_drive(disk_interface_t* disk);
 disk_interface_t* diskdrive_get_disk(char drive);
-int diskdrive_chdrive(char* ldn);
+int diskdrive_chdrive(char* lvn);
 
 uint32_t diskdrive_card_capacity();
 char* diskdrive_mountpoint();

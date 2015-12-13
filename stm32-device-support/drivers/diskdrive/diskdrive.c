@@ -36,14 +36,14 @@
 static disk_interface_t* disks[DISKDRIVE_NUM_DRIVES];
 static char current_drive; // current drive is set to 0. this has to be the case, to match the default in ff.c
 
-static char get_drive_number(disk_interface_t* disk)
+static char get_drive_number(char* lvn)
 {
-	return disk->volume.lvn[0] - '0';
+	return lvn[0] - '0';
 }
 
 void diskdrive_add_drive(disk_interface_t* disk)
 {
-	char drive = get_drive_number(disk);
+	char drive = get_drive_number(disk->volume.lvn);
 
 	if(drive < DISKDRIVE_NUM_DRIVES && !disks[drive])
 	{
@@ -58,10 +58,11 @@ disk_interface_t* diskdrive_get_disk(char drive)
 	return NULL;
 }
 
-int diskdrive_chdrive(char* ldn)
+int diskdrive_chdrive(char* lvn)
 {
-	char drive = get_drive_number(ldn);
+	char drive = get_drive_number(lvn);
 	disk_interface_t* disk = diskdrive_get_disk(drive);
+
 	if(disk)
 	{
 		if(f_chdrive(disk->volume.lvn) == FR_OK)
