@@ -71,8 +71,10 @@ FRESULT ramdisk_mount(disk_interface_t* disk, char drive, ramdisk_t* ramdisk, vo
 	if(res == FR_NO_FILESYSTEM)
 		res = f_mkfs(disk->volume.lvn, 1, RAMDISK_CLUSTER_SIZE);
 
-//	f_chdrive();
-//	f_setlabel(RAMDISK_VOLUME_LABLE);
+    char* lvn = diskdrive_logical_drive_number();
+	f_chdrive(disk->volume.lvn);
+	f_setlabel(RAMDISK_VOLUME_LABLE);
+	f_chdrive(lvn);
 
 	return res;
 }
