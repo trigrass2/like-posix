@@ -39,7 +39,6 @@
 #include <unistd.h>
 #include <dirent.h>
 #include "strutils.h"
-#include "confparse.h"
 #include "fs_cmds.h"
 #include "shell.h"
 #include "diskdrive.h"
@@ -444,10 +443,12 @@ shell_cmd_t sh_cp_cmd = {
         .cmdfunc = sh_cp
 };
 
+#if USE_CONFPARSE
 shell_cmd_t sh_config_cmd = {
         .name = "config",
         .usage = "configs, adds, reads lines from config files" SHELL_NEWLINE \
 "config file [key] [value]",
         .cmdfunc = sh_config
 };
+#endif
 

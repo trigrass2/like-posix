@@ -102,6 +102,7 @@ int sh_uname(int fdes, const char** args, unsigned char nargs)
 
         if(all || has_switch("-n", args, nargs))
         {
+#if USE_CONFPARSE
             confstr = (char*)get_config_value_by_key(buffer, STRING_BUFFER_SIZE, (const uint8_t*)DEFAULT_RESOLV_CONF_PATH, (const uint8_t*)"hostname");
             if(confstr)
             {
@@ -109,6 +110,7 @@ int sh_uname(int fdes, const char** args, unsigned char nargs)
                 write(fdes, " ", sizeof(" ")-1);
             }
             else
+#endif
                 write(fdes, "unknown ", sizeof("unknown ")-1);
         }
         if(all || has_switch("-o", args, nargs))
