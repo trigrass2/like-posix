@@ -46,10 +46,18 @@
 #ifndef USART_H_
 #define USART_H_
 
-bool usart_init(USART_TypeDef* usart, char* install_as, bool enable);
+typedef enum {USART_FULLDUPLEX, USART_ONEWIRE} usart_mode_t;
 
-void usart_init_device(USART_TypeDef* usart, bool enable);
-void usart_init_gpio(USART_TypeDef* usart);
+typedef struct {
+	USART_TypeDef* usart;
+	usart_mode_t mode;
+}usart_ioctl_t;
+
+
+bool usart_init(USART_TypeDef* usart, char* install_as, bool enable, usart_mode_t mode);
+
+void usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t mode);
+void usart_init_gpio(USART_TypeDef* usart, usart_mode_t mode);
 void usart_init_interrupt(USART_TypeDef* device, uint8_t priority, bool enable);
 
 void usart_set_baudrate(USART_TypeDef* usart, uint32_t br);

@@ -61,7 +61,7 @@ void init_services()
     logger_init();
 #endif
 #if USE_DRIVER_USART && USE_STDIO_USART
-    usart_init(CONSOLE_USART, NULL, true);
+    usart_init(CONSOLE_USART, NULL, true, USART_FULLDUPLEX);
     set_console_usart(CONSOLE_USART);
 #if USE_LOGGER
     log_add_handler(STDOUT_FILENO);

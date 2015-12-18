@@ -422,7 +422,7 @@ void spi_init_interrupt(SPI_TypeDef* spi, uint8_t priority, bool enable)
 
 	if(enable)
     {
-        HAL_NVIC_SetPriority(irq, 0, priority);
+        HAL_NVIC_SetPriority(irq, priority, 0);
         HAL_NVIC_EnableIRQ(irq);
     }
     else
