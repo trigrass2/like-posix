@@ -83,12 +83,13 @@ CFLAGS += -fdata-sections
 CFLAGS += -fno-builtin
 CFLAGS += -fverbose-asm
 #CFLAGS += -flto
-#CFLAGS += -Werror
+CFLAGS += -Werror
 CFLAGS += -Wall
 CFLAGS += -Wextra
 CFLAGS += -Wpointer-arith
 CFLAGS += -Wno-strict-aliasing
 CFLAGS += -Wno-unused-function
+CFLAGS += -Wno-unused-parameter
 CFLAGS += -Wformat=0
 CFLAGS += -Wl,-Map,$(OUTPUT_PREFIX).map
 CFLAGS += -Wno-attributes
