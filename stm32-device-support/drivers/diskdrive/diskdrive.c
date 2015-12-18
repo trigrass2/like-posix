@@ -34,16 +34,16 @@
 #include "ff.h"
 
 static disk_interface_t* disks[DISKDRIVE_NUM_DRIVES];
-static char current_drive; // current drive is set to 0. this has to be the case, to match the default in ff.c
+static unsigned char current_drive; // current drive is set to 0. this has to be the case, to match the default in ff.c
 
-static char get_drive_number(char* lvn)
+static unsigned char get_drive_number(char* lvn)
 {
 	return lvn[0] - '0';
 }
 
 void diskdrive_add_drive(disk_interface_t* disk)
 {
-	char drive = get_drive_number(disk->volume.lvn);
+	unsigned char drive = get_drive_number(disk->volume.lvn);
 
 	if(drive < DISKDRIVE_NUM_DRIVES && !disks[drive])
 	{
@@ -51,7 +51,7 @@ void diskdrive_add_drive(disk_interface_t* disk)
 	}
 }
 
-disk_interface_t* diskdrive_get_disk(char drive)
+disk_interface_t* diskdrive_get_disk(unsigned char drive)
 {
 	if(drive < DISKDRIVE_NUM_DRIVES)
 		return disks[drive];
@@ -60,7 +60,7 @@ disk_interface_t* diskdrive_get_disk(char drive)
 
 int diskdrive_chdrive(char* lvn)
 {
-	char drive = get_drive_number(lvn);
+	unsigned char drive = get_drive_number(lvn);
 	disk_interface_t* disk = diskdrive_get_disk(drive);
 
 	if(disk)
@@ -97,7 +97,8 @@ uint32_t diskdrive_sector_count()
 {
 	disk_interface_t* disk = diskdrive_get_disk(current_drive);
     FATFS *fs;
-    DWORD fre_clust, fre_sect, tot_sect;
+    DWORD fre_clust;
+    DWORD tot_sect;
     f_getfree(disk->volume.lvn, &fre_clust, &fs);
     tot_sect = (fs->n_fatent - 2) * fs->csize;
     return (uint32_t)tot_sect;

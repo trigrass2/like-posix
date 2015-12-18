@@ -68,7 +68,7 @@ struct _disk_interface_t {
 };
 
 void diskdrive_add_drive(disk_interface_t* disk);
-disk_interface_t* diskdrive_get_disk(char drive);
+disk_interface_t* diskdrive_get_disk(unsigned char drive);
 int diskdrive_chdrive(char* lvn);
 
 uint32_t diskdrive_card_capacity();
