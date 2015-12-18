@@ -49,12 +49,15 @@ static int spi_enable_tx_ioctl(dev_ioctl_t* dev);
 static int spi_enable_rx_ioctl(dev_ioctl_t* dev);
 #endif
 
-static int8_t get_spi_devno(SPI_TypeDef* spi);
-// used in the interrupt handlers....
-void* spi_dev_ioctls[NUM_ONCHIP_SPIS];
 
-static void spi_init_device(SPI_TypeDef* spi, bool enable);
-static void spi_init_gpio(SPI_TypeDef* spi);
+// used in the interrupt handlers....
+spi_ioctl_t spi_ioctls[NUM_ONCHIP_SPIS];
+dev_ioctl_t* spi_dev_ioctls[NUM_ONCHIP_SPIS];
+
+
+static int8_t get_spi_devno(SPI_TypeDef* spi);
+static void spi_init_device(SPI_TypeDef* spi, bool enable, spi_mode_t mode);
+static void spi_init_gpio(SPI_TypeDef* spi, spi_mode_t mode);
 static void spi_init_interrupt(SPI_TypeDef* spi, uint8_t priority, bool enable);
 
 
@@ -72,7 +75,7 @@ static void spi_init_interrupt(SPI_TypeDef* spi, uint8_t priority, bool enable);
  * @param enable - set to true when using in polled mode. when the device file is specified,
  *        set to false - the device is enabled automatically when the file is opened.
  */
-bool spi_init(SPI_TypeDef* spi, char* filename, bool enable)
+bool spi_init(SPI_TypeDef* spi, char* filename, bool enable, spi_mode_t mode)
 {
     bool ret = true;
     int8_t spi_devno = get_spi_devno(spi);
@@ -84,10 +87,13 @@ bool spi_init(SPI_TypeDef* spi, char* filename, bool enable)
     if(filename)
     {
 #if USE_LIKEPOSIX
+        spi_ioctls[spi_devno].spi = spi;
+        spi_ioctls[spi_devno].mode = mode;
+
         // installed SPI can only work with interrupt enabled
         spi_init_interrupt(spi, SPI_INTERRUPT_PRIORITY, true);
         spi_dev_ioctls[spi_devno] = (void*)install_device(filename,
-                                                        spi,
+                                                        &spi_ioctls[spi_devno],
                                                         spi_enable_rx_ioctl,
                                                         spi_enable_tx_ioctl,
                                                         spi_open_ioctl,
@@ -102,8 +108,8 @@ bool spi_init(SPI_TypeDef* spi, char* filename, bool enable)
         log_syslog(NULL, "install spi%d: %s", spi_devno+1, ret ? "successful" : "failed");
     }
 
-    spi_init_gpio(spi);
-    spi_init_device(spi, enable);
+    spi_init_gpio(spi, mode);
+    spi_init_device(spi, enable, mode);
 
     return ret;
 }
@@ -252,15 +258,15 @@ int8_t get_spi_devno(SPI_TypeDef* spi)
 	return -1;
 }
 
-void spi_init_device(SPI_TypeDef* spi, bool enable)
+void spi_init_device(SPI_TypeDef* spi, bool enable, spi_mode_t mode)
 {
     SPI_HandleTypeDef hspi;
 
 	// init SPI peripheral
 	hspi.Instance = spi;
-	hspi.Init.FirstBit = SPI_FIRSTBIT_MSB; 			// SPI_FirstBit_MSB or SPI_FirstBit_LSB
+	hspi.Init.FirstBit = SPI_FIRSTBIT_MSB; 			            // SPI_FirstBit_MSB or SPI_FirstBit_LSB
 	hspi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256; 	// SPI_BAUDRATEPRESCALER_2 to SPI_BAUDRATEPRESCALER_256
-	hspi.Init.CLKPhase = SPI_PHASE_1EDGE; 					// SPI_CPHA_1Edge or SPI_CPHA_2Edge
+	hspi.Init.CLKPhase = SPI_PHASE_1EDGE; 					    // SPI_CPHA_1Edge or SPI_CPHA_2Edge
 	hspi.Init.CLKPolarity = SPI_POLARITY_LOW; 					// SPI_CPOL_Low or SPI_CPOL_High
 	hspi.Init.DataSize = SPI_DATASIZE_8BIT;
 	hspi.Init.Mode = SPI_MODE_MASTER;
@@ -269,6 +275,16 @@ void spi_init_device(SPI_TypeDef* spi, bool enable)
 	hspi.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
 	hspi.Init.TIMode = SPI_TIMODE_DISABLE;
 	hspi.Init.CRCPolynomial = 1;
+
+	// todo, design a do a better mode abstraction
+    switch(mode)
+    {
+        case SPI_FULLDUPLEX:
+        default:
+            hspi.Init.Mode = USART_MODE_TX_RX;
+            hspi.Init.Direction = SPI_DIRECTION_2LINES;
+        break;
+    }
 
     if(enable)
     {
@@ -303,24 +319,30 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
         __HAL_RCC_SPI3_CLK_DISABLE();
 }
 
-void spi_init_gpio(SPI_TypeDef* spi)
+/**
+ * todo - implement mode
+ */
+void spi_init_gpio(SPI_TypeDef* spi, spi_mode_t mode)
 {
+    (void)mode;
     GPIO_InitTypeDef GPIO_InitStructure_rx;
     GPIO_InitTypeDef GPIO_InitStructure_tx;
+
+    // start with no alternate function, for NSS pin
+#if FAMILY == STM32F4
+    GPIO_InitStructure_rx.Alternate = 0;
+#endif
+#if FAMILY == STM32F4
+    GPIO_InitStructure_tx.Alternate = 0;
+#endif
 
     GPIO_InitStructure_rx.Mode = GPIO_MODE_INPUT;
     GPIO_InitStructure_rx.Pull = GPIO_PULLUP;
     GPIO_InitStructure_rx.Speed = GPIO_SPEED_HIGH;
-#if FAMILY == STM32F4
-        GPIO_InitStructure_rx.Alternate = 0;
-#endif
 
     GPIO_InitStructure_tx.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStructure_tx.Pull = GPIO_NOPULL;
     GPIO_InitStructure_tx.Speed = GPIO_SPEED_HIGH;
-#if FAMILY == STM32F4
-        GPIO_InitStructure_tx.Alternate = 0;
-#endif
 
 	// config SPI clock, IO
 	if(spi == SPI1)
@@ -433,7 +455,7 @@ void spi_init_interrupt(SPI_TypeDef* spi, uint8_t priority, bool enable)
 static int spi_enable_rx_ioctl(dev_ioctl_t* dev)
 {
     SPI_HandleTypeDef hspi;
-    hspi.Instance = (SPI_TypeDef*)(dev->ctx);
+    hspi.Instance = ((spi_ioctl_t*)(dev->ctx))->spi;
     __HAL_SPI_ENABLE_IT(&hspi, SPI_IT_RXNE);
     return 0;
 }
@@ -441,32 +463,33 @@ static int spi_enable_rx_ioctl(dev_ioctl_t* dev)
 static int spi_enable_tx_ioctl(dev_ioctl_t* dev)
 {
     SPI_HandleTypeDef hspi;
-    hspi.Instance = (SPI_TypeDef*)(dev->ctx);
+    hspi.Instance = ((spi_ioctl_t*)(dev->ctx))->spi;
     __HAL_SPI_ENABLE_IT(&hspi, SPI_IT_TXE);
     return 0;
 }
 
 static int spi_open_ioctl(dev_ioctl_t* dev)
 {
-    SPI_TypeDef* spi = (SPI_TypeDef*)(dev->ctx);
-    spi_init_gpio(spi);
-    spi_init_device(spi, true);
+    spi_ioctl_t* ioctl = (spi_ioctl_t*)(dev->ctx);
+    spi_init_gpio(ioctl->spi, ioctl->mode);
+    spi_init_device(ioctl->spi, true, ioctl->mode);
     return 0;
 }
 
 static int spi_close_ioctl(dev_ioctl_t* dev)
 {
+    spi_ioctl_t* ioctl = (spi_ioctl_t*)(dev->ctx);
     SPI_HandleTypeDef hspi;
-    hspi.Instance = (SPI_TypeDef*)(dev->ctx);
+    hspi.Instance = ioctl->spi;
     __HAL_SPI_DISABLE_IT(&hspi, SPI_IT_RXNE);
     __HAL_SPI_DISABLE_IT(&hspi, SPI_IT_TXE);
-    spi_init_device(hspi.Instance, false);
+    spi_init_device(ioctl->spi, false, ioctl->mode);
     return 0;
 }
 
 static int spi_ioctl(dev_ioctl_t* dev)
 {
-    SPI_TypeDef* spi = (SPI_TypeDef*)(dev->ctx);
+    SPI_TypeDef* spi = ((spi_ioctl_t*)(dev->ctx))->spi;
 
     uint32_t baudrate = dev->termios->c_ispeed ?
             dev->termios->c_ispeed : dev->termios->c_ospeed;

@@ -38,9 +38,17 @@
 #define SPI_H_
 
 /**
- * TODO - add detailed SPI port configuration (cpol, cpha, sspol, bit order)
+ * TODO add other SPI modes
  */
-bool spi_init(SPI_TypeDef* spi, char* filename, bool enable);
+typedef enum {SPI_FULLDUPLEX} spi_mode_t;
+
+typedef struct {
+    SPI_TypeDef* spi;
+    spi_mode_t mode;
+}spi_ioctl_t;
+
+
+bool spi_init(SPI_TypeDef* spi, char* filename, bool enable, spi_mode_t mode);
 
 /**
  * polled mode API

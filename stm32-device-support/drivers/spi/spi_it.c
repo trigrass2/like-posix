@@ -35,6 +35,7 @@
 
 #include "board_config.h"
 #include "asserts.h"
+#include "spi.h"
 #if USE_LIKEPOSIX
 #include "syscalls.h"
 #endif
@@ -42,24 +43,25 @@
 /**
  * lives in spi.c
  */
-extern void* spi_dev_ioctls[NUM_ONCHIP_SPIS];
+extern dev_ioctl_t* spi_dev_ioctls[NUM_ONCHIP_SPIS];
 
 /**
   * @brief	function called by the SPI receive register not empty interrupt.
   * 		the SPI RX register contents are inserted into the RX FIFO.
   */
-inline void spi_rx_isr(SPI_TypeDef* spi, void* spi_dev)
+inline void spi_rx_isr(dev_ioctl_t* dev)
 {
-    USART_HandleTypeDef hspi;
-    hspi.Instance = spi;
+    SPI_HandleTypeDef hspi;
+    hspi.Instance = ((spi_ioctl_t*)(dev->ctx))->spi;
+
 	if(__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_RXNE))
 	{
 #if USE_LIKEPOSIX
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-		xQueueSendFromISR(((dev_ioctl_t*)spi_dev)->pipe.read, (char*)&(spi->DR), &xHigherPriorityTaskWoken);
+		xQueueSendFromISR(dev->pipe.read, (char*)&(hspi.Instance->DR), &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 #else
-        (void)spi_dev;
+        (void)dev;
 		// todo - fifo put
 #endif
 	}
@@ -69,19 +71,20 @@ inline void spi_rx_isr(SPI_TypeDef* spi, void* spi_dev)
   * @brief	function called by the SPI transmit register empty interrupt.
   * 		data is sent from SPI till no data is left in the tx fifo.
   */
-inline void spi_tx_isr(SPI_TypeDef* spi, void* spi_dev)
+inline void spi_tx_isr(dev_ioctl_t* dev)
 {
-    USART_HandleTypeDef hspi;
-    hspi.Instance = spi;
+    SPI_HandleTypeDef hspi;
+    hspi.Instance = ((spi_ioctl_t*)(dev->ctx))->spi;
+
 	if(__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_TXE))
 	{
 #if USE_LIKEPOSIX
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-		if(xQueueReceiveFromISR(((dev_ioctl_t*)spi_dev)->pipe.write, (char*)&(spi->DR), &xHigherPriorityTaskWoken) == pdFALSE)
+		if(xQueueReceiveFromISR(dev->pipe.write, (char*)&(hspi.Instance->DR), &xHigherPriorityTaskWoken) == pdFALSE)
 		    __HAL_SPI_DISABLE_IT(&hspi, SPI_IT_TXE);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 #else
-		(void)spi_dev;
+		(void)dev;
         // todo - fifo get
 #endif
 	}
@@ -94,8 +97,8 @@ inline void spi_tx_isr(SPI_TypeDef* spi, void* spi_dev)
 void SPI1_IRQHandler(void)
 {
 	assert_true(spi_dev_ioctls[0]);
-	spi_rx_isr(SPI1, spi_dev_ioctls[0]);
-	spi_tx_isr(SPI1, spi_dev_ioctls[0]);
+	spi_rx_isr(spi_dev_ioctls[0]);
+	spi_tx_isr(spi_dev_ioctls[0]);
 }
 
 /**
@@ -104,8 +107,8 @@ void SPI1_IRQHandler(void)
 void SPI2_IRQHandler(void)
 {
 	assert_true(spi_dev_ioctls[1]);
-	spi_rx_isr(SPI2, spi_dev_ioctls[1]);
-	spi_tx_isr(SPI2, spi_dev_ioctls[1]);
+	spi_rx_isr(spi_dev_ioctls[1]);
+	spi_tx_isr(spi_dev_ioctls[1]);
 }
 
 /**
@@ -114,8 +117,8 @@ void SPI2_IRQHandler(void)
 void SPI3_IRQHandler(void)
 {
 	assert_true(spi_dev_ioctls[2]);
-	spi_rx_isr(SPI3, spi_dev_ioctls[2]);
-	spi_tx_isr(SPI3, spi_dev_ioctls[2]);
+	spi_rx_isr(spi_dev_ioctls[2]);
+	spi_tx_isr(spi_dev_ioctls[2]);
 }
 
 
