@@ -46,6 +46,9 @@
 #ifndef USART_H_
 #define USART_H_
 
+/**
+ * TODO add other USART modes
+ */
 typedef enum {USART_FULLDUPLEX, USART_ONEWIRE} usart_mode_t;
 
 typedef struct {

@@ -99,6 +99,7 @@ static int usart_enable_rx_ioctl(dev_ioctl_t* dev);
 usart_ioctl_t usart_ioctls[6];
 dev_ioctl_t* usart_dev_ioctls[6];
 
+
 /**
  * write a character to the console usart.
  */
