@@ -1218,14 +1218,19 @@ int __tcflush(filtab_entry_t* fte, int flags)
 
 int __tcdrain(filtab_entry_t* fte)
 {
-    unsigned long timeout;
+	unsigned long timeout;
+	char c;
     int res = EOF;
+    BaseType_t result = pdTRUE;
 
 	if(fte->mode == S_IFIFO)
 	{
 		timeout = get_hw_time_ms() + fte->device->timeout;
-		while(uxQueueMessagesWaiting(fte->device->pipe.write) > 0 && get_hw_time_ms() < timeout)
-			portYIELD();
+
+		while(result == pdTRUE && get_hw_time_ms() < timeout)
+			result = xQueuePeek(fte->device->pipe.write, &c, 1);
+
+		res = result == pdTRUE ? EOF : 0;
 
 		if(get_hw_time_ms() < timeout)
 			res = 0;
