@@ -61,13 +61,12 @@ inline void usart_rx_isr(dev_ioctl_t* dev)
 	if(__HAL_USART_GET_IT_SOURCE(&husart, USART_IT_RXNE) && __HAL_USART_GET_FLAG(&husart, USART_FLAG_RXNE))
 	{
 #if USE_LIKEPOSIX
-		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+		static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		xQueueSendFromISR(dev->pipe.read, (char*)&(husart.Instance->DR), &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 #else
         (void)dev;
 #endif
-        __HAL_USART_CLEAR_FLAG(&husart, USART_FLAG_RXNE);
 	}
 }
 
@@ -82,7 +81,7 @@ inline void usart_tx_isr(dev_ioctl_t* dev)
 	if(__HAL_USART_GET_IT_SOURCE(&husart, USART_IT_TXE) && __HAL_USART_GET_FLAG(&husart, USART_FLAG_TXE))
 	{
 #if USE_LIKEPOSIX
-		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+		static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		if(xQueueReceiveFromISR(dev->pipe.write, (char*)&(husart.Instance->DR), &xHigherPriorityTaskWoken) == pdFALSE)
 			__HAL_USART_DISABLE_IT(&husart, USART_IT_TXE);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);

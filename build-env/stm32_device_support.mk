@@ -71,6 +71,7 @@ endif
 CFLAGS += -DUSE_DRIVER_1WIRE=$(USE_DRIVER_1WIRE)
 ifeq ($(USE_DRIVER_1WIRE), 1)
 CFLAGS += -I$(DRIVERSDIR)/onewire
+SOURCE += $(DRIVERSDIR)/onewire/onewire.c
 SOURCE += $(DRIVERSDIR)/onewire/ds1820.c
 endif
 

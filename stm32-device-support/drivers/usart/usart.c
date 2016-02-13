@@ -265,7 +265,6 @@ void usart_init_gpio(USART_TypeDef* usart, usart_mode_t mode)
     	HAL_GPIO_Init(USART1_PORT, &GPIO_InitStructure_tx);
     	HAL_GPIO_Init(USART1_PORT, &GPIO_InitStructure_rx);
     }
-
     else if(usart == USART2)
     {
 #if FAMILY == STM32F1
@@ -281,7 +280,7 @@ void usart_init_gpio(USART_TypeDef* usart, usart_mode_t mode)
     	HAL_GPIO_Init(USART2_PORT, &GPIO_InitStructure_tx);
     	HAL_GPIO_Init(USART2_PORT, &GPIO_InitStructure_rx);
     }
-    else if (usart == USART3)
+    else if(usart == USART3)
     {
 #if FAMILY == STM32F1
 #ifdef USART3_REMAP
@@ -299,7 +298,7 @@ void usart_init_gpio(USART_TypeDef* usart, usart_mode_t mode)
     	HAL_GPIO_Init(USART3_PORT, &GPIO_InitStructure_rx);
     }
 
-    else if (usart == UART4)
+    else if(usart == UART4)
     {
 #if FAMILY == STM32F4
     	GPIO_InitStructure_tx.Alternate = GPIO_AF8_UART4;
@@ -311,7 +310,7 @@ void usart_init_gpio(USART_TypeDef* usart, usart_mode_t mode)
     	HAL_GPIO_Init(UART4_PORT, &GPIO_InitStructure_rx);
     }
 
-    else if (usart == UART5)
+    else if(usart == UART5)
     {
 #if FAMILY == STM32F4
     	GPIO_InitStructure_tx.Alternate = GPIO_AF8_UART5;
@@ -323,7 +322,7 @@ void usart_init_gpio(USART_TypeDef* usart, usart_mode_t mode)
     	HAL_GPIO_Init(UART5_RX_PORT, &GPIO_InitStructure_rx);
     }
 #if FAMILY == STM32F4
-    else if (usart == USART6)
+    else if(usart == USART6)
     {
     	GPIO_InitStructure_tx.Alternate = GPIO_AF8_USART6;
     	GPIO_InitStructure_rx.Alternate = GPIO_AF8_USART6;
@@ -381,7 +380,7 @@ bool usart_init(USART_TypeDef* usart, char* install, bool enable, usart_mode_t m
 #if USE_LIKEPOSIX
     	usart_ioctls[usart_devno].usart = usart;
     	usart_ioctls[usart_devno].mode = mode;
-    	usart_dev_ioctls[usart_devno] = (void*)install_device(install,
+    	usart_dev_ioctls[usart_devno] = install_device(install,
     													&usart_ioctls[usart_devno],
 														usart_enable_rx_ioctl,
 														usart_enable_tx_ioctl,
@@ -411,7 +410,7 @@ bool usart_init(USART_TypeDef* usart, char* install, bool enable, usart_mode_t m
 /**
  * initialize interrupts for the specified USART.
  *
- * **note:** this functuion is called by usart_init.
+ * **note:** this function is called by usart_init.
  */
 void usart_init_interrupt(USART_TypeDef* usart, uint8_t priority, bool enable)
 {

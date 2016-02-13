@@ -30,50 +30,38 @@
  *
  */
 
-#ifndef DS1820_H_
-#define DS1820_H_
+#ifndef ONEWIRE_H_
+#define ONEWIRE_H_
 
-// FUNCTION COMMANDS
-#define DS1820_CONVERT_TEMP        0x44
-#define DS1820_COPY_SCRATCHPAD     0x48
-#define DS1820_WRITE_SCRATCHPAD    0x4E
-#define DS1820_READ_SCRATCHPAD     0xBE
-#define DS1820_RECALL_EEPROM       0xB8
-#define DS1820_READ_PS             0xB4
+#include "board_config.h"
+#include "usart.h"
 
-int ds1820_open(const char* filename);
-void ds1820_close(int fd);
-void ds1820_convert(int fd, uint64_t devcode);
-float ds1820_read_temperature(int fd, uint64_t devcode);
+// ROM COMMANDS
+#define ONEWIRE_MATCH_ROM           0x55
+#define ONEWIRE_SEARCH_ROM          0xF0
+#define ONEWIRE_SKIP_ROM            0xCC
+#define ONEWIRE_READ_ROM            0x33
+#define ONEWIRE_ALARM_SEARCH        0xEC
 
-/////////////////////////////////////////////////////////////////////////////////
-////Brad Goold 2012
-//// Modified by Mike Stuart, Feb 2014
-/////////////////////////////////////////////////////////////////////////////////
-//
-//#include <stdint.h>
-//#include "board_config.h"
-//#include "ds1820_config.h.in"
-//
-//#ifndef DS1820_H
-//#define DS1820_H
-//
-//#define DS1820_MAX_VALUE              125
-//#define DS1820_MIN_VALUE              -55
+/**
+ * onewire basic API
+ */
 
+void onewire_init(USART_TypeDef* usart, char* filename);
+unsigned char onewire_reset(int fd);
+unsigned char onewire_xfer_byte(int fd, unsigned char byte);
+unsigned char onewire_xfer_bit(int fd, unsigned char bit);
 
+#define onewire_read_byte(fd) onewire_xfer_byte(fd, 0xff);
+#define onewire_write_byte(fd, byte) onewire_xfer_byte(fd, byte);
+#define onewire_read_bit(fd) onewire_xfer_bit(fd, 0xff);
+#define onewire_write_bit(fd, bit) onewire_xfer_bit(fd, bit);
 
-//
-//// error codes
-//#define BUS_ERROR           0xFE
-//#define PRESENCE_ERROR      0xFD
-//#define NO_ERROR            0x00
-//
-//void ds1820_init(void);
-//uint64_t ds1820_search();
-//void ds1820_convert(void);
-//float ds1820_read_device(uint64_t devcode);
-//
-//#endif
+/**
+ * onewire convenience functions
+ */
 
-#endif //DS1820_H_
+void onewire_address_command(int fd, uint64_t devcode);
+void onewire_search(int fd, uint64_t* buffer, int length);
+
+#endif // ONEWIRE_H_
