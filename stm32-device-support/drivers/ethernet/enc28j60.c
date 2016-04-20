@@ -131,7 +131,7 @@ void enc28j60_init(uint8_t *macadr)
 
 void enc28j60_spi_init()
 {
-    spi_init(ENC28J60_SPI_PERIPH, NULL, true);
+    spi_init(ENC28J60_SPI_PERIPH, NULL, true, SPI_FULLDUPLEX);
     spi_set_baudrate(ENC28J60_SPI_PERIPH, ENC28J60_SPI_BAUDRATE);
 }
 
@@ -451,7 +451,7 @@ bool eth_link_status()
     return (bool)(enc28j60_read_phy(PHSTAT2) & PHSTAT2_LSTAT);
 }
 
-uint16_t eth_link_speed()
+short eth_link_speed()
 {
     return 10;
 }

@@ -93,11 +93,11 @@ static int usart_close_ioctl(dev_ioctl_t* dev);
 static int usart_open_ioctl(dev_ioctl_t* dev);
 static int usart_enable_tx_ioctl(dev_ioctl_t* dev);
 static int usart_enable_rx_ioctl(dev_ioctl_t* dev);
+usart_ioctl_t usart_ioctls[6];
+dev_ioctl_t* usart_dev_ioctls[6];
 #endif
 
 
-usart_ioctl_t usart_ioctls[6];
-dev_ioctl_t* usart_dev_ioctls[6];
 
 
 /**
@@ -389,10 +389,10 @@ bool usart_init(USART_TypeDef* usart, char* install, bool enable, usart_mode_t m
 														usart_ioctl);
     	// installed USART can only work with interrupt enabled
     	usart_init_interrupt(usart, USART_INTERRUPT_PRIORITY, true);
-#else
-    	usart_dev_ioctls[usart_devno] = NULL;
-#endif
     	ret = usart_dev_ioctls[usart_devno] != NULL;
+#else
+    	ret = true;
+#endif
         log_syslog(NULL, "install usart%d: %s", usart_devno+1, ret ? "successful" : "failed");
     }
 

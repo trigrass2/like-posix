@@ -43,17 +43,17 @@
 #define TOUCH_I2C_CONFIG   			GPIO_AF_I2C1
 
 #define TOUCH_I2C_SCL_PORT   		GPIOB
-#define TOUCH_I2C_SCL_PIN    		GPIO_Pin_8
+#define TOUCH_I2C_SCL_PIN    		GPIO_PIN_8
 #define TOUCH_I2C_SCL_PINSOURCE		GPIO_PinSource8
 #define TOUCH_I2C_SDA_PORT   		GPIOB
-#define TOUCH_I2C_SDA_PIN    		GPIO_Pin_9
+#define TOUCH_I2C_SDA_PIN    		GPIO_PIN_9
 #define TOUCH_I2C_SDA_PINSOURCE		GPIO_PinSource9
 #define TOUCH_I2C_SDA_PORT   		GPIOB
-#define TOUCH_I2C_SDA_PIN    		GPIO_Pin_9
+#define TOUCH_I2C_SDA_PIN    		GPIO_PIN_9
 #define TOUCH_I2C_SDA_PINSOURCE		GPIO_PinSource9
-#define TOUCH_NRST_PIN    			GPIO_Pin_7
+#define TOUCH_NRST_PIN    			GPIO_PIN_7
 #define TOUCH_NRST_PORT   			GPIOH
-#define TOUCH_INT_PIN    			GPIO_Pin_5
+#define TOUCH_INT_PIN    			GPIO_PIN_5
 #define TOUCH_INT_PORT   			GPIOJ
 
 #endif // TSC2046_CONFIG_H_

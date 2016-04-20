@@ -46,7 +46,6 @@
 #include "net_config.h"
 #include "board_config.h"
 
-
 // Init ENC28J60
 void enc28j60_init(uint8_t *macadr);
 uint8_t enc28j60_revision(void);
@@ -79,16 +78,16 @@ void enc28j60_write_phy(uint8_t adr, uint16_t data);
 
 // void enc28j6_nint();
 
-#ifndef MAX_ETH_PAYLOAD
-#pragma message ( "Note: using default MAX_ETH_PAYLOAD = 1500" )
-#define MAX_ETH_PAYLOAD             1500        // Maximum Ethernet payload size
+#ifndef ETH_MAX_ETH_PAYLOAD
+#pragma message ( "Note: using default ETH_MAX_ETH_PAYLOAD = 1500" )
+#define ETH_MAX_ETH_PAYLOAD             1500        // Maximum Ethernet payload size
 #endif
 #define ETH_HEADER                  14          // 6 byte Dest addr, 6 byte Src addr, 2 byte length/type
 #define ETH_CRC                     4           // Ethernet CRC
 #define ETH_EXTRA                   2           // Extra bytes in some cases
-#define VLAN_TAG                    4           // optional 802.1q VLAN Tag
-#define MIN_ETH_PAYLOAD             46          // Minimum Ethernet payload size
-#define ENC28J60_MAXFRAME           (MAX_ETH_PAYLOAD + ETH_HEADER + ETH_EXTRA + ETH_CRC)
+#define ETH_VLAN_TAG                    4           // optional 802.1q VLAN Tag
+#define ETH_MIN_ETH_PAYLOAD             46          // Minimum Ethernet payload size
+#define ENC28J60_MAXFRAME           (ETH_MAX_ETH_PAYLOAD + ETH_HEADER + ETH_EXTRA + ETH_CRC)
 #define ETH_MAX_PACKET_SIZE         ENC28J60_MAXFRAME
 
 #define ENC28J60_TX_STATUS_VECTOR_LENGTH    7

@@ -150,37 +150,47 @@ int sh_ifconfig(int fdes, const char** args, unsigned char nargs)
     int length;
     char* buffer = malloc(1024);
 
-    const char* mac = (const char*)net_hwaddr();
-    ip_addr_t ip_addr = net_ipaddr();
-    ip_addr_t gw_addr = net_gwaddr();
-    ip_addr_t nm_addr = net_netmask();
+    const char* mac;
 
-    const char* ip = (const char*)&ip_addr.addr;
-    const char* gw = (const char*)&gw_addr.addr;
-    const char* nm = (const char*)&nm_addr.addr;
+    const char* ip;
+    const char* gw;
+    const char* nm;
 
     if(buffer)
     {
-        length = snprintf(buffer, 1023,
-"eth0\tLink encap:Ethernet speed:%u HWaddr %02x:%02x:%02x:%02x:%02x:%02x" SHELL_NEWLINE
-"\tinet addr: %d.%d.%d.%d Bcast: %d.%d.%d.%d Mask: %d.%d.%d.%d" SHELL_NEWLINE
-"\tGWaddr: %d.%d.%d.%d UP:%d DUPLEX:%d MTU:%d" SHELL_NEWLINE
-"\tRX packets:%u errors:%u dropped:%u" SHELL_NEWLINE
-"\tTX packets:%u",
-                eth_link_speed(),
-                mac[0],mac[1],mac[2],mac[3],mac[4],mac[5],
-                ip[0],ip[1],ip[2],ip[3],
-                0,0,0,0,
-                nm[0],nm[1],nm[2],nm[3],
-                gw[0],gw[1],gw[2],gw[3],
-                eth_link_status(),
-                eth_link_full_duplex(),
-                net_mtu(),
-                net_ip_packets_received(),
-                net_ip_errors(),
-                net_ip_packets_dropped(),
-                net_ip_packets_sent());
-        write(fdes, buffer, length);
+        struct netif* netif = get_interfaces();
+
+        while(netif)
+        {
+            mac = (const char*)netif->hwaddr;
+            ip = (const char*)&netif->ip_addr.addr;
+            gw = (const char*)&netif->gw.addr;
+            nm = (const char*)&netif->netmask.addr;
+
+            length = snprintf(buffer, 1023,
+    "%s%d\tLink encap:Ethernet speed:%u HWaddr %02x:%02x:%02x:%02x:%02x:%02x" SHELL_NEWLINE
+    "\tinet addr: %d.%d.%d.%d Bcast: %d.%d.%d.%d Mask: %d.%d.%d.%d" SHELL_NEWLINE
+    "\tGWaddr: %d.%d.%d.%d UP:%d DUPLEX:%d MTU:%d" SHELL_NEWLINE
+    "\tRX packets:%u errors:%u dropped:%u" SHELL_NEWLINE
+    "\tTX packets:%u",
+                    netif->name, netif->num,
+                    eth_link_speed(),
+                    mac[0],mac[1],mac[2],mac[3],mac[4],mac[5],
+                    ip[0],ip[1],ip[2],ip[3],
+                    0,0,0,0,
+                    nm[0],nm[1],nm[2],nm[3],
+                    gw[0],gw[1],gw[2],gw[3],
+                    eth_link_status(),
+                    eth_link_full_duplex(),
+                    net_mtu(),
+                    net_ip_packets_received(),
+                    net_ip_errors(),
+                    net_ip_packets_dropped(),
+                    net_ip_packets_sent());
+            write(fdes, buffer, length);
+
+            netif = netif->next;
+        }
 
         free(buffer);
     }

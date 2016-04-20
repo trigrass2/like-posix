@@ -48,68 +48,68 @@
 // address to access LCD register (RS = 0)
 #define LCD_REG_IO_ADDRESS 0x60000000
 
-#define FSMC_A16_PIN          GPIO_Pin_11
+#define FSMC_A16_PIN          GPIO_PIN_11
 #define FSMC_A16_PINSOURCE    GPIO_PinSource11
 #define FSMC_A16_PORT   GPIOD
 
-#define FSMC_D0_PIN           GPIO_Pin_14
+#define FSMC_D0_PIN           GPIO_PIN_14
 #define FSMC_D0_PINSOURCE     GPIO_PinSource14
 #define FSMC_D0_PORT    GPIOD
-#define FSMC_D1_PIN           GPIO_Pin_15
+#define FSMC_D1_PIN           GPIO_PIN_15
 #define FSMC_D1_PINSOURCE     GPIO_PinSource15
 #define FSMC_D1_PORT    GPIOD
-#define FSMC_D2_PIN           GPIO_Pin_0
+#define FSMC_D2_PIN           GPIO_PIN_0
 #define FSMC_D2_PINSOURCE     GPIO_PinSource0
 #define FSMC_D2_PORT    GPIOD
-#define FSMC_D3_PIN           GPIO_Pin_1
+#define FSMC_D3_PIN           GPIO_PIN_1
 #define FSMC_D3_PINSOURCE     GPIO_PinSource1
 #define FSMC_D3_PORT    GPIOD
 
-#define FSMC_D4_PIN           GPIO_Pin_7
+#define FSMC_D4_PIN           GPIO_PIN_7
 #define FSMC_D4_PINSOURCE     GPIO_PinSource7
 #define FSMC_D4_PORT    GPIOE
-#define FSMC_D5_PIN           GPIO_Pin_8
+#define FSMC_D5_PIN           GPIO_PIN_8
 #define FSMC_D5_PINSOURCE     GPIO_PinSource8
 #define FSMC_D5_PORT    GPIOE
-#define FSMC_D6_PIN           GPIO_Pin_9
+#define FSMC_D6_PIN           GPIO_PIN_9
 #define FSMC_D6_PINSOURCE     GPIO_PinSource9
 #define FSMC_D6_PORT    GPIOE
-#define FSMC_D7_PIN           GPIO_Pin_10
+#define FSMC_D7_PIN           GPIO_PIN_10
 #define FSMC_D7_PINSOURCE     GPIO_PinSource10
 #define FSMC_D7_PORT    GPIOE
-#define FSMC_D8_PIN           GPIO_Pin_11
+#define FSMC_D8_PIN           GPIO_PIN_11
 #define FSMC_D8_PINSOURCE     GPIO_PinSource11
 #define FSMC_D8_PORT    GPIOE
-#define FSMC_D9_PIN           GPIO_Pin_12
+#define FSMC_D9_PIN           GPIO_PIN_12
 #define FSMC_D9_PINSOURCE     GPIO_PinSource12
 #define FSMC_D9_PORT    GPIOE
-#define FSMC_D10_PIN          GPIO_Pin_13
+#define FSMC_D10_PIN          GPIO_PIN_13
 #define FSMC_D10_PINSOURCE    GPIO_PinSource13
 #define FSMC_D10_PORT   GPIOE
-#define FSMC_D11_PIN          GPIO_Pin_14
+#define FSMC_D11_PIN          GPIO_PIN_14
 #define FSMC_D11_PINSOURCE    GPIO_PinSource14
 #define FSMC_D11_PORT   GPIOE
-#define FSMC_D12_PIN          GPIO_Pin_15
+#define FSMC_D12_PIN          GPIO_PIN_15
 #define FSMC_D12_PINSOURCE    GPIO_PinSource15
 #define FSMC_D12_PORT   GPIOE
 
-#define FSMC_D13_PIN          GPIO_Pin_8
+#define FSMC_D13_PIN          GPIO_PIN_8
 #define FSMC_D13_PINSOURCE    GPIO_PinSource8
 #define FSMC_D13_PORT   GPIOD
-#define FSMC_D14_PIN          GPIO_Pin_9
+#define FSMC_D14_PIN          GPIO_PIN_9
 #define FSMC_D14_PINSOURCE    GPIO_PinSource9
 #define FSMC_D14_PORT   GPIOD
-#define FSMC_D15_PIN          GPIO_Pin_10
+#define FSMC_D15_PIN          GPIO_PIN_10
 #define FSMC_D15_PINSOURCE    GPIO_PinSource10
 #define FSMC_D15_PORT   GPIOD
 
-#define FSMC_RD_PIN          GPIO_Pin_4
+#define FSMC_RD_PIN          GPIO_PIN_4
 #define FSMC_RD_PINSOURCE    GPIO_PinSource4
 #define FSMC_RD_PORT   GPIOD
-#define FSMC_WR_PIN          GPIO_Pin_5
+#define FSMC_WR_PIN          GPIO_PIN_5
 #define FSMC_WR_PINSOURCE    GPIO_PinSource5
 #define FSMC_WR_PORT   GPIOD
-#define FSMC_NE1_NCE2_PIN          GPIO_Pin_7
+#define FSMC_NE1_NCE2_PIN          GPIO_PIN_7
 #define FSMC_NE1_NCE2_PINSOURCE    GPIO_PinSource7
 #define FSMC_NE1_NCE2_PORT   GPIOD
 
@@ -117,10 +117,10 @@
 #define FSMC_PINSOURCES  {FSMC_D0_PINSOURCE, FSMC_D1_PINSOURCE, FSMC_D2_PINSOURCE, FSMC_D3_PINSOURCE, FSMC_D4_PINSOURCE, FSMC_D5_PINSOURCE, FSMC_D6_PINSOURCE, FSMC_D7_PINSOURCE, FSMC_D8_PINSOURCE, FSMC_D9_PINSOURCE, FSMC_D10_PINSOURCE, FSMC_D11_PINSOURCE, FSMC_D12_PINSOURCE, FSMC_D13_PINSOURCE, FSMC_D14_PINSOURCE, FSMC_D15_PINSOURCE, FSMC_A16_PINSOURCE, FSMC_RD_PINSOURCE, FSMC_WR_PINSOURCE, FSMC_NE1_NCE2_PINSOURCE}
 #define FSMC_PORTS {FSMC_D0_PORT, FSMC_D1_PORT, FSMC_D2_PORT, FSMC_D3_PORT, FSMC_D4_PORT, FSMC_D5_PORT, FSMC_D6_PORT, FSMC_D7_PORT, FSMC_D8_PORT, FSMC_D9_PORT, FSMC_D10_PORT, FSMC_D11_PORT, FSMC_D12_PORT, FSMC_D13_PORT, FSMC_D14_PORT, FSMC_D15_PORT, FSMC_A16_PORT, FSMC_RD_PORT, FSMC_WR_PORT, FSMC_NE1_NCE2_PORT}
 
-#define LCD_NRST_PIN    GPIO_Pin_1
+#define LCD_NRST_PIN    GPIO_PIN_1
 #define LCD_NRST_PORT   GPIOE
 
-#define LCD_BL_PIN    GPIO_Pin_12
+#define LCD_BL_PIN    GPIO_PIN_12
 #define LCD_BL_PORT   GPIOD
 
 #endif  //LCD_CONF_H_

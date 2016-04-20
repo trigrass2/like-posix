@@ -42,19 +42,14 @@ void lcd_backlight_init(void)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
 
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-#if FAMILY==STM32F1
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
-#elif FAMILY==STM32F4
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-#endif
+    GPIO_InitStructure.Speed = GPIO_SPEED_LOW;
+    GPIO_InitStructure.Mode  = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStructure.Pull  = GPIO_NOPULL;
 
     // Backlight pin
 #ifdef LCD_BL_PIN
-    GPIO_InitStructure.GPIO_Pin = LCD_BL_PIN;
-    GPIO_Init(LCD_BL_PORT, &GPIO_InitStructure);
+    GPIO_InitStructure.Pin = LCD_BL_PIN;
+    HAL_GPIO_Init(LCD_BL_PORT, &GPIO_InitStructure);
 #endif
 }
 
@@ -100,9 +95,9 @@ void lcd_backlight(bool enable)
 {
 #ifdef LCD_BL_PIN
     if(enable)
-        GPIO_SetBits(LCD_BL_PORT, LCD_BL_PIN);
+        HAL_GPIO_WritePin(LCD_BL_PORT, LCD_BL_PIN, GPIO_PIN_SET);
     else
-        GPIO_ResetBits(LCD_BL_PORT, LCD_BL_PIN);
+        HAL_GPIO_WritePin(LCD_BL_PORT, LCD_BL_PIN, GPIO_PIN_RESET);
 #else
     (void)enable;
 #endif

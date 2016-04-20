@@ -33,6 +33,9 @@
 
 #include <time.h>
 #include "statusbar.h"
+#if STATUSBAR_INCLUDE_SD_STATUS_ICON
+#include "sdcard.h"
+#endif
 
 #define STATUSBAR_SIZE          {STATUSBAR_SIZE_X, STATUSBAR_SIZE_Y}
 #define STATUSBAR_ORIGIN        {STATUSBAR_ORIGIN_X, STATUSBAR_ORIGIN_Y}
@@ -159,7 +162,7 @@ void statusbar_task(void* pvParameters)
 #endif
 
 #if STATUSBAR_INCLUDE_SD_STATUS_ICON
-        if(sdfs_ready())
+        if(sd_detect())
             image_draw(&micro_sd_blue_aa);
         else
             image_draw(&micro_sd_gray_aa);

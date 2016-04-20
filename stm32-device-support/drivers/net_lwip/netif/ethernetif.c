@@ -48,7 +48,7 @@
 #include "board_config.h"
 
 /* Network interface name */
-#define IFNAME0 's'
+#define IFNAME0 'e'
 #define IFNAME1 't'
 
 #if USE_DRIVER_MII_RMII_PHY && USE_DRIVER_LWIP_NET

@@ -40,8 +40,8 @@
  * only specify chip select's for those SPI's that require them.
  * (comment out those that are not needed)
  */
-#define SPI1_NSS_PORT 	GPIOA
-#define SPI1_NSS_PIN 	GPIO_PIN_15
+#define SPI1_NSS_PORT 	GPIOB
+#define SPI1_NSS_PIN 	GPIO_PIN_7
 #define SPI2_NSS_PORT   GPIOB
 #define SPI2_NSS_PIN    GPIO_PIN_12
 //#define SPI3_NSS_PORT

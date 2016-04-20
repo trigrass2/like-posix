@@ -47,4 +47,4 @@ SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_u
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_wwdg.c
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_fsmc.c
 SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_sdmmc.c
-SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_usb.c
+#SOURCE += $(STM32_CM3_DIR)/cube_drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_usb.c

@@ -21,8 +21,8 @@ endif
 USE_DRIVER_ENC28J60_PHY ?= 0
 USE_DRIVER_MII_RMII_PHY ?= 0
 
-ifeq ($(USE_DRIVER_ENC28J60_PHY), 1))
-ifneq ($(USE_DRIVER_SPI), 1))
+ifeq ($(USE_DRIVER_ENC28J60_PHY), 1)
+ifneq ($(USE_DRIVER_SPI), 1)
 $(error when USE_DRIVER_ENC28J60_PHY=1,  USE_DRIVER_SPI must be set to 1, it is set to '$(USE_DRIVER_SPI)')
 endif
 endif

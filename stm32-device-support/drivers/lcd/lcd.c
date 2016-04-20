@@ -51,12 +51,13 @@
 #pragma message "building for LCD controller ILI9325"
 #endif
 
+SRAM_HandleTypeDef hsram;
+
 static void lcd_reset();
 static void lcd_display_on(void);
 static void lcd_display_off(void);
 static void lcd_set_gamma(void);
 static void lcd_set_power(void);
-static void lcd_port_init(void);
 static void LCD_FSMCConfig(void);
 
 static unsigned short lcd_read_gram(unsigned int x,unsigned int y);
@@ -75,7 +76,6 @@ void lcd_init(void)
     log_debug(&tftlog, "initializing");
 
     // init IO
-    lcd_port_init();
     LCD_FSMCConfig();
 
     lcd_reset();
@@ -174,98 +174,71 @@ void lcd_set_power(void)
 
 void LCD_FSMCConfig(void)
 {
-#if FAMILY==STM32F1
-    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_FSMC, ENABLE);
-#elif FAMILY==STM32F4
-    RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_FSMC, ENABLE);
-#endif
+    FMC_NORSRAM_TimingTypeDef Timing;
 
-    FSMC_NORSRAMInitTypeDef  FSMC_NORSRAM_init;
-    FSMC_NORSRAMTimingInitTypeDef  FSMC_NORSRAMTimingInit;
+    hsram.Instance  = FSMC_NORSRAM_DEVICE;
+    hsram.Extended  = FSMC_NORSRAM_EXTENDED_DEVICE;
 
-    /*-- FSMC Configuration ----------------------------------------------*/
-    FSMC_NORSRAMTimingInit.FSMC_AddressSetupTime = 2;             /* ��ַ����ʱ��  */
-    FSMC_NORSRAMTimingInit.FSMC_AddressHoldTime = 1;              /* ��ַ����ʱ��  */
-    FSMC_NORSRAMTimingInit.FSMC_DataSetupTime = 3;                /* ��ݽ���ʱ��  */
-    FSMC_NORSRAMTimingInit.FSMC_BusTurnAroundDuration = 0;        /* ���߷�תʱ��  */
-    FSMC_NORSRAMTimingInit.FSMC_CLKDivision = 0;                  /* ʱ�ӷ�Ƶ      */
-    FSMC_NORSRAMTimingInit.FSMC_DataLatency = 0;                  /* ��ݱ���ʱ��  */
-    FSMC_NORSRAMTimingInit.FSMC_AccessMode = FSMC_AccessMode_A;   /* FSMC ����ģʽ */
+    /* SRAM device configuration */
+    Timing.AddressSetupTime       = 2;
+    Timing.AddressHoldTime        = 1;
+    Timing.DataSetupTime          = 3;//2;
+    Timing.BusTurnAroundDuration  = 0;//1;
+    Timing.CLKDivision            = 0;//2;
+    Timing.DataLatency            = 0;//2;
+    Timing.AccessMode             = FSMC_ACCESS_MODE_A;
 
-    /* Color LCD configuration ------------------------------------
-       LCD configured as follow:
-       - Data/Address MUX = Disable
-       - Memory Type = SRAM
-       - Data Width = 16bit
-       - Write Operation = Enable
-       - Extended Mode = Enable
-       - Asynchronous Wait = Disable */
-    FSMC_NORSRAM_init.FSMC_Bank = FSMC_Bank1_NORSRAM1;
-    FSMC_NORSRAM_init.FSMC_DataAddressMux = FSMC_DataAddressMux_Disable;
-    FSMC_NORSRAM_init.FSMC_MemoryType = FSMC_MemoryType_SRAM;
-    FSMC_NORSRAM_init.FSMC_MemoryDataWidth = FSMC_MemoryDataWidth_16b;
-    FSMC_NORSRAM_init.FSMC_BurstAccessMode = FSMC_BurstAccessMode_Disable;
-    FSMC_NORSRAM_init.FSMC_WaitSignalPolarity = FSMC_WaitSignalPolarity_Low;
-    FSMC_NORSRAM_init.FSMC_WrapMode = FSMC_WrapMode_Disable;
-    FSMC_NORSRAM_init.FSMC_WaitSignalActive = FSMC_WaitSignalActive_BeforeWaitState;
-    FSMC_NORSRAM_init.FSMC_WriteOperation = FSMC_WriteOperation_Enable;
-    FSMC_NORSRAM_init.FSMC_WaitSignal = FSMC_WaitSignal_Disable;
-    FSMC_NORSRAM_init.FSMC_ExtendedMode = FSMC_ExtendedMode_Disable;
-    FSMC_NORSRAM_init.FSMC_WriteBurst = FSMC_WriteBurst_Disable;
-    FSMC_NORSRAM_init.FSMC_ReadWriteTimingStruct = &FSMC_NORSRAMTimingInit;
-    FSMC_NORSRAM_init.FSMC_WriteTimingStruct = &FSMC_NORSRAMTimingInit;
-    FSMC_NORSRAM_init.FSMC_AsynchronousWait = FSMC_AsynchronousWait_Disable;
+    hsram.Init.NSBank             = FSMC_NORSRAM_BANK1;
+    hsram.Init.DataAddressMux     = FSMC_DATA_ADDRESS_MUX_DISABLE;
+    hsram.Init.MemoryType         = FSMC_MEMORY_TYPE_SRAM;
+    hsram.Init.MemoryDataWidth    = FSMC_NORSRAM_MEM_BUS_WIDTH_16;
+    hsram.Init.BurstAccessMode    = FSMC_BURST_ACCESS_MODE_DISABLE;
+    hsram.Init.WaitSignalPolarity = FSMC_WAIT_SIGNAL_POLARITY_LOW;
+    hsram.Init.WrapMode           = FSMC_WRAP_MODE_DISABLE;
+    hsram.Init.WaitSignalActive   = FSMC_WAIT_TIMING_BEFORE_WS;
+    hsram.Init.WriteOperation     = FSMC_WRITE_OPERATION_ENABLE;
+    hsram.Init.WaitSignal         = FSMC_WAIT_SIGNAL_DISABLE;
+    hsram.Init.ExtendedMode       = FSMC_EXTENDED_MODE_DISABLE;
+    hsram.Init.AsynchronousWait   = FSMC_ASYNCHRONOUS_WAIT_DISABLE;
+    hsram.Init.WriteBurst         = FSMC_WRITE_BURST_DISABLE;
 
-    FSMC_NORSRAMInit(&FSMC_NORSRAM_init);
-    FSMC_NORSRAMCmd(FSMC_Bank1_NORSRAM1, ENABLE);
+    HAL_SRAM_DeInit(&hsram);
+    HAL_StatusTypeDef ret = HAL_SRAM_Init(&hsram, &Timing, &Timing);
+    assert_true(ret == HAL_OK);
 }
 
-void lcd_port_init(void)
+void HAL_SRAM_MspInit(SRAM_HandleTypeDef *hsram)
 {
-    GPIO_InitTypeDef GPIO_InitStructure;
+    GPIO_InitTypeDef gpio_init;
     uint16_t pins[] = FSMC_PINS;
     GPIO_TypeDef* ports[] = FSMC_PORTS;
-#if FAMILY==STM32F4
-    uint8_t pinsources[] = FSMC_PINSOURCES;
-#endif
 
     // FSMC pins
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-#if FAMILY==STM32F1
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF_PP;
-#elif FAMILY==STM32F4
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    gpio_init.Speed = GPIO_SPEED_FREQ_HIGH;
+    gpio_init.Mode  = GPIO_MODE_AF_PP;
+    gpio_init.Pull  = GPIO_NOPULL;
+#if FAMILY==STM32F4
+    gpio_init.Alternate = GPIO_AF12_FSMC;
 #endif
 
     for(uint8_t i = 0; i < sizeof(pins)/sizeof(pins[0]); i++)
     {
-        GPIO_InitStructure.GPIO_Pin = pins[i];
-        GPIO_Init(ports[i], &GPIO_InitStructure);
-#if FAMILY==STM32F4
-        GPIO_PinAFConfig(ports[i], pinsources[i], GPIO_AF_FSMC);
-#endif
+        gpio_init.Pin = pins[i];
+        HAL_GPIO_Init(ports[i], &gpio_init);
     }
 
-#if FAMILY==STM32F1
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
-#elif FAMILY==STM32F4
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-#endif
+    gpio_init.Mode  = GPIO_MODE_OUTPUT_PP;
 
     // reset pin
-    GPIO_InitStructure.GPIO_Pin = LCD_NRST_PIN;
-    GPIO_Init(LCD_NRST_PORT, &GPIO_InitStructure);
+    gpio_init.Pin = LCD_NRST_PIN;
+    HAL_GPIO_Init(LCD_NRST_PORT, &gpio_init);
 }
 
 void lcd_reset()
 {
-    GPIO_ResetBits(LCD_NRST_PORT, LCD_NRST_PIN);
+    HAL_GPIO_WritePin(LCD_NRST_PORT, LCD_NRST_PIN, GPIO_PIN_RESET);
     delay(300);
-    GPIO_SetBits(LCD_NRST_PORT, LCD_NRST_PIN);
+    HAL_GPIO_WritePin(LCD_NRST_PORT, LCD_NRST_PIN, GPIO_PIN_SET);
     delay(100);
 }
 

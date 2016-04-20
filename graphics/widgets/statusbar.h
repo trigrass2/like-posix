@@ -47,7 +47,7 @@
 #endif
 
 #if STATUSBAR_INCLUDE_SD_STATUS_ICON
-#include "sdfs.h"
+#include "sdcard_diskio.h"
 #endif
 
 #ifndef STATUSBAR_H_

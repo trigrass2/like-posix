@@ -82,26 +82,28 @@ uint8_t sd_write_protected(void)
 
 void sd_det_wp_gpio_init(void)
 {
+#if (defined(SD_CARD_PRES_PIN) || defined(SD_CARD_NPRES_PIN) || \
+     defined(SD_CARD_WP_PIN) || defined(SD_CARD_NWP_PIN))
 	GPIO_InitTypeDef GPIO_InitStructure;
-
 	GPIO_InitStructure.Mode = GPIO_MODE_INPUT;
 	GPIO_InitStructure.Speed = GPIO_SPEED_LOW;
+#endif
 
-#if defined(SD_CARD_PRES_PIN) && defined(SD_CARD_PRES_PORT)
+#if defined(SD_CARD_PRES_PIN)
 	GPIO_InitStructure.Pull = GPIO_PULLDOWN;
 	GPIO_InitStructure.Pin = SD_CARD_PRES_PIN;
 	HAL_GPIO_Init(SD_CARD_PRES_PORT, &GPIO_InitStructure);
-#elif defined(SD_CARD_NPRES_PIN) && defined(SD_CARD_NPRES_PORT)
+#elif defined(SD_CARD_NPRES_PIN)
 	GPIO_InitStructure.Pull = GPIO_PULLUP;
 	GPIO_InitStructure.Pin = SD_CARD_NPRES_PIN;
 	HAL_GPIO_Init(SD_CARD_NPRES_PORT, &GPIO_InitStructure);
 #endif
 
-#if defined(SD_CARD_WP_PORT)
+#if defined(SD_CARD_WP_PIN)
 	GPIO_InitStructure.Pull = GPIO_PULLDOWN;
 	GPIO_InitStructure.Pin = SD_CARD_WP_PIN;
 	HAL_GPIO_Init(SD_CARD_WP_PORT, &GPIO_InitStructure);
-#elif defined(SD_CARD_NWP_PORT)
+#elif defined(SD_CARD_NWP_PIN)
 	GPIO_InitStructure.Pull = GPIO_PULLUP;
 	GPIO_InitStructure.Pin = SD_CARD_NWP_PIN;
 	HAL_GPIO_Init(SD_CARD_NWP_PORT, &GPIO_InitStructure);

@@ -31,6 +31,7 @@
  */
 
 #include "netconf.h"
+#include "ethernetif.h"
 
 #ifndef DRIVERS_NET_LWIP_NET_H_
 #define DRIVERS_NET_LWIP_NET_H_
@@ -54,5 +55,7 @@ unsigned char* net_hwaddr();
 ip_addr_t net_ipaddr();
 ip_addr_t net_gwaddr();
 ip_addr_t net_netmask();
+
+struct netif* get_interfaces();
 
 #endif /* DRIVERS_NET_LWIP_NET_H_ */

@@ -113,6 +113,8 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+#include "logger.h"
+
 #if INCLUDE_REMOTE_SHELL_SUPPORT
 #pragma message "building shell with threaded server support"
 #else

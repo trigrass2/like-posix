@@ -36,7 +36,7 @@
 static disk_interface_t* disks[DISKDRIVE_NUM_DRIVES];
 static unsigned char current_drive; // current drive is set to 0. this has to be the case, to match the default in ff.c
 
-static unsigned char get_drive_number(char* lvn)
+static unsigned char get_drive_number(const char* lvn)
 {
 	return lvn[0] - '0';
 }
@@ -58,7 +58,7 @@ disk_interface_t* diskdrive_get_disk(unsigned char drive)
 	return NULL;
 }
 
-int diskdrive_chdrive(char* lvn)
+int diskdrive_chdrive(const char* lvn)
 {
 	unsigned char drive = get_drive_number(lvn);
 	disk_interface_t* disk = diskdrive_get_disk(drive);

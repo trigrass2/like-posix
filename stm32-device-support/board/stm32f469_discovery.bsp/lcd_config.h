@@ -39,29 +39,29 @@
 // TODO this has no effect on touch screen rotation
 #define LCD_ROTATION    ROTATE_90_DEGREES
 
-#define LCD_NRST_PIN    GPIO_Pin_7
+#define LCD_NRST_PIN    GPIO_PIN_7
 #define LCD_NRST_PORT   GPIOH
 
 // NOT FITTED by default
-#define LCD_BL_PIN    GPIO_Pin_3
+#define LCD_BL_PIN    GPIO_PIN_3
 #define LCD_BL_PORT   GPIOA
 
 // NOT USED YET
-#define LCD_TE_PIN   GPIO_Pin_2
+#define LCD_TE_PIN   GPIO_PIN_2
 #define LCD_TE_PORT   GPIOJ
-#define LCD_TE_PIN   GPIO_Pin_2
+#define LCD_TE_PIN   GPIO_PIN_2
 #define LCD_TE_PORT   GPIOJ
-#define LCD_HSSI_CLK_N_PIN   	GPIO_Pin_13
+#define LCD_HSSI_CLK_N_PIN   	GPIO_PIN_13
 #define LCD_HSSI_CLK_N_PORT   	GPIOH
-#define LCD_HSSI_CLK_P_PIN   	GPIO_Pin_12
+#define LCD_HSSI_CLK_P_PIN   	GPIO_PIN_12
 #define LCD_HSSI_CLK_P_PORT   	GPIOH
-#define LCD_HSSI_DO_N_PIN   	GPIO_Pin_13
+#define LCD_HSSI_DO_N_PIN   	GPIO_PIN_13
 #define LCD_HSSI_DO_N_PORT   	GPIOJ
-#define LCD_HSSI_DO_P_PIN   	GPIO_Pin_12
+#define LCD_HSSI_DO_P_PIN   	GPIO_PIN_12
 #define LCD_HSSI_DO_P_PORT   	GPIOJ
-#define LCD_HSSI_DI_N_PIN   	GPIO_Pin_13
+#define LCD_HSSI_DI_N_PIN   	GPIO_PIN_13
 #define LCD_HSSI_DI_N_PORT   	GPIOF
-#define LCD_HSSI_DI_P_PIN   	GPIO_Pin_12
+#define LCD_HSSI_DI_P_PIN   	GPIO_PIN_12
 #define LCD_HSSI_DI_P_PORT   	GPIOF
 
 #endif  //LCD_CONF_H_

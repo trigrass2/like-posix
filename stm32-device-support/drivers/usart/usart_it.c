@@ -45,6 +45,7 @@
 #include "syscalls.h"
 #endif
 
+#if USE_LIKEPOSIX
 /**
  * lives in usart.c
  */
@@ -60,13 +61,9 @@ inline void usart_rx_isr(dev_ioctl_t* dev)
 	husart.Instance = ((usart_ioctl_t*)(dev->ctx))->usart;
 	if(__HAL_USART_GET_IT_SOURCE(&husart, USART_IT_RXNE) && __HAL_USART_GET_FLAG(&husart, USART_FLAG_RXNE))
 	{
-#if USE_LIKEPOSIX
 		static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		xQueueSendFromISR(dev->pipe.read, (char*)&(husart.Instance->DR), &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-#else
-        (void)dev;
-#endif
 	}
 }
 
@@ -80,26 +77,25 @@ inline void usart_tx_isr(dev_ioctl_t* dev)
 	husart.Instance = ((usart_ioctl_t*)(dev->ctx))->usart;
 	if(__HAL_USART_GET_IT_SOURCE(&husart, USART_IT_TXE) && __HAL_USART_GET_FLAG(&husart, USART_FLAG_TXE))
 	{
-#if USE_LIKEPOSIX
 		static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		if(xQueueReceiveFromISR(dev->pipe.write, (char*)&(husart.Instance->DR), &xHigherPriorityTaskWoken) == pdFALSE)
 			__HAL_USART_DISABLE_IT(&husart, USART_IT_TXE);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-#else
-		(void)dev;
-#endif
 	}
 }
 
+#endif
 
 /**
   * @brief  This function handles USART1 interrupt.
   */
 void USART1_IRQHandler(void)
 {
+#if USE_LIKEPOSIX
 	assert_true(usart_dev_ioctls[0]);
 	usart_rx_isr(usart_dev_ioctls[0]);
 	usart_tx_isr(usart_dev_ioctls[0]);
+#endif
 }
 
 /**
@@ -107,9 +103,11 @@ void USART1_IRQHandler(void)
   */
 void USART2_IRQHandler(void)
 {
+#if USE_LIKEPOSIX
 	assert_true(usart_dev_ioctls[1]);
 	usart_rx_isr(usart_dev_ioctls[1]);
 	usart_tx_isr(usart_dev_ioctls[1]);
+#endif
 }
 
 /**
@@ -117,9 +115,11 @@ void USART2_IRQHandler(void)
   */
 void USART3_IRQHandler(void)
 {
+#if USE_LIKEPOSIX
 	assert_true(usart_dev_ioctls[2]);
 	usart_rx_isr(usart_dev_ioctls[2]);
 	usart_tx_isr(usart_dev_ioctls[2]);
+#endif
 }
 
 /**
@@ -127,9 +127,11 @@ void USART3_IRQHandler(void)
   */
 void UART4_IRQHandler(void)
 {
+#if USE_LIKEPOSIX
 	assert_true(usart_dev_ioctls[3]);
 	usart_rx_isr(usart_dev_ioctls[3]);
 	usart_tx_isr(usart_dev_ioctls[3]);
+#endif
 }
 
 /**
@@ -137,9 +139,11 @@ void UART4_IRQHandler(void)
   */
 void UART5_IRQHandler(void)
 {
+#if USE_LIKEPOSIX
 	assert_true(usart_dev_ioctls[4]);
 	usart_rx_isr(usart_dev_ioctls[4]);
 	usart_tx_isr(usart_dev_ioctls[4]);
+#endif
 }
 
 #if FAMILY == STM32F4
@@ -148,9 +152,11 @@ void UART5_IRQHandler(void)
   */
  void USART6_IRQHandler(void)
  {
+#if USE_LIKEPOSIX
 	assert_true(usart_dev_ioctls[5]);
  	usart_rx_isr(usart_dev_ioctls[5]);
  	usart_tx_isr(usart_dev_ioctls[5]);
+#endif
  }
 #endif
 

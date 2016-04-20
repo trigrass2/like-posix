@@ -34,6 +34,7 @@
 
 #include "tsc2046.h"
 #include "lcd.h"
+#include "spi.h"
 
 
 #define TSC2046_START  0x80
@@ -93,115 +94,31 @@
 #endif
 
 
-#define tsc2046_select()      GPIO_ResetBits(TSC2046_NCS_PORT, TSC2046_NCS_PIN)
-#define tsc2046_deselect()    GPIO_SetBits(TSC2046_NCS_PORT, TSC2046_NCS_PIN)
+#define tsc2046_txrx(data)      spi_transfer(TSC2046_SPI_PERIPH, data)
+#define tsc2046_select()        spi_assert_nss(TSC2046_SPI_PERIPH)
+#define tsc2046_deselect()      spi_deassert_nss(TSC2046_SPI_PERIPH)
 
 void tsc2046_init()
 {
+    assert_true(spi_init(TSC2046_SPI_PERIPH, NULL, true, SPI_FULLDUPLEX));
+//    SPI_FirstBit_MSB
+//    SPI_CPOL_Low
+//    SPI_CPHA_1Edge
+    spi_set_prescaler(TSC2046_SPI_PERIPH, TSC2046_SPI_PRESC);
+
     GPIO_InitTypeDef GPIO_InitStructure;
 
-    // configure SPI port
-   // enable spi clock
-    if((TSC2046_SPI_CLOCK == RCC_APB1Periph_SPI2)||(TSC2046_SPI_CLOCK == RCC_APB1Periph_SPI3))
-        RCC_APB1PeriphClockCmd(TSC2046_SPI_CLOCK, ENABLE);
-    else if (TSC2046_SPI_CLOCK == RCC_APB2Periph_SPI1)
-        RCC_APB2PeriphClockCmd(TSC2046_SPI_CLOCK, ENABLE);
-    else
-        assert_true(0);
+    GPIO_InitStructure.Speed = GPIO_SPEED_LOW;
+    GPIO_InitStructure.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStructure.Pull = GPIO_PULLUP;
+//    GPIO_InitStructure.Pin = TSC2046_BUSY_PIN;
+//    HAL_GPIO_Init(TSC2046_BUSY_PORT, &GPIO_InitStructure);
 
-    SPI_InitTypeDef spi_init =
-    {
-        SPI_Direction_2Lines_FullDuplex,
-        SPI_Mode_Master,
-        SPI_DataSize_8b,
-        SPI_CPOL_Low,
-        SPI_CPHA_1Edge,
-        SPI_NSS_Soft,
-        TSC2046_SPI_PRESC,
-        SPI_FirstBit_MSB,
-        1
-    };
-
-    SPI_Init(TSC2046_SPI_PERIPH, &spi_init);
-    SPI_Cmd(TSC2046_SPI_PERIPH, ENABLE);
-
-    // configure IO's
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-    // input, pullup
-#if FAMILY==STM32F1
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
-#elif FAMILY==STM32F4
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-#endif
-//    GPIO_InitStructure.GPIO_Pin = TSC2046_BUSY_PIN;
-//    GPIO_Init(TSC2046_BUSY_PORT, &GPIO_InitStructure);
-
-    // input, floating
-#if FAMILY==STM32F1
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-#elif FAMILY==STM32F4
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-#endif
-    GPIO_InitStructure.GPIO_Pin = TSC2046_IRQ_PIN;
-    GPIO_Init(TSC2046_IRQ_PORT, &GPIO_InitStructure);
-
-#if FAMILY==STM32F1
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-#elif FAMILY==STM32F4
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-#endif
-
-    GPIO_InitStructure.GPIO_Pin = TSC2046_MISO_PIN;
-    GPIO_Init(TSC2046_MISO_PORT, &GPIO_InitStructure);
-#if FAMILY==STM32F4
-    GPIO_PinAFConfig(TSC2046_MISO_PORT, TSC2046_MISO_PINSOURCE, TSC2046_AF_CONFIG);
-#endif
-
-    // output push pull
-#if FAMILY==STM32F1
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-#elif FAMILY==STM32F4
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-#endif
-    GPIO_InitStructure.GPIO_Pin = TSC2046_NCS_PIN;
-    GPIO_Init(TSC2046_NCS_PORT, &GPIO_InitStructure);
-
-    // output push pull alternate function
-
-#if FAMILY==STM32F1
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-#elif FAMILY==STM32F4
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-#endif
-
-    GPIO_InitStructure.GPIO_Pin = TSC2046_SCK_PIN;
-    GPIO_Init(TSC2046_SCK_PORT, &GPIO_InitStructure);
-#if FAMILY==STM32F4
-    GPIO_PinAFConfig(TSC2046_SCK_PORT, TSC2046_SCK_PINSOURCE, TSC2046_AF_CONFIG);
-#endif
-
-    GPIO_InitStructure.GPIO_Pin = TSC2046_MOSI_PIN;
-    GPIO_Init(TSC2046_MOSI_PORT, &GPIO_InitStructure);
-#if FAMILY==STM32F4
-    GPIO_PinAFConfig(TSC2046_MOSI_PORT, TSC2046_MOSI_PINSOURCE, TSC2046_AF_CONFIG);
-#endif
+    GPIO_InitStructure.Pull = GPIO_NOPULL;
+    GPIO_InitStructure.Pin = TSC2046_IRQ_PIN;
+    HAL_GPIO_Init(TSC2046_IRQ_PORT, &GPIO_InitStructure);
 }
 
-uint8_t tsc2046_txrx(uint8_t data)
-{
-  while(SPI_I2S_GetFlagStatus(TSC2046_SPI_PERIPH, SPI_I2S_FLAG_TXE) == RESET);
-  SPI_I2S_SendData(TSC2046_SPI_PERIPH, data);
-  while (SPI_I2S_GetFlagStatus(TSC2046_SPI_PERIPH, SPI_I2S_FLAG_RXNE) == RESET);
-  return SPI_I2S_ReceiveData(TSC2046_SPI_PERIPH);
-}
 
 uint16_t tsc2046_x()
 {
