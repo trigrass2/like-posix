@@ -46,6 +46,8 @@
 #define SPI2_NSS_PIN    GPIO_PIN_12
 //#define SPI2_NSS_PORT
 //#define SPI2_NSS_PIN
+//#define SPI2_NSS_PORT
+//#define SPI2_NSS_PIN
 
 #endif /* BOARD_SPI_H_ */
 

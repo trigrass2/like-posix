@@ -24,7 +24,11 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
+<<<<<<< Updated upstream
  * This file is part of the Appleseed project, <https://github.com/drmetal/appleseed>
+=======
+ * This file is part of the Appleseed project, <https://github.com/drmetal/app-l-seed>
+>>>>>>> Stashed changes
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
