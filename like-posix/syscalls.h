@@ -41,7 +41,9 @@
 
 #include <stdint.h>
 
+#if USE_LIKEPOSIX
 #include "likeposix_config.h"
+
 #include "termios.h"
 
 #if USE_FREERTOS
@@ -78,14 +80,23 @@
 #if DEVICE_TABLE_LENGTH >=MAX_DEVICE_TABLE_ENTRIES
 #error DEVICE_TABLE_LENGTH must be less than MAX_DEVICE_TABLE_ENTRIES
 #endif
+#endif
 
-#if USE_FREERTOS
+
  typedef struct _dev_ioctl_t dev_ioctl_t;
  /**
   * function pointer to device io control functions
   */
  typedef int(*dev_ioctl_fn_t)(dev_ioctl_t*);
 
+
+#if !USE_FREERTOS || !USE_LIKEPOSIX
+
+ struct _dev_ioctl_t{
+     void* ctx;
+ };
+
+#else
  /**
   *  definition of queue pair, use for device driver communication
   */

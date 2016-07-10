@@ -27,9 +27,9 @@ endif
 # override minimal syscalls with full implementation
 SYSCALLS = $(LIKEPOSIX_DIR)/syscalls.c
 SYSCALLS += $(LIKEPOSIX_DIR)/stdlib_impl.c
-CFLAGS += -I$(LIKEPOSIX_DIR)
 endif
 
+CFLAGS += -I$(LIKEPOSIX_DIR)
 
 SOURCE += $(SYSCALLS)
 
