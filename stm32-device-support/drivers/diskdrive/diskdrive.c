@@ -30,6 +30,7 @@
  *
  */
 
+#include <stddef.h>
 #include "diskdrive.h"
 #include "ff.h"
 
