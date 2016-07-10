@@ -214,7 +214,7 @@ void HAL_SRAM_MspInit(SRAM_HandleTypeDef *hsram)
     GPIO_TypeDef* ports[] = FSMC_PORTS;
 
     // FSMC pins
-    gpio_init.Speed = GPIO_SPEED_FREQ_HIGH;
+    gpio_init.Speed = GPIO_SPEED_HIGH;
     gpio_init.Mode  = GPIO_MODE_AF_PP;
     gpio_init.Pull  = GPIO_NOPULL;
 #if FAMILY==STM32F4

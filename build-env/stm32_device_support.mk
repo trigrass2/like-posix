@@ -52,19 +52,25 @@ endif
 ## LCD
 CFLAGS += -DUSE_DRIVER_LCD=$(USE_DRIVER_LCD)
 ifeq ($(USE_DRIVER_LCD), 1)
-
 ifneq ($(USE_FREERTOS), 1) 
 $(error to use the LCD driver, USE_FREERTOS must be set to 1)
 endif
-
 CFLAGS += -I$(DRIVERSDIR)/lcd
 SOURCE += $(DRIVERSDIR)/lcd/lcd.c
-SOURCE += $(DRIVERSDIR)/touch_panel/tsc2046.c
-SOURCE += $(DRIVERSDIR)/touch_panel/touch_panel.c
-CFLAGS += -I $(DRIVERSDIR)/touch_panel
 CFLAGS += -I $(DRIVERSDIR)/lcd
 SOURCE += $(DRIVERSDIR)/lcd_backlight/lcd_backlight.c
 CFLAGS += -I $(DRIVERSDIR)/lcd_backlight
+endif
+
+# touch panel
+CFLAGS += -DUSE_DRIVER_TOUCH_PANEL=$(USE_DRIVER_TOUCH_PANEL)
+ifeq ($(USE_DRIVER_TOUCH_PANEL), 1)
+ifneq ($(USE_DRIVER_SPI), 1) 
+$(error to use the LCD Touch Panel driver, USE_DRIVER_SPI must be set to 1)
+endif
+SOURCE += $(DRIVERSDIR)/touch_panel/tsc2046.c
+SOURCE += $(DRIVERSDIR)/touch_panel/touch_panel.c
+CFLAGS += -I $(DRIVERSDIR)/touch_panel
 endif
 
 ## 1 wire

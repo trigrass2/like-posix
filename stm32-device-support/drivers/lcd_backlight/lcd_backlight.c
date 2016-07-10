@@ -31,8 +31,12 @@
  */
 #include "board_config.h"
 #include "lcd.h"
-#include "touch_panel.h"
 #include "lcd_backlight.h"
+#if USE_DRIVER_TOUCH_PANEL
+#include "touch_panel.h"
+#else
+#pragma message("building LCD Backlight without touch panel support")
+#endif
 #include "lcd_config.h"
 
 /**
@@ -58,10 +62,12 @@ void lcd_backlight_init(void)
  */
 void lcd_backlight_auto_off(bool enable)
 {
+#if USE_DRIVER_TOUCH_PANEL
     if(enable)
         touch_panel_set_activity_callbacks(lcd_backlight_enable, lcd_backlight_disable);
     else
         touch_panel_set_activity_callbacks(NULL, NULL);
+#endif
 }
 
 /**
@@ -69,7 +75,9 @@ void lcd_backlight_auto_off(bool enable)
  */
 void lcd_backlight_timeout(int timeout)
 {
+#if USE_DRIVER_TOUCH_PANEL
     touch_panel_set_inactivity_timeout(timeout/TOUCH_TASK_POLL_RATE);
+#endif
 }
 
 /**
