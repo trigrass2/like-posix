@@ -30,9 +30,7 @@
  *
  */
 
-#if USE_LIKEPOSIX
 #include "syscalls.h"
-#endif
 
 #include <stddef.h>
 #include "spi.h"
@@ -51,8 +49,8 @@ static int spi_enable_rx_ioctl(dev_ioctl_t* dev);
 
 
 // used in the interrupt handlers....
-spi_ioctl_t spi_ioctls[NUM_ONCHIP_SPIS];
 dev_ioctl_t* spi_dev_ioctls[NUM_ONCHIP_SPIS];
+spi_ioctl_t spi_ioctls[NUM_ONCHIP_SPIS];
 
 
 static int8_t get_spi_devno(SPI_TypeDef* spi);
@@ -99,12 +97,13 @@ bool spi_init(SPI_TypeDef* spi, char* filename, bool enable, spi_mode_t mode)
                                                         spi_open_ioctl,
                                                         spi_close_ioctl,
                                                         spi_ioctl);
+        ret = spi_dev_ioctls[spi_devno] != NULL;
 #else
         // todo - init fifo's and interrupts for freertos independent version
 //        spi_init_interrupt(spi, SPI_INTERRUPT_PRIORITY, true);
-        spi_dev_ioctls[spi_devno] = NULL;
+//        spi_dev_ioctls[spi_devno] = NULL;
+        ret = true;
 #endif
-        ret = spi_dev_ioctls[spi_devno] != NULL;
         log_syslog(NULL, "install spi%d: %s", spi_devno+1, ret ? "successful" : "failed");
     }
 

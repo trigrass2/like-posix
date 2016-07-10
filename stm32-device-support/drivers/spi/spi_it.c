@@ -36,9 +36,7 @@
 #include "board_config.h"
 #include "asserts.h"
 #include "spi.h"
-#if USE_LIKEPOSIX
 #include "syscalls.h"
-#endif
 
 /**
  * lives in spi.c
