@@ -22,11 +22,11 @@ BUILDNO := $(shell date +"%m:%d:%T")
 # 			  |- main.c
 #			  |- Makefile
 #			  |- etc...
-# 			  |- appleseed -|
+# 			  |- lollyjar -|
 # 			  				|- build-env
 # 			  				|- etc...
 #
-STM32DEVSUPPORTDIR ?= appleseed
+STM32DEVSUPPORTDIR ?= lollyjar
 
 ## Supported boards:
 # HY-STM32_100P

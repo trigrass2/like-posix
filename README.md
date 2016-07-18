@@ -1,10 +1,10 @@
-<img src="https://drive.google.com/uc?export=view&id=0B1Zk1jXs2BXaQ1hTSnZKN0ctaGs" /><h1>Appleseed</h1>
+<h1>LollyJar</h1>
 
-Appleseed is a mini POSIX like operating system for small microcontroller devices.
+LollyJar is a mini POSIX like operating system for small microcontroller devices.
 
-Appleseed is designed to present a development flow similar to writing c programs for Linux, for platforms that are too low on memory to run Linux.
+LollyJar is designed to present a development flow similar to writing c programs for Linux, for platforms that are too low on memory to run Linux.
 
-The point of Appleseed? To enable C programs to be written for the tiny embedded platform, that can also run without modification on a PC.
+The point of LollyJar? To enable C programs to be written for the tiny embedded platform, that can also run without modification on a PC.
 
 Multi threading kernel (FreeRTOS), networking (LwIP), filesystem (Chans FF), Serial device IO, Shell, are connected under a subset of the posix system calls and a minimal libc implementation. 
 
@@ -28,32 +28,32 @@ Many hardware peripheral drivers are also included:
 
 Presently STM32F1, STM32F4 devices are supported. Any board with almost any STM32 device on it can be supported.
 
-Demo projects are located here [Appleseed Demos](https://github.com/drmetal/stm32-demos/blob/master/README.md).
+Demo projects are located here [LollyJar Demos](https://github.com/drmetal/stm32-demos/blob/master/README.md).
 
-<h2>Including Appleseed in a project</h2>
+<h2>Including LollyJar in a project</h2>
 
 This repository may sit anywhere releative to a particular project.
 
 ```bash
-# get a copy of Appleseed
-git clone https://github.com/drmetal/appleseed.git
+# get a copy of LollyJar
+git clone https://github.com/drmetal/lollyjar.git
 ```
 
-Once you have the code on disk, include Appleseed in your project makefile, this is outlined in the next section which describes the **build-env** folder.
+Once you have the code on disk, include LollyJar in your project makefile, this is outlined in the next section which describes the **build-env** folder.
 
 
 <h4>build-env</h4>
 
-appleseed/build-env contains a bunch of makefiles and scripts that can be used to build Appleseed projects.
+lollyjar/build-env contains a bunch of makefiles and scripts that can be used to build LollyJar projects.
 
 Both STM32F1 and STM32F4 are supported, as well as multiple boards. Chip and board support is implemented in 
-appleseed/stm32-device-support/board and appleseed/stm32-device-support/device.
+lollyjar/stm32-device-support/board and lollyjar/stm32-device-support/device.
  
-The project build environment may be specified in the project makefile, by including appleseed/build-env/setup.mk in the project makefile. setup.mk contains the full set of configuration options.
+The project build environment may be specified in the project makefile, by including lollyjar/build-env/setup.mk in the project makefile. setup.mk contains the full set of configuration options.
 
 All of the settings in **setup.mk** may be overridden in your project makefile, or as environment variables, or from the command line.
 
-Project configuration makes up the first section of the project makefile. **setup.mk** must be included at the end of your Makefile, to enable building with Appleseed.
+Project configuration makes up the first section of the project makefile. **setup.mk** must be included at the end of your Makefile, to enable building with LollyJar.
 
 Here is an example:
 
@@ -86,7 +86,7 @@ USE_DRIVER_SDCARD = 1
 USE_DRIVER_FAT_FILESYSTEM = 1
 
 ## be sure to include the other makefiles
-include ../appleseed/build-env/setup.mk
+include ../lollyjar/build-env/setup.mk
 ```
 
 <h4>build options</h4>
@@ -285,8 +285,8 @@ relies upon:
  - the file likeposix_config.h (modified for a specific project)
 
 To find which system calls are implemented, see:
- - appleseed/like-posix/syscalls.c
- - appleseed/minlibc/*.c
+ - lollyjar/like-posix/syscalls.c
+ - lollyjar/minlibc/*.c
  
 in general support for time.h, stat.h, dirent.h, stdio.h, stdlib.h, string.h, termios.h, unistd.h is ongoing.
 where a function exists in newlib but is very large, it will be replaced. 
@@ -377,7 +377,7 @@ The code is targeted for use on small embedded targets where memory is limited.
 the minimal standard io code has some dependancies - the functions _read, _write, _lseek, _ftell 
 must be defined somewhere in your project.
 
-under Appleseed they are defined in syscalls.c
+under LollyJar they are defined in syscalls.c
 
 supported string formatting:
 
@@ -420,7 +420,7 @@ source ~/.bashrc
 Building and runnning the tests
 
 ```
-cd appleseed/minlibc/test
+cd lollyjar/minlibc/test
 ./runtest.sh
 ```
 
@@ -459,7 +459,7 @@ provides a JSON object/array accessor API supporting keying/indexing and iterati
 
 <h2>Third Party</h2>
 
-There are several third party libraries used by Appleseed.
+There are several third party libraries used by LollyJar.
 
 <h4>LwIP</h4>
 obtained from:
@@ -472,9 +472,9 @@ currently at V1.4.1
 
 obtained from: http://elm-chan.org/fsw/ff/00index_e.html
 
- - Appleseed adds a diskio interface for stm32 microcontrollers.
- - Appleseed additions rely upon the cutensils module 
- - Appleseed additions rely upon the stm32-device-support module, for sdcard.h and sdcard driver implementation(s)
+ - LollyJar adds a diskio interface for stm32 microcontrollers.
+ - LollyJar additions rely upon the cutensils module 
+ - LollyJar additions rely upon the stm32-device-support module, for sdcard.h and sdcard driver implementation(s)
  
 currently at V0.11
 
@@ -492,7 +492,7 @@ obtained from:
 
 bitbucket.org/zserge/jsmn
 
-Note: can be used in conjunction with the Appleseed JSON API  **jsmn_extensions**.
+Note: can be used in conjunction with the LollyJar JSON API  **jsmn_extensions**.
 
 <h4>STM32Fxx Standard Peripheral Libraries</h4>
 

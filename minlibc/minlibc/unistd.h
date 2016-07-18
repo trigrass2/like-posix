@@ -24,7 +24,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the Appleseed project, <https://github.com/drmetal/appleseed>
+ * This file is part of the lollyjar project, <https://github.com/drmetal/lollyjar>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
@@ -42,7 +42,7 @@ extern "C" {
 
 /**
  * the following must be defined somewhere for stdio to link.
- * see appleseed syscalls.c
+ * see lollyjar syscalls.c
  */
 
 extern int _dup(int fdes);

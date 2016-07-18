@@ -65,7 +65,7 @@
 
 /*********************************************************************************
  *
- * hacked on the side of freertos by Mike Stuart for the appleseed project
+ * hacked on the side of freertos by Mike Stuart for the lollyjar project
  *
  * this is a direct copy of the original heap_2.c supplied with freertos, but with
  * the heap memory pointer changed to allocate inside an arbitrary memory location.

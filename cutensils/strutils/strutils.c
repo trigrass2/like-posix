@@ -24,7 +24,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the Appleseed project, <https://github.com/drmetal/appleseed>
+ * This file is part of the lollyjar project, <https://github.com/drmetal/lollyjar>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
@@ -245,7 +245,7 @@ char* ftoascii(char *dst, float num, int dp)
 }
 
 /**
- * todo - should be "%%lld.%%.%dlld" and cast to (long long int), but appleseed printf cant do lld yet.
+ * todo - should be "%%lld.%%.%dlld" and cast to (long long int), but lollyjar printf cant do lld yet.
  */
 char* dtoascii(char *dst, double num, int dp)
 {

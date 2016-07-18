@@ -23,7 +23,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the Appleseed project, <https://github.com/drmetal/appleseed>
+ * This file is part of the lollyjar project, <https://github.com/drmetal/lollyjar>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
@@ -40,7 +40,7 @@ int sprintf(char* dst, const char* fmt, ...)
 int vprintf(const char * fmt, va_list argp)
 int printf(const char * fmt, ...)
 
-void init_minlibc() (must be called in crt initialization (init_services under appleseed))
+void init_minlibc() (must be called in crt initialization (see init_services() under the lollyjar c runtime))
 
 int setvbuf(FILE *stream, char *buf, int mode, size_t size) (not functional)
 FILE* fopen(const char * filename, const char * mode)

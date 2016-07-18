@@ -1,5 +1,5 @@
 
-## default board dir is in the appleseed DEVICE_SUPPORT_DIR location
+## default board dir is in the lollyjar DEVICE_SUPPORT_DIR location
 # override BOARDDIR in custom board configuration board.mk
 BOARDDIR ?= $(DEVICE_SUPPORT_DIR)/board
 
