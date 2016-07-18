@@ -29,7 +29,7 @@
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
  */
-
+#include <stdlib.h>
 #include "sdcard_diskio.h"
 #include "sdcard.h"
 
@@ -58,7 +58,18 @@ FRESULT sdcard_mount(disk_interface_t* disk, char drive)
 	res = f_mount(&disk->volume.fs, disk->volume.lvn, 1);
 
 	if(res == FR_NO_FILESYSTEM)
-		res = f_mkfs(disk->volume.lvn, 0, 0);
+	{
+//	    // r11
+//		// res = f_mkfs(disk->volume.lvn, 0, 0);
+
+	    // r12a
+	    char* workarea = malloc(512);
+	    if(workarea)
+	    {
+	        res = f_mkfs(disk->volume.lvn, FM_ANY, 0, workarea, 512);
+	        free(workarea);
+	    }
+	}
 
 	return res;
 }

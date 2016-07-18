@@ -71,13 +71,14 @@ DIR* opendir(const char *name)
  */
 int closedir(DIR *dir)
 {
+    FRESULT res = FR_INVALID_OBJECT;
     if(dir)
     {
-//        f_closedir(dir);
+        res = f_closedir(dir);
         free(dir);
     }
 
-    return 0;
+    return res;
 }
 
 /**
@@ -87,6 +88,7 @@ int closedir(DIR *dir)
  */
 struct dirent* readdir(DIR *dirp)
 {
+#if r11
     FILINFO info;
 
     info.lfname = _dirent.d_name;
@@ -105,6 +107,24 @@ struct dirent* readdir(DIR *dirp)
         _dirent.d_type = DT_DIR;
 
     return &_dirent;
+#else
+    FILINFO info;
+
+    _dirent.d_name = info.fname;
+    _dirent.d_name[0] = '\0';
+    _dirent.d_type = DT_REG;
+
+    if(f_readdir(dirp, &info) != FR_OK || !info.fname[0])
+        return NULL;
+
+    if(_dirent.d_name[0] == '\0')
+        _dirent.d_name = info.altname;
+
+    if(info.fattrib & AM_DIR)
+        _dirent.d_type = DT_DIR;
+
+    return &_dirent;
+#endif
 }
 
 

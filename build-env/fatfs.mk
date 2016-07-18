@@ -21,11 +21,11 @@ ifneq ($(fatfs_driver_enabled), 1)
 $(error to use FATFS, set USE_DRIVER_SDCARD=1 and/or USE_DRIVER_RAMDISK=1. if SPI sdcard mode is set in boardname.bsp/sdcard_config.h, then set USE_DRIVER_SPI=1)
 endif
 
-SOURCE += $(FATFS_DIR)/core/option/syscall.c
-SOURCE += $(FATFS_DIR)/core/option/ccsbcs.c
-SOURCE += $(FATFS_DIR)/core/ff.c
+SOURCE += $(FATFS_DIR)/r12a/option/syscall.c
+SOURCE += $(FATFS_DIR)/r12a/option/ccsbcs.c
+SOURCE += $(FATFS_DIR)/r12a/ff.c
 
-CFLAGS += -I$(FATFS_DIR)/core
+CFLAGS += -I$(FATFS_DIR)/r12a
 
 CFLAGS += -D _FS_LOCK=$(_FS_LOCK)
 CFLAGS += -D _FS_TINY=$(_FS_TINY)

@@ -40,7 +40,11 @@
 
 struct dirent {
     unsigned char  d_type;      /* type of file; not supported by all file system types */
+#if FFr11
     char           d_name[256]; /* filename */
+#else
+    char*           d_name; /* filename */
+#endif
 };
 
 DIR* opendir(const char *name);

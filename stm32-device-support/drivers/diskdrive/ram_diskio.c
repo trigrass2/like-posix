@@ -33,6 +33,7 @@
 
 #include "ram_diskio.h"
 
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -69,7 +70,19 @@ FRESULT ramdisk_mount(disk_interface_t* disk, char drive, ramdisk_t* ramdisk, vo
 	res = f_mount(&disk->volume.fs, disk->volume.lvn, 1);
 
 	if(res == FR_NO_FILESYSTEM)
-		res = f_mkfs(disk->volume.lvn, 1, RAMDISK_CLUSTER_SIZE);
+	{
+	    // r11
+		//res = f_mkfs(disk->volume.lvn, 1, RAMDISK_CLUSTER_SIZE);
+
+	    // r12a
+	    char* workarea = malloc(512);
+	    if(workarea)
+	    {
+	        res = f_mkfs(disk->volume.lvn, FM_SFD, RAMDISK_CLUSTER_SIZE, workarea, 512);
+	        free(workarea);
+	    }
+	}
+
 
     char* lvn = diskdrive_logical_drive_number();
 	f_chdrive(disk->volume.lvn);
