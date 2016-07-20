@@ -174,7 +174,11 @@ void lcd_set_power(void)
 
 void LCD_FSMCConfig(void)
 {
+#if FAMILY == STM32F4
     FMC_NORSRAM_TimingTypeDef Timing;
+#elif FAMILY == STM32F1
+    FSMC_NORSRAM_TimingTypeDef Timing;
+#endif
 
     hsram.Instance  = FSMC_NORSRAM_DEVICE;
     hsram.Extended  = FSMC_NORSRAM_EXTENDED_DEVICE;
