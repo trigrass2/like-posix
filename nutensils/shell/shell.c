@@ -122,6 +122,7 @@
 #endif
 
 
+static void threaded_instance(shellserver_t* shell);
 static char shell_prompt_string[SHELL_CWD_LENGTH_MAX];
 
 typedef struct
@@ -204,7 +205,7 @@ int start_shell(shellserver_t* shell, shell_cmd_t* commandset, const char* confi
     else if(threaded)
     {
     	TaskHandle_t th;
-        if(xTaskCreate((TaskFunction_t)shell_instance, "shell", configMINIMAL_STACK_SIZE + SHELL_TASK_STACK_SIZE,
+        if(xTaskCreate((TaskFunction_t)threaded_instance, "shell", configMINIMAL_STACK_SIZE + SHELL_TASK_STACK_SIZE,
         				shell, tskIDLE_PRIORITY + SHELL_TASK_PRIORITY, &th) != pdPASS) {
 
         }
@@ -232,6 +233,11 @@ int _system(const char* inputstr)
     shell.exit_on_eof = true;
     shell_instance(&shell, inputstr);
     return 0;
+}
+
+void threaded_instance(shellserver_t* shell)
+{
+    shell_instance(shell, NULL);
 }
 
 /**
