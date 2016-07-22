@@ -174,9 +174,9 @@ void lcd_set_power(void)
 
 void LCD_FSMCConfig(void)
 {
-#if FAMILY == STM32F4
+#if defined(FMC_NORSRAM_TimingTypeDef)
     FMC_NORSRAM_TimingTypeDef Timing;
-#elif FAMILY == STM32F1
+#else
     FSMC_NORSRAM_TimingTypeDef Timing;
 #endif
 
@@ -188,8 +188,8 @@ void LCD_FSMCConfig(void)
     Timing.AddressHoldTime        = 1;
     Timing.DataSetupTime          = 3;//2;
     Timing.BusTurnAroundDuration  = 0;//1;
-    Timing.CLKDivision            = 0;//2;
-    Timing.DataLatency            = 0;//2;
+    Timing.CLKDivision            = 2;//2;
+    Timing.DataLatency            = 2;//2;
     Timing.AccessMode             = FSMC_ACCESS_MODE_A;
 
     hsram.Init.NSBank             = FSMC_NORSRAM_BANK1;
