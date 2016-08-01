@@ -137,83 +137,56 @@ char phy_getc(void)
  */
 void usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t mode)
 {
-    USART_HandleTypeDef husart = {
-    		.Instance = usart,
-			.Init = {
-					.BaudRate = USART_DEFAULT_BAUDRATE,
-					.WordLength = USART_WORDLENGTH_8B,
-					.StopBits = USART_STOPBITS_1,
-					.Parity = USART_PARITY_NONE,
-					.Mode = USART_MODE_TX_RX,
-					.CLKPolarity = USART_POLARITY_LOW,
-					.CLKPhase = USART_PHASE_1EDGE,
-					.CLKLastBit = USART_LASTBIT_ENABLE
-			},
-			.pTxBuffPtr = NULL,
-			.TxXferSize = 0,
-			.TxXferCount = 0,
-			.pRxBuffPtr = NULL,
-			.RxXferSize = 0,
-			.RxXferCount = 0,
-			.hdmatx = NULL,
-			.hdmarx = NULL,
-			.Lock = HAL_UNLOCKED,
-			.State = HAL_USART_STATE_RESET,
-			.ErrorCode = 0
-    };
-
-	switch(mode)
-	{
-		case USART_ONEWIRE:
-			husart.Init.Mode = USART_MODE_TX_RX;
-		break;
-
-		case USART_FULLDUPLEX:
-		default:
-			husart.Init.Mode = USART_MODE_TX_RX;
-		break;
-	}
-
     if(enable)
-    	HAL_USART_Init(&husart);
+    {
+        if(usart == USART1)
+            __HAL_RCC_USART1_CLK_ENABLE();
+        else if(usart == USART2)
+            __HAL_RCC_USART2_CLK_ENABLE();
+        else if(usart == USART3)
+            __HAL_RCC_USART3_CLK_ENABLE();
+        else if(usart == UART4)
+            __HAL_RCC_UART4_CLK_ENABLE();
+        else if(usart == UART5)
+            __HAL_RCC_UART5_CLK_ENABLE();
+#if FAMILY == STM32F4
+        else if(usart == USART6)
+            __HAL_RCC_USART6_CLK_ENABLE();
+#endif
+
+        usart->CR3 = 0U;
+        usart->CR1 = USART_CR1_UE | USART_CR1_OVER8;
+        usart->CR2 = 0U;
+        usart->GTPR = 0U;
+
+        switch(mode)
+        {
+            case USART_FULLDUPLEX:
+            case USART_ONEWIRE:
+            default:
+                usart->CR1 |= USART_CR1_TE | USART_CR1_RE;
+            break;
+        }
+
+        usart_set_baudrate(usart, USART_DEFAULT_BAUDRATE);
+    }
     else
-    	HAL_USART_DeInit(&husart);
-}
-
-void HAL_USART_MspInit(USART_HandleTypeDef *husart)
-{
-	if(husart->Instance == USART1)
-		__HAL_RCC_USART1_CLK_ENABLE();
-	if(husart->Instance == USART2)
-		__HAL_RCC_USART2_CLK_ENABLE();
-	if(husart->Instance == USART3)
-		__HAL_RCC_USART3_CLK_ENABLE();
-	if(husart->Instance == UART4)
-		__HAL_RCC_UART4_CLK_ENABLE();
-	if(husart->Instance == UART5)
-		__HAL_RCC_UART5_CLK_ENABLE();
-#if FAMILY == STM32F4
-	if(husart->Instance == USART6)
-		__HAL_RCC_USART6_CLK_ENABLE();
-#endif
-}
-
-void HAL_USART_MspDeInit(USART_HandleTypeDef *husart)
-{
-	if(husart->Instance == USART1)
-		__HAL_RCC_USART1_CLK_DISABLE();
-	if(husart->Instance == USART2)
-		__HAL_RCC_USART2_CLK_DISABLE();
-	if(husart->Instance == USART3)
-		__HAL_RCC_USART3_CLK_DISABLE();
-	if(husart->Instance == UART4)
-		__HAL_RCC_UART4_CLK_DISABLE();
-	if(husart->Instance == UART5)
-		__HAL_RCC_UART5_CLK_DISABLE();
-#if FAMILY == STM32F4
-	if(husart->Instance == USART6)
-		__HAL_RCC_USART6_CLK_DISABLE();
-#endif
+    {
+        if(usart == USART1)
+            __HAL_RCC_USART1_CLK_DISABLE();
+        else if(usart == USART2)
+            __HAL_RCC_USART2_CLK_DISABLE();
+        else if(usart == USART3)
+            __HAL_RCC_USART3_CLK_DISABLE();
+        else if(usart == UART4)
+            __HAL_RCC_UART4_CLK_DISABLE();
+        else if(usart == UART5)
+            __HAL_RCC_UART5_CLK_DISABLE();
+    #if FAMILY == STM32F4
+        else if(usart == USART6)
+            __HAL_RCC_USART6_CLK_DISABLE();
+    #endif
+    }
 }
 
 /**
@@ -231,7 +204,7 @@ void usart_init_gpio(USART_TypeDef* usart, usart_mode_t mode)
 	switch(mode)
 	{
 		case USART_ONEWIRE:
-			GPIO_InitStructure_rx.Mode = GPIO_MODE_INPUT;
+			GPIO_InitStructure_rx.Mode = GPIO_MODE_AF_PP;
 			GPIO_InitStructure_rx.Pull = GPIO_PULLUP;
 			GPIO_InitStructure_rx.Speed = GPIO_SPEED_MEDIUM;
 			GPIO_InitStructure_tx.Mode = GPIO_MODE_AF_OD;
@@ -241,7 +214,7 @@ void usart_init_gpio(USART_TypeDef* usart, usart_mode_t mode)
 
 		case USART_FULLDUPLEX:
 		default:
-			GPIO_InitStructure_rx.Mode = GPIO_MODE_INPUT;
+			GPIO_InitStructure_rx.Mode = GPIO_MODE_AF_PP;
 			GPIO_InitStructure_rx.Pull = GPIO_PULLUP;
 			GPIO_InitStructure_rx.Speed = GPIO_SPEED_MEDIUM;
 			GPIO_InitStructure_tx.Mode = GPIO_MODE_AF_PP;
