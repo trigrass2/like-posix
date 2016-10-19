@@ -30,6 +30,30 @@ Presently STM32F1, STM32F4 devices are supported. Any board with almost any STM3
 
 Demo projects are located here [LollyJar Demos](https://github.com/drmetal/stm32-demos/blob/master/README.md).
 
+<h2> Compiler </h2>
+
+Download and install the arm-none-eabi tool set from:
+
+[https://launchpad.net/gcc-arm-embedded/+download](https://launchpad.net/gcc-arm-embedded/+download).
+
+For example under windows: 
+
+- choose  gcc-arm-none-eabi-5_4-2016q3-20160926-win32.exe and install.
+- add "C:\Program Files (x86)\GNU Tools ARM Embedded\5.4 2016q3\bin" to your PATH
+
+Under linux choose the bz2 archive - unpack to a location, eg /opt/ARM/ and then add the bin directory to your PATH.
+
+The programs *sed* and *make* are required by the build system. Under windows this must be downloaded and installed.
+
+[http://gnuwin32.sourceforge.net/downlinks/sed.php](http://gnuwin32.sourceforge.net/downlinks/sed.php)
+[http://gnuwin32.sourceforge.net/downlinks/make.php](http://gnuwin32.sourceforge.net/downlinks/make.php)
+
+For example under windows:
+
+- download each and install.
+- add "C:\Program Files (x86)\GnuWin32\bin" to your PATH
+
+
 <h2>Including LollyJar in a project</h2>
 
 This repository may sit anywhere releative to a particular project.
