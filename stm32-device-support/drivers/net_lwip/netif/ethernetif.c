@@ -39,6 +39,7 @@
 
 #include "ethernetif.h"
 
+#include <unistd.h>
 #include <string.h>
 #include "net.h"
 #include "lwip/mem.h"
@@ -50,6 +51,15 @@
 /* Network interface name */
 #define IFNAME0 'e'
 #define IFNAME1 't'
+
+void eth_reset_phy()
+{
+#ifdef ETH_NRST_PORT
+	HAL_GPIO_WritePin(ETH_NRST_PORT, ETH_NRST_PIN, GPIO_PIN_RESET);
+	usleep(100000);
+	HAL_GPIO_WritePin(ETH_NRST_PORT, ETH_NRST_PIN, GPIO_PIN_SET);
+#endif
+}
 
 #if USE_DRIVER_MII_RMII_PHY && USE_DRIVER_LWIP_NET
 
@@ -110,7 +120,7 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef *heth)
 	GPIO_InitStructure.Alternate = GPIO_AF0_MCO;
 #endif
 
-#ifdef ETH_USE_MCO
+#if ETH_USE_MCO
 	// Configure MCO
 	GPIO_InitStructure.Pin = ETH_MCO_PIN;
 	HAL_GPIO_Init(ETH_MCO_PORT, &GPIO_InitStructure);
@@ -145,7 +155,47 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef *heth)
 	__HAL_RCC_ETHMAC_CLK_ENABLE();
 	__HAL_RCC_ETHMACTX_CLK_ENABLE();
 	__HAL_RCC_ETHMACRX_CLK_ENABLE();
+
+#ifdef ETH_NRST_PORT
+	GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStructure.Pull = GPIO_NOPULL;
+#if FAMILY == STM32F4
+	GPIO_InitStructure.Alternate = 0;
+#endif
+	GPIO_InitStructure.Pin = ETH_NRST_PIN;
+	HAL_GPIO_Init(ETH_NRST_PORT, &GPIO_InitStructure);
+#endif
+
+#ifdef ETH_NINT_PORT
+	GPIO_InitStructure.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStructure.Pull = GPIO_PULLUP;
+	GPIO_InitStructure.Pin = ETH_NINT_PIN;
+	HAL_GPIO_Init(ETH_NINT_PORT, &GPIO_InitStructure);
+#endif
 }
+
+#ifdef M88E6063_PHY
+
+/**
+ * enables/disables a switch port (0-6 on the marvell 88e6063 switch). state is 1 for on, 0 for off.
+ */
+void ethernetif_enable_m88e6063_switch_port(uint8_t port, uint8_t state)
+{
+	uint32_t regvalue;
+	uint32_t regvalue1;
+	EthHandle.Init.PhyAddress = SWITCH_0_ADDRESS + port;
+	HAL_ETH_ReadPHYRegister(&EthHandle, SWITCH_PORT_CONTROL_REGISTER, &regvalue);
+	if(state) {
+		regvalue1 = regvalue | SWITCH_PORT_CONTROL_REGISTER_PORT_STATE0 | SWITCH_PORT_CONTROL_REGISTER_PORT_STATE1;
+	}
+	else {
+		regvalue1 = regvalue & ~(SWITCH_PORT_CONTROL_REGISTER_PORT_STATE0 | SWITCH_PORT_CONTROL_REGISTER_PORT_STATE1);
+	}
+//	printf("\n%s switch port %d: r%x %d -> %d", state ? "enable" : "disable", port, heth.Init.PhyAddress, regvalue, regvalue1);
+	HAL_ETH_WritePHYRegister(&EthHandle, SWITCH_PORT_CONTROL_REGISTER, regvalue1);
+}
+
+#endif
 
 /**
   * @brief In this function, the hardware should be initialized.
@@ -158,13 +208,19 @@ static void low_level_init(struct netif *netif)
 {
   uint32_t regvalue = 0;
 
+  eth_reset_phy();
+
   EthHandle.Instance = ETH;
   EthHandle.State = HAL_ETH_STATE_RESET;
   EthHandle.Init.MACAddr = netif->hwaddr;
   EthHandle.Init.AutoNegotiation = ETH_AUTONEGOTIATION_ENABLE;
   EthHandle.Init.Speed = ETH_SPEED_100M;
   EthHandle.Init.DuplexMode = ETH_MODE_FULLDUPLEX;
+#ifndef NET_PHY_MODE_RMII
   EthHandle.Init.MediaInterface = ETH_MEDIA_INTERFACE_MII;
+#else
+  EthHandle.Init.MediaInterface = ETH_MEDIA_INTERFACE_RMII;
+#endif
   EthHandle.Init.RxMode = ETH_RXINTERRUPT_MODE;
   EthHandle.Init.ChecksumMode = ETH_CHECKSUM_BY_HARDWARE;
   EthHandle.Init.PhyAddress = PHY_ADDRESS;
@@ -179,6 +235,9 @@ static void low_level_init(struct netif *netif)
 	  // TODO - do what?
   }
 
+  // hack on to allow multicast
+  EthHandle.Instance->MACFFR |= ETH_MULTICASTFRAMESFILTER_NONE;
+
   /* Initialize Tx Descriptors list: Chain Mode */
   HAL_ETH_DMATxDescListInit(&EthHandle, DMATxDscrTab, &Tx_Buff[0][0], ETH_TXBUFNB);
 
@@ -188,7 +247,30 @@ static void low_level_init(struct netif *netif)
   /* Enable MAC and DMA transmission and reception */
   HAL_ETH_Start(&EthHandle);
 
-  /**** Configure PHY to generate an interrupt when Eth Link state changes ****/
+
+#ifdef M88E6063_PHY // this is a switch, its a bit different to all the basic phys
+
+    /**** Configure PHY to generate an interrupt when Eth Link state changes ****/
+    EthHandle.Init.PhyAddress = SWITCH_GLOBAL_CONTROL_ADDRESS;
+  	// enable phy interrupt pin on the switch, disable all other interrupts
+  	regvalue = SWITCH_GLOBAL_CONTROL_REGISTER_PHY_INT_EN;
+  	HAL_ETH_WritePHYRegister(&EthHandle, SWITCH_GLOBAL_CONTROL_REGISTER, regvalue);
+  	// clear eeprom done interrupt (and all pending global interrupts) by reading
+  	HAL_ETH_ReadPHYRegister(&EthHandle, SWITCH_GLOBAL_STATUS_REGISTER, &regvalue);
+
+  	EthHandle.Init.PhyAddress = BSP_LINK_STATUS_INDICATOR_PHY_ADDRESS;
+  	// enable phy link status interrupt
+  	HAL_ETH_ReadPHYRegister(&EthHandle, PHY_INTERRUPT_ENABLE_REGISTER, &regvalue);
+  	regvalue |= PHY_INTERRUPT_ENABLE_REGISTER_LINK_INT_EN;
+  	HAL_ETH_WritePHYRegister(&EthHandle, PHY_INTERRUPT_ENABLE_REGISTER, regvalue);
+
+    // enable forwarding on all switch ports
+  	for(uint8_t i = 0; i < 7 ; i++){
+  		ethernetif_enable_m88e6063_switch_port(i, 1);
+  	}
+#else
+
+    /**** Configure PHY to generate an interrupt when Eth Link state changes ****/
   /* Read Register Configuration */
   HAL_ETH_ReadPHYRegister(&EthHandle, PHY_MICR, &regvalue);
 
@@ -205,6 +287,7 @@ static void low_level_init(struct netif *netif)
 
   /* Enable Interrupt on change of link status */
   HAL_ETH_WritePHYRegister(&EthHandle, PHY_MISR, regvalue);
+#endif
 }
 
 /**
