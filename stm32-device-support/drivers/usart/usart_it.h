@@ -47,9 +47,9 @@ void USART2_IRQHandler(void);
 void USART3_IRQHandler(void);
 void UART4_IRQHandler(void);
 void UART5_IRQHandler(void);
-#if FAMILY == STM32F4
 void USART6_IRQHandler(void);
-#endif
+void UART7_IRQHandler(void);
+void UART8_IRQHandler(void);
 #endif
 
 

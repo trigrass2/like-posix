@@ -96,12 +96,29 @@
 #define UART5_RX_PIN GPIO_PIN_2
 #define UART5_CLOCK RCC_APB1Periph_UART5
 
-#if FAMILY == STM32F4
+#ifdef USART6
 #define USART6_PORT GPIOC
 #define USART6_TX_PIN GPIO_PIN_6
 #define USART6_RX_PIN GPIO_PIN_7
 #define USART6_CLOCK RCC_APB2Periph_USART6
 #endif
+
+#ifdef UART7
+#define UART7_RX_PORT GPIOF
+#define UART7_TX_PORT GPIOF
+#define UART7_TX_PIN GPIO_PIN_7
+#define UART7_RX_PIN GPIO_PIN_6
+#define UART7_CLOCK RCC_APB1Periph_UART7
+#endif
+
+#ifdef UART8
+#define UART8_RX_PORT GPIOE
+#define UART8_TX_PORT GPIOE
+#define UART8_TX_PIN GPIO_PIN_1
+#define UART8_RX_PIN GPIO_PIN_0
+#define UART8_CLOCK RCC_APB1Periph_UART8
+#endif
+
 
 #endif /* BASE_USART_H_ */
 

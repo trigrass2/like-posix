@@ -49,7 +49,7 @@
 /**
  * lives in usart.c
  */
-extern dev_ioctl_t* usart_dev_ioctls[6];
+extern dev_ioctl_t* usart_dev_ioctls[8];
 
 /**
   * @brief	function called by the USART receive register not empty interrupt.
@@ -146,7 +146,7 @@ void UART5_IRQHandler(void)
 #endif
 }
 
-#if FAMILY == STM32F4
+#ifdef USART6
 /**
   * @brief  This function handles USART6 interrupt.
   */
@@ -157,6 +157,34 @@ void UART5_IRQHandler(void)
  	usart_rx_isr(usart_dev_ioctls[5]);
  	usart_tx_isr(usart_dev_ioctls[5]);
 #endif
+ }
+#endif
+
+#ifdef UART7
+ /**
+   * @brief  This function handles UART7 interrupt.
+   */
+ void UART7_IRQHandler(void)
+ {
+ #if USE_LIKEPOSIX
+ 	assert_true(usart_dev_ioctls[6]);
+ 	usart_rx_isr(usart_dev_ioctls[6]);
+ 	usart_tx_isr(usart_dev_ioctls[6]);
+ #endif
+ }
+#endif
+
+#ifdef UART8
+ /**
+   * @brief  This function handles UART8 interrupt.
+   */
+ void UART8_IRQHandler(void)
+ {
+ #if USE_LIKEPOSIX
+ 	assert_true(usart_dev_ioctls[7]);
+ 	usart_rx_isr(usart_dev_ioctls[7]);
+ 	usart_tx_isr(usart_dev_ioctls[7]);
+ #endif
  }
 #endif
 

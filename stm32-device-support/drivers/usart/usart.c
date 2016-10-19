@@ -93,8 +93,8 @@ static int usart_close_ioctl(dev_ioctl_t* dev);
 static int usart_open_ioctl(dev_ioctl_t* dev);
 static int usart_enable_tx_ioctl(dev_ioctl_t* dev);
 static int usart_enable_rx_ioctl(dev_ioctl_t* dev);
-usart_ioctl_t usart_ioctls[6];
-dev_ioctl_t* usart_dev_ioctls[6];
+usart_ioctl_t usart_ioctls[8];
+dev_ioctl_t* usart_dev_ioctls[8];
 #endif
 
 
@@ -149,9 +149,17 @@ void usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t mode)
             __HAL_RCC_UART4_CLK_ENABLE();
         else if(usart == UART5)
             __HAL_RCC_UART5_CLK_ENABLE();
-#if FAMILY == STM32F4
+#ifdef USART6
         else if(usart == USART6)
             __HAL_RCC_USART6_CLK_ENABLE();
+#endif
+#ifdef UART7
+        else if(usart == UART7)
+            __HAL_RCC_UART7_CLK_ENABLE();
+#endif
+#ifdef UART8
+        else if(usart == UART8)
+            __HAL_RCC_UART8_CLK_ENABLE();
 #endif
 
         usart->CR3 = 0U;
@@ -182,10 +190,18 @@ void usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t mode)
             __HAL_RCC_UART4_CLK_DISABLE();
         else if(usart == UART5)
             __HAL_RCC_UART5_CLK_DISABLE();
-    #if FAMILY == STM32F4
+#ifdef USART6
         else if(usart == USART6)
             __HAL_RCC_USART6_CLK_DISABLE();
-    #endif
+#endif
+#ifdef UART7
+        else if(usart == UART7)
+        	__HAL_RCC_UART7_CLK_DISABLE();
+#endif
+#ifdef UART8
+        else if(usart == UART8)
+        	__HAL_RCC_UART8_CLK_DISABLE();
+#endif
     }
 }
 
@@ -294,7 +310,7 @@ void usart_init_gpio(USART_TypeDef* usart, usart_mode_t mode)
     	HAL_GPIO_Init(UART5_TX_PORT, &GPIO_InitStructure_tx);
     	HAL_GPIO_Init(UART5_RX_PORT, &GPIO_InitStructure_rx);
     }
-#if FAMILY == STM32F4
+#ifdef USART6
     else if(usart == USART6)
     {
     	GPIO_InitStructure_tx.Alternate = GPIO_AF8_USART6;
@@ -303,6 +319,28 @@ void usart_init_gpio(USART_TypeDef* usart, usart_mode_t mode)
     	GPIO_InitStructure_rx.Pin = USART6_RX_PIN;
     	HAL_GPIO_Init(USART6_PORT, &GPIO_InitStructure_tx);
     	HAL_GPIO_Init(USART6_PORT, &GPIO_InitStructure_rx);
+    }
+#endif
+#ifdef UART7
+    else if(usart == UART7)
+    {
+    	GPIO_InitStructure_tx.Alternate = GPIO_AF8_UART7;
+    	GPIO_InitStructure_rx.Alternate = GPIO_AF8_UART7;
+    	GPIO_InitStructure_tx.Pin = UART7_TX_PIN;
+    	GPIO_InitStructure_rx.Pin = UART7_RX_PIN;
+    	HAL_GPIO_Init(UART7_TX_PORT, &GPIO_InitStructure_tx);
+    	HAL_GPIO_Init(UART7_RX_PORT, &GPIO_InitStructure_rx);
+    }
+#endif
+#ifdef UART8
+    else if(usart == UART8)
+    {
+    	GPIO_InitStructure_tx.Alternate = GPIO_AF8_UART8;
+    	GPIO_InitStructure_rx.Alternate = GPIO_AF8_UART8;
+    	GPIO_InitStructure_tx.Pin = UART8_TX_PIN;
+    	GPIO_InitStructure_rx.Pin = UART8_RX_PIN;
+    	HAL_GPIO_Init(UART8_TX_PORT, &GPIO_InitStructure_tx);
+    	HAL_GPIO_Init(UART8_RX_PORT, &GPIO_InitStructure_rx);
     }
 #endif
 }
@@ -319,9 +357,17 @@ int8_t get_usart_devno(USART_TypeDef* usart)
 		return 3;
 	else if (usart == UART5)
 		return 4;
-#if FAMILY == STM32F4
+#ifdef USART6
 	else if (usart == USART6)
 		return 5;
+#endif
+#ifdef UART7
+	else if (usart == UART7)
+		return 6;
+#endif
+#ifdef UART8
+	else if (usart == UART8)
+		return 7;
 #endif
 	return -1;
 }
@@ -405,12 +451,20 @@ void usart_init_interrupt(USART_TypeDef* usart, uint8_t priority, bool enable)
 		irq = UART4_IRQn;
 	else if (usart == UART5)
 		irq = UART5_IRQn;
-#if FAMILY == STM32F4
+#ifdef USART6
 	else if (usart == USART6)
 		irq = USART6_IRQn;
+#endif
+#ifdef UART7
+	else if (usart == UART7)
+		irq = UART7_IRQn;
+#endif
+#ifdef UART8
+	else if (usart == UART8)
+		irq = UART8_IRQn;
+#endif
 	else
 		assert_true(0);
-#endif
 
     if(enable)
     {
