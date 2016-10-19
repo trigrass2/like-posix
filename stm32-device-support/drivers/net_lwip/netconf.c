@@ -228,3 +228,34 @@ void net_config(netconf_t* netconf, const char* resolv, const char* interface)
 }
 
 #endif
+
+void net_config_static(netconf_t*netconf, net_resolv_prot_t resolv, const char* mac, const char* hostname,
+		const char* gw, const char* nm, const char* ip, const char* dns1, const char* dns2)
+{
+	netconf->resolv = resolv;
+
+	netconf->addr_cache[0].addr = 0;
+	netconf->addr_cache[1].addr = 0;
+	netconf->addr_cache[2].addr = 0;
+	netconf->addr_cache[3].addr = 0;
+	netconf->addr_cache[4].addr = 0;
+	netconf->netif.ip_addr.addr = 0;
+	netconf->netif.netmask.addr = 0;
+	netconf->netif.gw.addr = 0;
+	memset(netconf->netif.hwaddr, 0, sizeof(netconf->netif.hwaddr));
+
+	string_to_mac_address(netconf->netif.hwaddr, (const uint8_t*)mac);
+	netconf->netif.hwaddr_len = ETHARP_HWADDR_LEN;
+
+	strncpy((char*)netconf->hostname, (const char*)hostname, sizeof(netconf->hostname)-1);
+	netconf->netif.hostname = (char*)netconf->hostname;
+
+	if(netconf->resolv == NET_RESOLV_STATIC)
+	{
+		string_to_address((uint8_t*)&(netconf->addr_cache[0].addr), (const uint8_t*)ip);
+		string_to_address((uint8_t*)&(netconf->addr_cache[1].addr), (const uint8_t*)nm);
+		string_to_address((uint8_t*)&(netconf->addr_cache[2].addr), (const uint8_t*)gw);
+		string_to_address((uint8_t*)&(netconf->addr_cache[3].addr), (const uint8_t*)dns1);
+		string_to_address((uint8_t*)&(netconf->addr_cache[4].addr), (const uint8_t*)dns2);
+	}
+}

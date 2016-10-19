@@ -76,6 +76,9 @@ typedef struct {
 }netconf_t;
 
 void net_config(netconf_t* netconf, const char* resolv, const char* interface);
+void net_config_static(netconf_t*netconf, net_resolv_prot_t resolv, const char* mac, const char* hostname,
+						const char* gw, const char* nm, const char* ip, const char* dns1, const char* dns2);
+
 bool string_to_mac_address(uint8_t* address, const uint8_t* macaddr);
 bool string_to_address(uint8_t* address, const uint8_t* addr);
 
