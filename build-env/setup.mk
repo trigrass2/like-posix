@@ -22,11 +22,11 @@ BUILDNO := $(shell date +"%m:%d:%T")
 # 			  |- main.c
 #			  |- Makefile
 #			  |- etc...
-# 			  |- lollyjar -|
+# 			  |- like-posix -|
 # 			  				|- build-env
 # 			  				|- etc...
 #
-STM32DEVSUPPORTDIR ?= lollyjar
+STM32DEVSUPPORTDIR ?= like-posix
 
 ## Supported boards:
 # HY-STM32_100P

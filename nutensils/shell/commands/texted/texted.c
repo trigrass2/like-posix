@@ -24,7 +24,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the lollyjar project, <https://github.com/drmetal/lollyjar>
+ * This file is part of the like-posix project, <https://github.com/drmetal/like-posix>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *

@@ -24,7 +24,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the lollyjar project, <https://github.com/drmetal/lollyjar>
+ * This file is part of the like-posix project, <https://github.com/drmetal/like-posix>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
@@ -68,7 +68,7 @@
  *
  * Note:
  *
- * 	- the system calls read, write, open, fdopen, fclose, getcwd, stat are used. if run under lollyjar,
+ * 	- the system calls read, write, open, fdopen, fclose, getcwd, stat are used. if run under like-posix,
  * 	   requires USE_LIKEPOSIX set to 1 is a must among other things.
  * 	- to use the threaded server ENABLE_LIKEPOSIX_SOCKETS must be set to 1 in likeposix_config.h
  * 	- shells share the global current working directory
