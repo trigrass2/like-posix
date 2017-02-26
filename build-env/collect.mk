@@ -76,8 +76,9 @@ endif
 
 ## compile options
 CFLAGS += -O$(OPT)
-CFLAGS += -std=gnu99
+CFLAGS += -std=$(CSTD)
 CFLAGS += -I ./
+CFLAGS += -fms-extensions
 CFLAGS += -ffunction-sections
 CFLAGS += -fdata-sections
 CFLAGS += -fno-builtin

@@ -135,7 +135,7 @@ int sock_connect(const char *host, int port, int type, struct sockaddr* servaddr
     }
 
     if(servaddr)
-        bzero(servaddr, sizeof(struct sockaddr));
+        memset(servaddr, 0, sizeof(struct sockaddr));
 
     // setup hints to help resolve our hostname
     memset(&hints, 0, sizeof(struct addrinfo));

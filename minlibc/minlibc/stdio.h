@@ -77,7 +77,12 @@ extern "C" {
 #define __L_tmpnam__    __FILENAME_MAX__
 #endif
 
+#ifndef P_tmpdir
+#define P_tmpdir   "/tmp"
+#endif
+#ifndef P_tmpfilename
 #define P_tmpfilename   "/%d.tmp"
+#endif
 
 //#define TMP_MAX     8
 
@@ -175,8 +180,8 @@ void init_minlibc();
 
 extern int _open(const char *name, int flags, int mode);
 extern int _close(int file);
-extern int _write(int file, char *buffer, unsigned int count);
-extern int _read(int file, char *buffer, unsigned int count);
+extern int _write(int file, char *buffer, int count);
+extern int _read(int file, char *buffer, int count);
 extern int _lseek(int file, int offset, int whence);
 extern long int _ftell(int fd);
 extern int _unlink(char *name);
@@ -184,6 +189,10 @@ extern int _rename(const char *oldname, const char *newname);
 extern int _mkdir(const char *pathname, mode_t mode);
 extern int _fsync(int file);
 
+/**
+ * not all of the API is held in all libc's
+ */
+FILE* fdopen(int, const char*);
 
 #ifdef __cplusplus
 }

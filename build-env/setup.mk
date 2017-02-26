@@ -59,6 +59,9 @@ USE_STDIO_USART ?= 0
 # can be 0, 1, 2, 3, s
 OPT ?= 2
 
+## C standard
+CSTD ?= c11
+
 ## to use many of the following options, FreeRTOS is required.
 # set to 1 to enable freertos
 USE_FREERTOS ?= 0

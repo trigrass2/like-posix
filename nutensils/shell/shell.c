@@ -106,7 +106,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdint.h>
+#ifdef USE_MINLIBC
+#include "minlibc/stdio.h"
+#else
 #include <stdio.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 

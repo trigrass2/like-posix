@@ -55,8 +55,13 @@
 
 #include <sys/socket.h>
 #include <sys/time.h>
+#ifdef USE_MINLIBC
+#include "minlibc/stdlib.h"
+#include "minlibc/stdio.h"
+#else
 #include <stdlib.h>
 #include <stdio.h>
+#endif
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -762,7 +767,7 @@ static inline void __unlock(filtab_entry_t* fte, bool read, bool write)
  * @param	count, the number of characters to write.file
  * @retval	the number of characters written or -1 on error.
  */
-int _write(int file, char *buffer, unsigned int count)
+int _write(int file, char *buffer, int count)
 {
 	int n = EOF;
 
