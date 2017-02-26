@@ -44,6 +44,7 @@
 #include "net.h"
 #include "lwip/mem.h"
 #include "lwip/debug.h"
+#include "lwip/tcpip.h"
 #include "etharp.h"
 #include "net_config.h"
 #include "board_config.h"
@@ -668,25 +669,24 @@ void ethernetif_update_config(struct netif *netif)
  */
 err_t ethernetif_input(struct netif *netif)
 {
-  err_t err;
-  struct pbuf *p;
+	err_t err;
+	struct pbuf *p;
 
-  /* move received packet into a new pbuf */
-  p = low_level_input(netif);
+	LOCK_TCPIP_CORE();
+	p = low_level_input(netif);
+	if(p == NULL) {
+		return ERR_MEM;
+	}
+	err = netif->input(p, netif);
+	UNLOCK_TCPIP_CORE();
 
-  /* no packet could be read, silently ignore this */
-  if (p == NULL) return ERR_MEM;
-
-  /* entry point to the LwIP stack */
-  err = netif->input(p, netif);
-  
-  if (err != ERR_OK)
-  {
-    LWIP_DEBUGF(NETIF_DEBUG, ("ethernetif_input: IP input error\n"));
-    pbuf_free(p);
-    p = NULL;
-  }
-  return err;
+	if (err != ERR_OK)
+	{
+		LWIP_DEBUGF(NETIF_DEBUG, ("ethernetif_input: IP input error\n"));
+		pbuf_free(p);
+		p = NULL;
+	}
+	return err;
 }
 
 /**

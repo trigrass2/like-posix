@@ -79,11 +79,13 @@
 static void dhcp_begin(netconf_t* netconf);
 static void dhcp_process(netconf_t* netconf);
 #endif
-static void net_task(void *pvParameters);
+static void net_task(netconf_t* netconf);
 static void link_callback(struct netif *netif);
 static void status_callback(struct netif *netif);
 static void tcpip_init_done(void *arg);
 
+static char mac[18];
+static char lip[16];
 netconf_t* netconf_default;
 
 void net_init(netconf_t* netconf)
@@ -91,45 +93,17 @@ void net_init(netconf_t* netconf)
 	log_init(&netconf->log, "net_init");
 	netconf_default = netconf;
 	netconf->net_task_enabled = true;
+	netconf_default->address_ok = xSemaphoreCreateBinary();
+	assert_true(netconf_default->address_ok != NULL);
+	netconf_default->rxpkt = xSemaphoreCreateBinary();
+	assert_true(netconf_default->rxpkt != NULL);
 
 #if NO_SYS
 	lwip_init();
+	tcpip_init_done();
 #else
 	tcpip_init(tcpip_init_done, (void*)&netconf->netif);
 #endif
-
-	netif_add(&netconf->netif, &netconf->addr_cache[0], &netconf->addr_cache[1], &netconf->addr_cache[2], NULL, &ethernetif_init, &ethernet_input);
-	netif_set_link_callback(&netconf->netif, link_callback);
-	netif_set_status_callback(&netconf->netif, status_callback);
-	netif_set_default(&netconf->netif);
-
-    netconf->address_ok = xSemaphoreCreateBinary();
-    assert_true(netconf->address_ok != NULL);
-    netconf->rxpkt = xSemaphoreCreateBinary();
-    assert_true(netconf->rxpkt != NULL);
-
-#if LWIP_DHCP
-    if(netconf->resolv == NET_RESOLV_DHCP)
-    {
-        dhcp_start(&netconf->netif);
-        netconf->dhcp_state = DHCP_STATE_INIT;
-        log_info(&netconf->log, "DHCP started");
-    }
-    else
-    {
-    	netif_set_up(&netconf->netif);
-    	dns_setserver(0, &netconf->addr_cache[3]);
-    	dns_setserver(1, &netconf->addr_cache[4]);
-        xSemaphoreGive(netconf->address_ok);
-    }
-#endif
-
-	xTaskCreate(net_task,
-				"lwIP",
-				configMINIMAL_STACK_SIZE+NET_TASK_STACK,
-				netconf,
-				tskIDLE_PRIORITY+NET_TASK_PRIORITY,
-				NULL);
 }
 
 void net_deinit(netconf_t* netconf)
@@ -140,7 +114,7 @@ void net_deinit(netconf_t* netconf)
 
 bool wait_for_address(netconf_t* netconf)
 {
-    return xSemaphoreTake(netconf->address_ok, 10000/portTICK_RATE_MS) == pdTRUE;
+    return xSemaphoreTake(netconf->address_ok, 2000/portTICK_RATE_MS) == pdTRUE;
 }
 
 #if USE_DRIVER_MII_RMII_PHY
@@ -152,70 +126,13 @@ void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef *heth)
 
 #endif
 
-void net_task(void *pvParameters)
+void net_task(netconf_t* netconf)
 {
-	netconf_t* netconf = (netconf_t*)pvParameters;
-
     while(netconf->net_task_enabled)
     {
-    	// TODO - do I need to use the TCP core lock here?
-    	if(wait_for_rx_ready())
+    	if(wait_for_rx_ready()) {
     		ethernetif_input(&netconf->netif);
-
-#if LWIP_DHCP
-	    if(netconf->resolv == NET_RESOLV_DHCP)
-	    {
-//	        uint32_t localtime;
-//	        bool run_sm = false;
-//
-//	        localtime = xTaskGetTickCount()/portTICK_PERIOD_MS;
-//
-//	        if(localtime - netconf->dhcp_coarse_timer >= DHCP_COARSE_TIMER_MSECS)
-//	        {
-//	            netconf->dhcp_coarse_timer =  localtime;
-//	            dhcp_coarse_tmr();
-//	            run_sm = true;
-//	        }
-//
-//	        // Fine DHCP periodic process every 500ms
-//	        if(localtime - netconf->dhcp_fine_timer >= DHCP_FINE_TIMER_MSECS)
-//	        {
-//	            netconf->dhcp_fine_timer =  localtime;
-//	            dhcp_fine_tmr();
-//	            run_sm = true;
-//	        }
-//
-//	        if(run_sm)
-//	        {
-	            switch(netconf->dhcp_state)
-	            {
-	                case DHCP_STATE_INIT:
-	                    netif_set_down(&netconf->netif);
-	                    netconf->dhcp_state = DHCP_STATE_DISCOVER;
-	                break;
-
-	                case DHCP_STATE_DISCOVER:
-	    #ifdef NET_LINK_LED
-	                    toggle_led(NET_LINK_LED);
-	    #endif
-	                    if(netconf->netif.dhcp->state == DHCP_BOUND)
-	                    {
-	                        netif_set_up(&netconf->netif);
-	                        netconf->dhcp_state = DHCP_STATE_DONE;
-	                        xSemaphoreGive(netconf->address_ok);
-	                        log_info(&netconf->log, "DHCP finished");
-	                    }
-	                break;
-
-	                case DHCP_STATE_DONE:
-	                    if(netconf->netif.dhcp->state != DHCP_BOUND)
-	                        netconf->dhcp_state = DHCP_STATE_INIT;
-	                break;
-	            }
-//	        }
-	    }
-#endif
-
+    	}
 #if NO_SYS
 	    sys_check_timeouts();
 #endif
@@ -229,10 +146,16 @@ void net_task(void *pvParameters)
  */
 void link_callback(struct netif *netif)
 {
-	logger_t status_cb_log;
-	log_init(&status_cb_log, "link_callback");
-	log_info(&status_cb_log, "link state: %s", netif_is_up(netif) ? "up" : "down");
-	ethernetif_update_config(netif);
+	log_info(&netconf_default->log, "link state: %s", netif_is_up(netif) ? "up" : "down");
+//	ethernetif_update_config(netif);
+//
+//	if (!netif_is_up(netif) && netif_is_link_up(netif)) {
+//		dhcp_start(netif);
+//	}
+//
+//	if (netif_is_up(netif) && !netif_is_link_up(netif)) {
+//		dhcp_release(netif);
+//	}
 }
 
 /**
@@ -240,22 +163,20 @@ void link_callback(struct netif *netif)
  */
 void status_callback(struct netif *netif)
 {
-	logger_t status_cb_log;
-	log_init(&status_cb_log, "net_status_callback");
 #if USE_LOGGER
 	uint8_t* pt;
 	pt = (uint8_t*)&(netif->ip_addr.addr);
-	log_info(&status_cb_log, "ip: %d.%d.%d.%d", pt[0], pt[1], pt[2], pt[3]);
+	log_info(&netconf_default->log, "ip: %d.%d.%d.%d", pt[0], pt[1], pt[2], pt[3]);
 	pt = (uint8_t*)&(netif->netmask.addr);
-	log_info(&status_cb_log, "nm: %d.%d.%d.%d", pt[0], pt[1], pt[2], pt[3]);
+	log_info(&netconf_default->log, "nm: %d.%d.%d.%d", pt[0], pt[1], pt[2], pt[3]);
 	pt = (uint8_t*)&(netif->gw.addr);
-	log_info(&status_cb_log, "gw: %d.%d.%d.%d", pt[0], pt[1], pt[2], pt[3]);
+	log_info(&netconf_default->log, "gw: %d.%d.%d.%d", pt[0], pt[1], pt[2], pt[3]);
 	pt = netif->hwaddr;
-	log_info(&status_cb_log, "mac: %02x:%02x:%02x:%02x:%02x:%02x", pt[0], pt[1], pt[2], pt[3], pt[4], pt[5]);
-
+	log_info(&netconf_default->log, "mac: %02x:%02x:%02x:%02x:%02x:%02x", pt[0], pt[1], pt[2], pt[3], pt[4], pt[5]);
 #endif
 	if(netif_is_up(netif))
 	{
+		xSemaphoreGive(netconf_default->address_ok);
 #ifdef NET_LINK_LED
 	    set_led(NET_LINK_LED);
 #endif
@@ -264,14 +185,34 @@ void status_callback(struct netif *netif)
 
 void tcpip_init_done(void *arg)
 {
-	logger_t tcp_cb_log;
-	log_init(&tcp_cb_log, "tcpip_init_done");
-#if USE_LOGGER
-	struct netif* netif = (struct netif*)arg;
-	log_info(&tcp_cb_log, "hostname: %s", netif->hostname);
-#else
 	(void)arg;
+
+	log_info(&netconf_default->log, "hostname: %s", netconf_default->hostname);
+
+	netif_add(&netconf_default->netif, &netconf_default->addr_cache[0], &netconf_default->addr_cache[1], &netconf_default->addr_cache[2], NULL, &ethernetif_init, &ethernet_input);
+	netif_set_link_callback(&netconf_default->netif, link_callback);
+	netif_set_status_callback(&netconf_default->netif, status_callback);
+	netif_set_default(&netconf_default->netif);
+
+#if LWIP_DHCP
+	if(netconf_default->resolv == NET_RESOLV_DHCP)
+	{
+		netif_set_down(&netconf_default->netif);
+		dhcp_start(&netconf_default->netif);
+		log_info(&netconf_default->log, "DHCP started");
+	}
+	else
+	{
+		log_info(&netconf_default->log, "Static IP");
+		netif_set_up(&netconf_default->netif);
+		dns_setserver(0, &netconf_default->addr_cache[3]);
+		dns_setserver(1, &netconf_default->addr_cache[4]);
+	}
 #endif
+
+	xTaskCreate((TaskFunction_t)net_task,"lwip_receive",
+					configMINIMAL_STACK_SIZE+NET_TASK_STACK, netconf_default,
+					tskIDLE_PRIORITY+NET_TASK_PRIORITY, NULL);
 }
 
 bool net_is_up()
@@ -334,7 +275,6 @@ const char* net_hostname()
     return netconf_default->netif.hostname;
 }
 
-static char mac[18];
 
 const char* net_mac()
 {
@@ -348,8 +288,6 @@ const char* net_mac()
              ((char*)&netconf_default->netif.hwaddr)[5]);
     return (const char*)mac;
 }
-
-static char lip[16];
 
 const char* net_lip()
 {
