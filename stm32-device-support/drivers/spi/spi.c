@@ -280,7 +280,6 @@ void spi_init_device(SPI_TypeDef* spi, bool enable, spi_mode_t mode)
     {
         case SPI_FULLDUPLEX:
         default:
-            hspi.Init.Mode = USART_MODE_TX_RX;
             hspi.Init.Direction = SPI_DIRECTION_2LINES;
         break;
     }
