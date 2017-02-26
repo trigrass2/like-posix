@@ -37,12 +37,21 @@ Download and install the arm-none-eabi tool set from:
 [https://launchpad.net/gcc-arm-embedded/+download](https://launchpad.net/gcc-arm-embedded/+download).
 
 For example under windows: 
-
 - choose  gcc-arm-none-eabi-5_4-2016q3-20160926-win32.exe and install.
 - add "C:\Program Files (x86)\GNU Tools ARM Embedded\5.4 2016q3\bin" to your PATH
 
-Under linux choose the bz2 archive - unpack to a location, eg /opt/ARM/ and then add the bin directory to your PATH.
+For eample under Debian Linux:
+- choose the bz2 archive - unpack to a location, eg /opt/ARM/ and then add the bin directory to your PATH.
+- sudo mkdir /opt/ARM
+- sudo tar xvjf gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -C /opt/ARM
+- echo "export PATH=$PATH:/opt/ARM/gcc-arm-none-eabi-5_4-2016q3/bin" >> ~/.bashrc
+- source ~/.bashrc
+if running under a 64bit Debian,
+- sudo dpkg --add-architecture i386
+- sudo apt-get update
+- sudo apt-get install libc6:i386 libncurses5:i386 libstdc++6:i386
 
+Note:
 The programs *sed* and *make* are required by the build system. Under windows this must be downloaded and installed.
 
 [http://gnuwin32.sourceforge.net/downlinks/sed.php](http://gnuwin32.sourceforge.net/downlinks/sed.php)
