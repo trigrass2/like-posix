@@ -21,7 +21,9 @@ CFLAGS += -I $(CUTENSILS_DIR)/logger
 
 # strutils may always be included
 CFLAGS += -I $(CUTENSILS_DIR)/strutils
+CFLAGS += -I $(CUTENSILS_DIR)/vfifo
 SOURCE += $(CUTENSILS_DIR)/strutils/strutils.c
+SOURCE += $(CUTENSILS_DIR)/vfifo/vfifo.c
 
 ifeq ($(USE_LOGGER), 1)
 SOURCE += $(CUTENSILS_DIR)/logger/logger.c

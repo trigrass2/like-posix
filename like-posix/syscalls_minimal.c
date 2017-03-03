@@ -40,7 +40,7 @@ extern unsigned int _eheap;
  * to make printf work with serial IO,
  * please define "void phy_putc(char c)"
  */
-extern void phy_putc(char c) __attribute__((weak));
+extern void usart_tx(char c) __attribute__((weak));
 
 void _exit(int i)
 {
@@ -54,7 +54,7 @@ int _write(int file, char *buffer, unsigned int count)
 	register unsigned int i;
 	for (i=0; i<count; ++i)
 	{
-		phy_putc(*buffer++);
+		usart_tx(*buffer++);
 	}
 
 	return count;

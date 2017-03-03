@@ -30,19 +30,52 @@
  *
  */
 
-#ifndef CUTENSILS_H_
-#define CUTENSILS_H_
 
-// hardware free includes
-#include "logger/logger.h"
-#include "vfifo/vfifo.h"
+#include <stddef.h>
+#include "base_spi.h"
+#include "syscalls.h"
+#include "vfifo.h"
 
-#if USE_CONFPARSE
-#include "confparse/confparse.h"
-#endif
+#ifndef SPI_PERIPHERAL_H_
+#define SPI_PERIPHERAL_H_
 
-#endif /* CUTENSILS_H_ */
+typedef enum {
+	SPI1_HANDLE = 0,
+	SPI2_HANDLE,
+	SPI3_HANDLE,
+	SPI_INVALID_HANDLE,
+}SPI_HANDLE_t;
 
- /**
-  * @}
-  */
+typedef struct {
+    SPI_TypeDef* spi;
+	uint32_t baudrate;
+	uint32_t bit_order;
+	uint32_t clock_phase;
+	uint32_t clock_polarity;
+	uint32_t data_width;
+	bool sending;
+	vfifo_t* rxfifo;
+	vfifo_t* txfifo;
+} spi_ioctl_t;
+
+SPI_HANDLE_t spi_init_device(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width);
+void spi_init_gpio(SPI_HANDLE_t spih);
+void spi_init_interrupt(SPI_HANDLE_t spih, uint8_t priority, bool enable);
+
+SPI_HANDLE_t get_spi_handle(SPI_TypeDef* spi);
+SPI_TypeDef* get_spi_peripheral(SPI_HANDLE_t spih);
+spi_ioctl_t* get_spi_ioctl(SPI_HANDLE_t spih);
+
+void spi_set_prescaler(SPI_HANDLE_t spih, uint16_t presc);
+void spi_set_baudrate(SPI_HANDLE_t spih, uint32_t baudrate);
+uint32_t spi_get_baudrate(SPI_HANDLE_t spih);
+
+inline void spi_enable_rx_int(SPI_HANDLE_t spih);
+inline void spi_enable_tx_int(SPI_HANDLE_t spih);
+inline void spi_disable_rx_int(SPI_HANDLE_t spih);
+inline void spi_disable_tx_int(SPI_HANDLE_t spih);
+
+void spi_tx(SPI_HANDLE_t spih, const uint8_t data);
+uint8_t spi_rx(SPI_HANDLE_t spih);
+
+#endif // SPI_PERIPHERAL_H_

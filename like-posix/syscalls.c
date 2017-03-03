@@ -121,10 +121,10 @@ static _filtab_t filtab;
 
 /**
  * to make STDIO work with serial IO,
- * please define "void phy_putc(char c)" somewhere
+ * please define "void usart_put_polled(int usarth, const char c)" somewhere
  */
-extern void phy_putc(char c) __attribute__((weak));
-extern char phy_getc() __attribute__((weak));
+extern void usart_stdio_tx(const char c) __attribute__((weak));
+extern char usart_stdio_rx() __attribute__((weak));
 
 /**
  * initialses likeposix state.
@@ -472,7 +472,7 @@ inline int __determine_mode(const char *name)
  * this index is used by open() to interface a one of filtab.tab to one of filtab.devtab.
  *
  * @param	name is the full path to the file to associate with the device.
- * @param	dev_ctx is a pointer to some data that will be passed to the device driver
+ * @param	device_handle is a numeric data value that will be passed to the device driver
  *			driver ioctl functions.
  * @param	read_enable is an ioctl function that can enable a device to read data.
  * @param	write_enable is an ioctl function that can enable a device to write data.
@@ -482,7 +482,7 @@ inline int __determine_mode(const char *name)
  * @retval	returns a pointer to the created dev_ioctl_t structure, or NULL on error.
  */
 dev_ioctl_t* install_device(char* name,
-					void* dev_ctx,
+					int device_handle,
 					dev_ioctl_fn_t read_enable,
 					dev_ioctl_fn_t write_enable,
                     dev_ioctl_fn_t open_dev,
@@ -537,7 +537,7 @@ dev_ioctl_t* install_device(char* name,
 						filtab.devtab[device]->ioctl = ioctl;
 						filtab.devtab[device]->open = open_dev;
 						filtab.devtab[device]->close = close_dev;
-						filtab.devtab[device]->ctx = dev_ctx;
+						filtab.devtab[device]->device_handle = device_handle;
 						filtab.devtab[device]->termios = NULL;
 					}
 					ret = filtab.devtab[device];
@@ -777,7 +777,7 @@ int _write(int file, char *buffer, int count)
 	if(file == STDOUT_FILENO || file == STDERR_FILENO)
 	{
 		for(n = 0; n < (int)count; n++)
-			phy_putc(*buffer++);
+			usart_stdio_tx(*buffer++);
 	}
 	else
 	{
@@ -861,7 +861,7 @@ int _read(int file, char *buffer, int count)
 	if(file == STDIN_FILENO)
 	{
 		for(n = 0; n < count; n++)
-			*buffer++ = phy_getc();
+			*buffer++ = usart_stdio_rx();
 	}
 	else
 	{

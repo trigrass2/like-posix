@@ -82,6 +82,11 @@
 #endif
 #endif
 
+#if ENABLE_LIKEPOSIX_SOCKETS
+#if !USE_DRIVER_LWIP_NET
+#error ENABLE_LIKEPOSIX_SOCKETS requires USE_DRIVER_LWIP_NET set to 1
+#endif
+#endif
 
  typedef struct _dev_ioctl_t dev_ioctl_t;
  /**
@@ -93,7 +98,7 @@
 #if !USE_FREERTOS || !USE_LIKEPOSIX
 
  struct _dev_ioctl_t{
-     void* ctx;
+     int device_handle;
  };
 
 #else
@@ -109,20 +114,20 @@
   * device interface definition, used for device driver interfacing.
   */
  struct _dev_ioctl_t{
+	int device_handle;				///< the "handle" of some data that has meaning to the driver itself, typically this will be an index into some device driver descriptor table.
     unsigned int timeout;           ///< io timeout in milliseconds
  	dev_ioctl_fn_t read_enable;		///< pointer to enable device read function
  	dev_ioctl_fn_t write_enable;	///< pointer to enable device write function
     dev_ioctl_fn_t ioctl;           ///< pointer to device ioctl function
  	dev_ioctl_fn_t open;			///< pointer to open device function
  	dev_ioctl_fn_t close;			///< pointer to close device function
- 	void* ctx;						///< a pointer to data that has meaning in the context of the device driver itself.
     struct termios* termios;        ///< a termios structure to define device settings via termios interface.
  	queue_pair_t pipe;
  };
 
 void init_likeposix();
 dev_ioctl_t* install_device(char* name,
-							void* dev_ctx,
+							int device_handle,
 							dev_ioctl_fn_t read_enable,
 							dev_ioctl_fn_t write_enable,
                             dev_ioctl_fn_t open_dev,
