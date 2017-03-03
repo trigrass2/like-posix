@@ -87,6 +87,7 @@ CFLAGS += -DUSE_STDIO_USART=$(USE_STDIO_USART)
 ifeq ($(USE_DRIVER_USART), 1)
 CFLAGS += -I$(DRIVERSDIR)/usart
 SOURCE += $(DRIVERSDIR)/usart/usart.c
+SOURCE += $(DRIVERSDIR)/usart/usart_peripheral.c
 SOURCE += $(DRIVERSDIR)/usart/usart_it.c
 endif
 
@@ -96,6 +97,7 @@ CFLAGS += -DUSE_STDIO_SPI=$(USE_STDIO_SPI)
 ifeq ($(USE_DRIVER_SPI), 1)
 CFLAGS += -I$(DRIVERSDIR)/spi
 SOURCE += $(DRIVERSDIR)/spi/spi.c
+SOURCE += $(DRIVERSDIR)/spi/spi_peripheral.c
 SOURCE += $(DRIVERSDIR)/spi/spi_it.c
 endif
 

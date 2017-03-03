@@ -32,32 +32,25 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "board_config.h"
+#include "spi_peripheral.h"
 
 #ifndef SPI_H_
 #define SPI_H_
 
-/**
- * TODO add other SPI modes
- */
-typedef enum {SPI_FULLDUPLEX} spi_mode_t;
+SPI_HANDLE_t spi_init_polled(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width);
+uint8_t spi_transfer_polled(SPI_HANDLE_t spih, uint8_t data);
 
-typedef struct {
-    SPI_TypeDef* spi;
-    spi_mode_t mode;
-}spi_ioctl_t;
+SPI_HANDLE_t spi_init_async(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t buffersize);
+int32_t spi_put_async(SPI_HANDLE_t spih, const uint8_t* data, int32_t length);
+int32_t spi_get_async(SPI_HANDLE_t spih, uint8_t* data, int32_t length);
 
+void spi_init_ss_gpio(SPI_HANDLE_t spi);
+void spi_clear_ss(SPI_HANDLE_t spi);
+void spi_set_ss(SPI_HANDLE_t spi);
 
-bool spi_init(SPI_TypeDef* spi, char* filename, bool enable, spi_mode_t mode);
-
-/**
- * polled mode API
- */
-uint8_t spi_transfer(SPI_TypeDef* spi, uint8_t data);
-void spi_assert_nss(SPI_TypeDef* spi);
-void spi_deassert_nss(SPI_TypeDef* spi);
-void spi_set_baudrate(SPI_TypeDef* spi, uint32_t br);
-uint32_t spi_get_baudrate(SPI_TypeDef* spi);
-void spi_set_prescaler(SPI_TypeDef* spi, uint16_t presc);
+#if USE_LIKEPOSIX
+SPI_HANDLE_t spi_init_devicefile(char* filename, SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width);
+dev_ioctl_t* get_spi_device_ioctl(SPI_HANDLE_t spih);
+#endif
 
 #endif /* SPI_H_ */

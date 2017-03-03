@@ -30,25 +30,44 @@
  *
  */
 
-#ifndef BOARD_SPI_H_
-#define BOARD_SPI_H_
 
-#define SPI1_FULL_REMAP 0
-#define SPI3_FULL_REMAP 0
+#ifndef VFIFO_H_
+#define VFIFO_H_
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
 /**
- * only specify chip select's for those SPI's that require them.
- * (comment out those that are not needed)
+ * define VFIFO_PRIMITIVE externally to compile for a custom type.
  */
+#ifndef VFIFO_PRIMITIVE
+#define VFIFO_PRIMITIVE uint8_t
+#endif
 
-#define SPI1_NSS_PORT 	GPIOA
-#define SPI1_NSS_PIN 	GPIO_PIN_4
+typedef VFIFO_PRIMITIVE vfifo_primitive_t;
 
-#define SPI2_NSS_PORT 	GPIOB
-#define SPI2_NSS_PIN 	GPIO_PIN_12
+/**
+ * The VFIFO data type, defines one n-bit FIFO where n may be any multiple of 8.
+ * Use @ref vfifo_init to create this object.
+ */
+typedef struct {
+   int32_t head;			///< the FIFO head position indicator
+   int32_t tail;			///< the FIFO tail position indicator
+   vfifo_primitive_t* buf;	///< a pointer to the FIFO buffer data space
+   int32_t size;			///< the size in words of the FIFO
+   int32_t free;			///< the number of free spaces in the FIFO buffer
+   int32_t usage;			///< the number of filled spaces the FIFO buffer
+} vfifo_t;
 
-#define SPI3_NSS_PORT 	GPIOA
-#define SPI3_NSS_PIN 	GPIO_PIN_15
+void vfifo_init(vfifo_t* fifo, void* buf, int32_t size);
+bool vfifo_put(vfifo_t* fifo, const void* data);
+bool vfifo_get(vfifo_t* fifo, void* data);
+int32_t vfifo_put_block(vfifo_t* fifo, const void* data, int32_t size);
+int32_t vfifo_get_block(vfifo_t* fifo, void* data, int32_t size);
+int32_t vfifo_used_slots(vfifo_t* fifo);
+int32_t	vfifo_free_slots(vfifo_t* fifo);
+int32_t	vfifo_number_of_slots(vfifo_t* fifo);
+void	vfifo_reset(vfifo_t* fifo);
 
-#endif /* BOARD_SPI_H_ */
-
+#endif /* VFIFO_H_ */

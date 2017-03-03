@@ -30,9 +30,15 @@
  *
  */
 
+
+#if USE_LIKEPOSIX
+#include <termios.h>
 #include "syscalls.h"
+#endif
 
 #include <stddef.h>
+#include <string.h>
+#include "board_config.h"
 #include "spi.h"
 #include "spi_it.h"
 #include "base_spi.h"
@@ -40,28 +46,242 @@
 
 
 #if USE_LIKEPOSIX
-static int spi_ioctl(dev_ioctl_t* dev);
-static int spi_close_ioctl(dev_ioctl_t* dev);
-static int spi_open_ioctl(dev_ioctl_t* dev);
-static int spi_enable_tx_ioctl(dev_ioctl_t* dev);
-static int spi_enable_rx_ioctl(dev_ioctl_t* dev);
+int spi_enable_rx_ioctl(dev_ioctl_t* dev);
+int spi_enable_tx_ioctl(dev_ioctl_t* dev);
+int spi_open_ioctl(dev_ioctl_t* dev);
+int spi_close_ioctl(dev_ioctl_t* dev);
+int spi_ioctl(dev_ioctl_t* dev);
+
+static dev_ioctl_t* spi_dev_ioctls[NUM_ONCHIP_SPIS];
 #endif
 
 
-// used in the interrupt handlers....
-dev_ioctl_t* spi_dev_ioctls[NUM_ONCHIP_SPIS];
-spi_ioctl_t spi_ioctls[NUM_ONCHIP_SPIS];
+/**
+ * call this function to initialize an SPI port in polled mode.
+ *
+ * when installed as device file, posix system calls amy be made including open, close, read, write, etc.
+ * termios functions are also available (tcgetattr, tcsetattr, etc)
+ * file stream functions are also available (fputs, fgets, etc)
+ *
+ * @param spi is the SPI peripheral to initialize.
+ * @param enable - set to true when using in polled mode. when the device file is specified,
+ *        set to false - the device is enabled automatically when the file is opened.
+ *
+ * @param baudrate
+ * @param bit_order Eg SPI_FIRSTBIT_MSB
+ * @param clock_phase Eg SPI_PHASE_1EDGE
+ * @param clock_polarity Eg SPI_POLARITY_LOW
+ * @param data_width Eg SPI_DATASIZE_8BIT
+ */
+SPI_HANDLE_t spi_init_polled(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width)
+{
+    SPI_HANDLE_t spih = spi_init_device(spi, enable, baudrate, bit_order, clock_phase, clock_polarity, data_width);
+    spi_init_gpio(spih);
+    spi_init_ss_gpio(spih);
+	spi_init_interrupt(spih, SPI_INTERRUPT_PRIORITY, false);
+	return spih;
+}
+/**
+ * call this function to initialize an SPI port in interrupt driven mode.
+ *
+ * when installed as device file, posix system calls amy be made including open, close, read, write, etc.
+ * termios functions are also available (tcgetattr, tcsetattr, etc)
+ * file stream functions are also available (fputs, fgets, etc)
+ *
+ * @param spi is the SPI peripheral to initialize.
+ * @param enable - set to true when using in polled mode. when the device file is specified,
+ *        set to false - the device is enabled automatically when the file is opened.
+ *
+ * @param baudrate
+ * @param bit_order Eg SPI_FIRSTBIT_MSB
+ * @param clock_phase Eg SPI_PHASE_1EDGE
+ * @param clock_polarity Eg SPI_POLARITY_LOW
+ * @param data_width Eg SPI_DATASIZE_8BIT
+ * @param buffersize is the number of fifo slots to initialize. if
+ */
+SPI_HANDLE_t spi_init_async(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t buffersize)
+{
+    SPI_HANDLE_t spih = SPI_INVALID_HANDLE;
 
+    uint8_t* fifomem = malloc((2 * sizeof(vfifo_t)) + (2 * buffersize * sizeof(vfifo_primitive_t)));
+    if(fifomem) {
+    	spih = spi_init_device(spi, enable, baudrate, bit_order, clock_phase, clock_polarity, data_width);
+        spi_init_gpio(spih);
+        spi_init_ss_gpio(spih);
 
-static int8_t get_spi_devno(SPI_TypeDef* spi);
-static void spi_init_device(SPI_TypeDef* spi, bool enable, spi_mode_t mode);
-static void spi_init_gpio(SPI_TypeDef* spi, spi_mode_t mode);
-static void spi_init_interrupt(SPI_TypeDef* spi, uint8_t priority, bool enable);
+    	spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
+		spi_ioctl->rxfifo = (vfifo_t*)fifomem;
+		spi_ioctl->txfifo = (vfifo_t*)(fifomem + sizeof(vfifo_t) + (buffersize * sizeof(vfifo_primitive_t)));
+		vfifo_init(spi_ioctl->rxfifo, spi_ioctl->rxfifo + sizeof(vfifo_t), buffersize);
+		vfifo_init(spi_ioctl->txfifo, spi_ioctl->txfifo + sizeof(vfifo_t), buffersize);
 
+		spi_init_interrupt(spih, SPI_INTERRUPT_PRIORITY, enable);
+    }
+
+	return spih;
+}
 
 /**
- * call this function to initialize an SPI port in polled mode,
- * or to install an SPI port as a device file (requires USE_LIKEPOSIX=1 in the Makefile).
+ * sets the NSS pin to a logic 0 (NSS pin is configured in spi_config.h for the board)
+ */
+void spi_clear_ss(SPI_HANDLE_t spih)
+{
+    switch(spih)
+    {
+#ifdef SPI1_NSS_PIN
+		case SPI1_HANDLE:
+			HAL_GPIO_WritePin(SPI1_NSS_PORT, SPI1_NSS_PIN, GPIO_PIN_RESET);
+		break;
+#else
+#pragma message "SPI1 NSS pin not configured"
+#endif
+
+#ifdef SPI2_NSS_PIN
+		case SPI2_HANDLE:
+			HAL_GPIO_WritePin(SPI2_NSS_PORT, SPI2_NSS_PIN, GPIO_PIN_RESET);
+		break;
+#else
+#pragma message "SPI2 NSS pin not configured"
+#endif
+
+#ifdef SPI3_NSS_PIN
+		case SPI3_HANDLE:
+			HAL_GPIO_WritePin(SPI3_NSS_PORT, SPI3_NSS_PIN, GPIO_PIN_RESET);
+		break;
+#else
+#pragma message "SPI3 NSS pin not configured"
+#endif
+		default:
+			assert_true(0);
+		break;
+    }
+}
+
+/**
+ * sets the NSS pin to a logic 1 (NSS pin is configured in spi_config.h for the board)
+ */
+void spi_set_ss(SPI_HANDLE_t spih)
+{
+    switch(spih)
+    {
+#ifdef SPI1_NSS_PIN
+		case SPI1_HANDLE:
+			HAL_GPIO_WritePin(SPI1_NSS_PORT, SPI1_NSS_PIN, GPIO_PIN_SET);
+		break;
+#else
+#pragma message "SPI1 NSS pin not configured"
+#endif
+
+#ifdef SPI2_NSS_PIN
+		case SPI2_HANDLE:
+			HAL_GPIO_WritePin(SPI2_NSS_PORT, SPI2_NSS_PIN, GPIO_PIN_SET);
+		break;
+#else
+#pragma message "SPI2 NSS pin not configured"
+#endif
+
+#ifdef SPI3_NSS_PIN
+		case SPI3_HANDLE:
+			HAL_GPIO_WritePin(SPI3_NSS_PORT, SPI3_NSS_PIN, GPIO_PIN_SET);
+		break;
+#else
+#pragma message "SPI3 NSS pin not configured"
+#endif
+		default:
+			assert_true(0);
+		break;
+    }
+}
+
+void spi_init_ss_gpio(SPI_HANDLE_t spih)
+{
+    GPIO_InitTypeDef gpio_init;
+    GPIO_TypeDef* gpio = NULL;
+    memset(&gpio_init, 0, sizeof(GPIO_InitTypeDef));
+
+    gpio_init.Mode = GPIO_MODE_OUTPUT_PP;
+    gpio_init.Pull = GPIO_NOPULL;
+    gpio_init.Speed = GPIO_SPEED_HIGH;
+
+    switch(spih)
+    {
+#ifdef SPI1_NSS_PIN
+		case SPI1_HANDLE:
+			gpio_init.Pin = SPI1_NSS_PIN;
+			gpio = SPI1_NSS_PORT;
+		break;
+#else
+#pragma message "SPI1 NSS pin not configured"
+#endif
+
+#ifdef SPI2_NSS_PIN
+		case SPI2_HANDLE:
+			gpio_init.Pin = SPI2_NSS_PIN;
+			gpio = SPI2_NSS_PORT;
+		break;
+#else
+#pragma message "SPI2 NSS pin not configured"
+#endif
+
+#ifdef SPI3_NSS_PIN
+		case SPI3_HANDLE:
+			gpio_init.Pin = SPI3_NSS_PIN;
+			gpio = SPI3_NSS_PORT;
+		break;
+#else
+#pragma message "SPI3 NSS pin not configured"
+#endif
+		default:
+			assert_true(0);
+		break;
+    }
+
+	HAL_GPIO_Init(gpio, &gpio_init);
+}
+
+uint8_t spi_transfer_polled(SPI_HANDLE_t spih, uint8_t data)
+{
+	spi_tx(spih, data);
+	return spi_rx(spih);
+}
+
+int32_t spi_put_async(SPI_HANDLE_t spih, const uint8_t* data, int32_t length)
+{
+	int32_t sent = 0;
+	if(length) {
+		spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
+
+		if(spi_ioctl->sending) {
+			sent = vfifo_put_block(spi_ioctl->txfifo, data, length);
+		}
+		else {
+			spi_ioctl->sending = true;
+			sent = vfifo_put_block(spi_ioctl->txfifo, data, length);
+			spi_enable_tx_int(spih);
+		}
+	}
+	return sent;
+}
+
+int32_t spi_get_async(SPI_HANDLE_t spih, uint8_t* data, int32_t length)
+{
+	int32_t recvd = 0;
+	if(length) {
+		spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
+		recvd = vfifo_get_block(spi_ioctl->rxfifo, (void*)data, length);
+	}
+	return recvd;
+}
+
+#if USE_LIKEPOSIX
+
+dev_ioctl_t* get_spi_device_ioctl(SPI_HANDLE_t spih)
+{
+	return spi_dev_ioctls[spih];
+}
+
+/**
+ * call this function to install an SPI port as a device file (requires USE_LIKEPOSIX=1 in the Makefile).
  *
  * when installed as device file, posix system calls amy be made including open, close, read, write, etc.
  * termios functions are also available (tcgetattr, tcsetattr, etc)
@@ -72,435 +292,81 @@ static void spi_init_interrupt(SPI_TypeDef* spi, uint8_t priority, bool enable);
  *        if set to NULL, the device may be used in polled mode only.
  * @param enable - set to true when using in polled mode. when the device file is specified,
  *        set to false - the device is enabled automatically when the file is opened.
+ *
+ * @param baudrate
+ * @param bit_order Eg SPI_FIRSTBIT_MSB
+ * @param clock_phase Eg SPI_PHASE_1EDGE
+ * @param clock_polarity Eg SPI_POLARITY_LOW
+ * @param data_width Eg SPI_DATASIZE_8BIT
  */
-bool spi_init(SPI_TypeDef* spi, char* filename, bool enable, spi_mode_t mode)
+SPI_HANDLE_t spi_init_devicefile(char* filename, SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width)
 {
-    bool ret = true;
-    int8_t spi_devno = get_spi_devno(spi);
+    SPI_HANDLE_t spih = SPI_INVALID_HANDLE;
 
-    log_syslog(NULL, "init spi%d", spi_devno+1);
+	spih = spi_init_device(spi, enable, baudrate, bit_order, clock_phase, clock_polarity, data_width);
+    spi_init_gpio(spih);
+    spi_init_ss_gpio(spih);
 
-    assert_true(spi_devno != -1);
+	spi_dev_ioctls[spih] = (void*)install_device(filename,
+													spih,
+													spi_enable_rx_ioctl,
+													spi_enable_tx_ioctl,
+													spi_open_ioctl,
+													spi_close_ioctl,
+													spi_ioctl);
 
-    if(filename)
-    {
-#if USE_LIKEPOSIX
-        spi_ioctls[spi_devno].spi = spi;
-        spi_ioctls[spi_devno].mode = mode;
+	log_syslog(NULL, "install spi%d: %s", spih, spi_dev_ioctls[spih] ? "successful" : "failed");
 
-        // installed SPI can only work with interrupt enabled
-        spi_init_interrupt(spi, SPI_INTERRUPT_PRIORITY, true);
-        spi_dev_ioctls[spi_devno] = (void*)install_device(filename,
-                                                        &spi_ioctls[spi_devno],
-                                                        spi_enable_rx_ioctl,
-                                                        spi_enable_tx_ioctl,
-                                                        spi_open_ioctl,
-                                                        spi_close_ioctl,
-                                                        spi_ioctl);
-        ret = spi_dev_ioctls[spi_devno] != NULL;
-#else
-        // todo - init fifo's and interrupts for freertos independent version
-//        spi_init_interrupt(spi, SPI_INTERRUPT_PRIORITY, true);
-//        spi_dev_ioctls[spi_devno] = NULL;
-        ret = true;
-#endif
-        log_syslog(NULL, "install spi%d: %s", spi_devno+1, ret ? "successful" : "failed");
-    }
-
-    spi_init_gpio(spi, mode);
-    spi_init_device(spi, enable, mode);
-
-    return ret;
-}
-
-/**
- * asserts the NSS pin for the specified SPI peripheral (NSS pin is configured in spi_config.h for the board)
- */
-void spi_assert_nss(SPI_TypeDef* spi)
-{
-#ifdef SPI1_NSS_PIN
-	if(spi == SPI1)
-	    HAL_GPIO_WritePin(SPI1_NSS_PORT, SPI1_NSS_PIN, GPIO_PIN_RESET);
-#endif
-#ifdef SPI2_NSS_PIN
-	if(spi == SPI2)
-	    HAL_GPIO_WritePin(SPI2_NSS_PORT, SPI2_NSS_PIN, GPIO_PIN_RESET);
-#endif
-#ifdef SPI3_NSS_PIN
-	if(spi == SPI3)
-	    HAL_GPIO_WritePin(SPI3_NSS_PORT, SPI3_NSS_PIN, GPIO_PIN_RESET);
-#endif
-}
-
-/**
- * deasserts the NSS pin for the specified SPI peripheral (NSS pin is configured in spi_config.h for the board)
- */
-void spi_deassert_nss(SPI_TypeDef* spi)
-{
-#ifdef SPI1_NSS_PIN
-    if(spi == SPI1)
-        HAL_GPIO_WritePin(SPI1_NSS_PORT, SPI1_NSS_PIN, GPIO_PIN_SET);
-#endif
-#ifdef SPI2_NSS_PIN
-    if(spi == SPI2)
-        HAL_GPIO_WritePin(SPI2_NSS_PORT, SPI2_NSS_PIN, GPIO_PIN_SET);
-#endif
-#ifdef SPI3_NSS_PIN
-    if(spi == SPI3)
-        HAL_GPIO_WritePin(SPI3_NSS_PORT, SPI3_NSS_PIN, GPIO_PIN_SET);
-#endif
-}
-
-/**
- * sends and receives one byte on the specified SPI peripheral.
- */
-uint8_t spi_transfer(SPI_TypeDef* spi, uint8_t data)
-{
-    SPI_HandleTypeDef hspi;
-    hspi.Instance = spi;
-    while(!__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_TXE));
-    spi->DR = data;
-    while(!__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_RXNE));
-    return spi->DR;
-}
-
-/**
- * sets the prescaler value of the specified SPI peripheral (can be SPI_BAUDRATEPRESCALER_2/4/8/16/32/64/128/256)
- */
-void spi_set_prescaler(SPI_TypeDef* spi, uint16_t presc)
-{
-    SPI_HandleTypeDef hspi;
-    hspi.Instance = spi;
-	while(__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_BSY));
-	spi->CR1 &= ~SPI_CR1_BR;
-	spi->CR1 |= presc;
-}
-
-/**
- * sets the baudrate of the SPI port to the nearest (or lower) possible baudrate to that specified, in Hz.
- */
-void spi_set_baudrate(SPI_TypeDef* spi, uint32_t br)
-{
-    uint32_t integerdivider;
-    uint16_t presc;
-
-    if(spi == SPI1)
-        integerdivider = HAL_RCC_GetPCLK2Freq() / br;
-    else
-        integerdivider = HAL_RCC_GetPCLK1Freq() / br;
-
-    if(integerdivider > 128)
-        presc = SPI_BAUDRATEPRESCALER_256;
-    else if(integerdivider > 64)
-        presc = SPI_BAUDRATEPRESCALER_128;
-    else if(integerdivider > 32)
-        presc = SPI_BAUDRATEPRESCALER_64;
-    else if(integerdivider > 16)
-        presc = SPI_BAUDRATEPRESCALER_32;
-    else if(integerdivider > 8)
-        presc = SPI_BAUDRATEPRESCALER_16;
-    else if(integerdivider > 4)
-        presc = SPI_BAUDRATEPRESCALER_8;
-    else if(integerdivider > 2)
-        presc = SPI_BAUDRATEPRESCALER_4;
-    else
-        presc = SPI_BAUDRATEPRESCALER_2;
-
-    spi_set_prescaler(spi, presc);
-}
-
-/**
- * returns the baudrate of the SPI port in Hz.
- */
-uint32_t spi_get_baudrate(SPI_TypeDef* spi)
-{
-    uint32_t apbclock;
-
-    if(spi == SPI1)
-        apbclock = HAL_RCC_GetPCLK2Freq();
-    else
-        apbclock = HAL_RCC_GetPCLK1Freq();
-
-    if(spi->CR1 & SPI_BAUDRATEPRESCALER_256)
-        return apbclock / 256;
-    else if(spi->CR1 & SPI_BAUDRATEPRESCALER_128)
-        return apbclock / 128;
-    else if(spi->CR1 & SPI_BAUDRATEPRESCALER_64)
-        return apbclock / 64;
-    else if(spi->CR1 & SPI_BAUDRATEPRESCALER_32)
-        return apbclock / 32;
-    else if(spi->CR1 & SPI_BAUDRATEPRESCALER_16)
-        return apbclock / 16;
-    else if(spi->CR1 & SPI_BAUDRATEPRESCALER_8)
-        return apbclock / 8;
-    else if(spi->CR1 & SPI_BAUDRATEPRESCALER_4)
-        return apbclock / 4;
-    else if(spi->CR1 & SPI_BAUDRATEPRESCALER_2)
-        return apbclock / 2;
-    return 0;
-}
-
-
-/**
- * private functions
- */
-
-int8_t get_spi_devno(SPI_TypeDef* spi)
-{
-	if(spi == SPI1)
-		return 0;
-	else if(spi == SPI2)
-		return 1;
-	else if (spi == SPI3)
-		return 2;
-
-	return -1;
-}
-
-void spi_init_device(SPI_TypeDef* spi, bool enable, spi_mode_t mode)
-{
-    SPI_HandleTypeDef hspi;
-
-	// init SPI peripheral
-	hspi.Instance = spi;
-	hspi.Init.FirstBit = SPI_FIRSTBIT_MSB; 			            // SPI_FirstBit_MSB or SPI_FirstBit_LSB
-	hspi.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256; 	// SPI_BAUDRATEPRESCALER_2 to SPI_BAUDRATEPRESCALER_256
-	hspi.Init.CLKPhase = SPI_PHASE_1EDGE; 					    // SPI_CPHA_1Edge or SPI_CPHA_2Edge
-	hspi.Init.CLKPolarity = SPI_POLARITY_LOW; 					// SPI_CPOL_Low or SPI_CPOL_High
-	hspi.Init.DataSize = SPI_DATASIZE_8BIT;
-	hspi.Init.Mode = SPI_MODE_MASTER;
-	hspi.Init.Direction = SPI_DIRECTION_2LINES;
-	hspi.Init.NSS = SPI_NSS_SOFT;
-	hspi.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-	hspi.Init.TIMode = SPI_TIMODE_DISABLE;
-	hspi.Init.CRCPolynomial = 1;
-
-	// todo, design a do a better mode abstraction
-    switch(mode)
-    {
-        case SPI_FULLDUPLEX:
-        default:
-            hspi.Init.Direction = SPI_DIRECTION_2LINES;
-        break;
-    }
-
-    if(enable)
-    {
-        HAL_SPI_Init(&hspi);
-        __HAL_SPI_ENABLE(&hspi);
-    }
-    else
-    {
-        HAL_SPI_DeInit(&hspi);
-        __HAL_SPI_DISABLE(&hspi);
-    }
-
-}
-
-void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
-{
-    if(hspi->Instance == SPI1)
-        __HAL_RCC_SPI1_CLK_ENABLE();
-    else if(hspi->Instance == SPI2)
-        __HAL_RCC_SPI2_CLK_ENABLE();
-    else if(hspi->Instance == SPI3)
-        __HAL_RCC_SPI3_CLK_ENABLE();
-}
-
-void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
-{
-    if(hspi->Instance == SPI1)
-        __HAL_RCC_SPI1_CLK_DISABLE();
-    else if(hspi->Instance == SPI2)
-        __HAL_RCC_SPI2_CLK_DISABLE();
-    else if(hspi->Instance == SPI3)
-        __HAL_RCC_SPI3_CLK_DISABLE();
-}
-
-/**
- * todo - implement mode
- */
-void spi_init_gpio(SPI_TypeDef* spi, spi_mode_t mode)
-{
-    (void)mode;
-    GPIO_InitTypeDef GPIO_InitStructure_rx;
-    GPIO_InitTypeDef GPIO_InitStructure_tx;
-
-    // start with no alternate function, for NSS pin
-#if FAMILY == STM32F4
-    GPIO_InitStructure_rx.Alternate = 0;
-#endif
-#if FAMILY == STM32F4
-    GPIO_InitStructure_tx.Alternate = 0;
-#endif
-
-    GPIO_InitStructure_rx.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStructure_rx.Pull = GPIO_PULLUP;
-    GPIO_InitStructure_rx.Speed = GPIO_SPEED_HIGH;
-
-    GPIO_InitStructure_tx.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStructure_tx.Pull = GPIO_NOPULL;
-    GPIO_InitStructure_tx.Speed = GPIO_SPEED_HIGH;
-
-	// config SPI clock, IO
-	if(spi == SPI1)
-	{
-#ifdef SPI1_NSS_PIN
-	    GPIO_InitStructure_tx.Pin = SPI1_NSS_PIN;
-		HAL_GPIO_Init(SPI1_NSS_PORT, &GPIO_InitStructure_tx);
-#else
-#pragma message "SPI1 NSS pin not configured"
-#endif
-
-		GPIO_InitStructure_tx.Mode = GPIO_MODE_AF_PP;
-
-#if FAMILY == STM32F1
-#ifdef SPI1_REMAP
-	    __HAL_AFIO_REMAP_SPI1_ENABLE();
-#endif
-#elif FAMILY == STM32F4
-	    GPIO_InitStructure_tx.Alternate = GPIO_AF5_SPI1;
-	    GPIO_InitStructure_rx.Alternate = GPIO_AF5_SPI1;
-#endif
-
-	    GPIO_InitStructure_rx.Pin = SPI1_MISO_PIN;
-	    HAL_GPIO_Init(SPI1_PORT, &GPIO_InitStructure_rx);
-        GPIO_InitStructure_tx.Pin = SPI1_MOSI_PIN;
-        HAL_GPIO_Init(SPI1_PORT, &GPIO_InitStructure_tx);
-        GPIO_InitStructure_tx.Pin = SPI1_SCK_PIN;
-        HAL_GPIO_Init(SPI1_PORT, &GPIO_InitStructure_tx);
+	if(spi_dev_ioctls[spih]) {
+		spi_init_interrupt(spih, SPI_INTERRUPT_PRIORITY, enable);
 	}
-	else if(spi == SPI2)
-	{
-#ifdef SPI2_NSS_PIN
-        GPIO_InitStructure_tx.Pin = SPI2_NSS_PIN;
-        HAL_GPIO_Init(SPI2_NSS_PORT, &GPIO_InitStructure_tx);
-#else
-#pragma message "SPI2 NSS pin not configured"
-#endif
+    assert_true(spi_dev_ioctls[spih]);
 
-        GPIO_InitStructure_tx.Mode = GPIO_MODE_AF_PP;
-
-#if FAMILY == STM32F4
-        GPIO_InitStructure_tx.Alternate = GPIO_AF5_SPI2;
-        GPIO_InitStructure_rx.Alternate = GPIO_AF5_SPI2;
-#endif
-
-        GPIO_InitStructure_rx.Pin = SPI2_MISO_PIN;
-        HAL_GPIO_Init(SPI2_PORT, &GPIO_InitStructure_rx);
-        GPIO_InitStructure_tx.Pin = SPI2_MOSI_PIN;
-        HAL_GPIO_Init(SPI2_PORT, &GPIO_InitStructure_tx);
-        GPIO_InitStructure_tx.Pin = SPI2_SCK_PIN;
-        HAL_GPIO_Init(SPI2_PORT, &GPIO_InitStructure_tx);
-	}
-	else if(spi == SPI3)
-	{
-#ifdef SPI3_NSS_PIN
-        GPIO_InitStructure_tx.Pin = SPI3_NSS_PIN;
-        HAL_GPIO_Init(SPI3_NSS_PORT, &GPIO_InitStructure_tx);
-#else
-#pragma message "SPI3 NSS pin not configured"
-#endif
-
-        GPIO_InitStructure_tx.Mode = GPIO_MODE_AF_PP;
-
-#if FAMILY == STM32F1
-#ifdef SPI3_REMAP
-        __HAL_AFIO_REMAP_SPI3_ENABLE();
-#endif
-#elif FAMILY == STM32F4
-#if defined(STM32F407xx) || defined(STM32F417xx)
-        GPIO_InitStructure_tx.Alternate = GPIO_AF6_SPI3;
-        GPIO_InitStructure_rx.Alternate = GPIO_AF6_SPI3;
-#else
-        GPIO_InitStructure_tx.Alternate = GPIO_AF5_SPI3;
-        GPIO_InitStructure_rx.Alternate = GPIO_AF5_SPI3;
-#endif
-#endif
-
-        GPIO_InitStructure_rx.Pin = SPI3_MISO_PIN;
-        HAL_GPIO_Init(SPI3_PORT, &GPIO_InitStructure_rx);
-        GPIO_InitStructure_tx.Pin = SPI3_MOSI_PIN;
-        HAL_GPIO_Init(SPI3_PORT, &GPIO_InitStructure_tx);
-        GPIO_InitStructure_tx.Pin = SPI3_SCK_PIN;
-        HAL_GPIO_Init(SPI3_PORT, &GPIO_InitStructure_tx);
-	}
+    return spih;
 }
 
-void spi_init_interrupt(SPI_TypeDef* spi, uint8_t priority, bool enable)
+int spi_enable_rx_ioctl(dev_ioctl_t* dev)
 {
-    uint8_t irq = 0;
-
-	if(spi == SPI1)
-	    irq = SPI1_IRQn;
-	else if(spi == SPI2)
-	    irq = SPI2_IRQn;
-	else if (spi == SPI3)
-	    irq = SPI3_IRQn;
-    else
-        assert_true(0);
-
-	if(enable)
-    {
-        HAL_NVIC_SetPriority(irq, priority, 0);
-        HAL_NVIC_EnableIRQ(irq);
-    }
-    else
-        HAL_NVIC_DisableIRQ(irq);
-}
-
-#if USE_LIKEPOSIX
-static int spi_enable_rx_ioctl(dev_ioctl_t* dev)
-{
-    SPI_HandleTypeDef hspi;
-    hspi.Instance = ((spi_ioctl_t*)(dev->ctx))->spi;
-    __HAL_SPI_ENABLE_IT(&hspi, SPI_IT_RXNE);
+	spi_enable_rx_int(dev->device_handle);
     return 0;
 }
 
-static int spi_enable_tx_ioctl(dev_ioctl_t* dev)
+int spi_enable_tx_ioctl(dev_ioctl_t* dev)
 {
-    SPI_HandleTypeDef hspi;
-    hspi.Instance = ((spi_ioctl_t*)(dev->ctx))->spi;
-    __HAL_SPI_ENABLE_IT(&hspi, SPI_IT_TXE);
+	spi_enable_tx_int(dev->device_handle);
     return 0;
 }
 
-static int spi_open_ioctl(dev_ioctl_t* dev)
+int spi_open_ioctl(dev_ioctl_t* dev)
 {
-    spi_ioctl_t* ioctl = (spi_ioctl_t*)(dev->ctx);
-    spi_init_gpio(ioctl->spi, ioctl->mode);
-    spi_init_device(ioctl->spi, true, ioctl->mode);
+    spi_ioctl_t* spi_ioctl = get_spi_ioctl(dev->device_handle);
+    spi_init_gpio(dev->device_handle);
+    spi_init_device(spi_ioctl->spi, true, spi_ioctl->baudrate, spi_ioctl->bit_order, spi_ioctl->clock_phase, spi_ioctl->clock_polarity, spi_ioctl->data_width);
     return 0;
 }
 
-static int spi_close_ioctl(dev_ioctl_t* dev)
+int spi_close_ioctl(dev_ioctl_t* dev)
 {
-    spi_ioctl_t* ioctl = (spi_ioctl_t*)(dev->ctx);
-    SPI_HandleTypeDef hspi;
-    hspi.Instance = ioctl->spi;
-    __HAL_SPI_DISABLE_IT(&hspi, SPI_IT_RXNE);
-    __HAL_SPI_DISABLE_IT(&hspi, SPI_IT_TXE);
-    spi_init_device(ioctl->spi, false, ioctl->mode);
+    spi_ioctl_t* spi_ioctl = get_spi_ioctl(dev->device_handle);
+	spi_disable_rx_int(dev->device_handle);
+	spi_disable_tx_int(dev->device_handle);
+    spi_init_device(spi_ioctl->spi, false, spi_ioctl->baudrate, spi_ioctl->bit_order, spi_ioctl->clock_phase, spi_ioctl->clock_polarity, spi_ioctl->data_width);
     return 0;
 }
 
-static int spi_ioctl(dev_ioctl_t* dev)
+int spi_ioctl(dev_ioctl_t* dev)
 {
-    SPI_TypeDef* spi = ((spi_ioctl_t*)(dev->ctx))->spi;
-
     uint32_t baudrate = dev->termios->c_ispeed ?
             dev->termios->c_ispeed : dev->termios->c_ospeed;
     if(baudrate)
     {
         // set baudrate
-        spi_set_baudrate(spi, baudrate);
+        spi_set_baudrate(dev->device_handle, baudrate);
     }
     else
     {
         // read baudrate
-        dev->termios->c_ispeed = spi_get_baudrate(spi);
-        dev->termios->c_ospeed = dev->termios->c_ispeed;
+    	dev->termios->c_ospeed = dev->termios->c_ispeed = spi_get_baudrate(dev->device_handle);
     }
 
     if(dev->termios->c_cc[VTIME] > 0)
@@ -534,3 +400,4 @@ static int spi_ioctl(dev_ioctl_t* dev)
 }
 
 #endif
+

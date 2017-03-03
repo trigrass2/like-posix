@@ -39,36 +39,24 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-
-#include "usart_config.h"
-#include "usart_it.h"
+#include "usart_peripheral.h"
 
 #ifndef USART_H_
 #define USART_H_
 
-/**
- * TODO add other USART modes
- */
-typedef enum {USART_FULLDUPLEX, USART_ONEWIRE} usart_mode_t;
+USART_HANDLE_t usart_init_polled(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate);
+void usart_set_stdio_usart(int usarth);
+void usart_stdio_tx(const char data);
+char usart_stdio_rx();
 
-typedef struct {
-	USART_TypeDef* usart;
-	usart_mode_t mode;
-}usart_ioctl_t;
+USART_HANDLE_t usart_init_async(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize);
+int32_t usart_put_async(USART_HANDLE_t usarth, const uint8_t* data, int32_t length);
+int32_t usart_get_async(USART_HANDLE_t usarth, uint8_t* data, int32_t length);
 
-
-bool usart_init(USART_TypeDef* usart, char* install_as, bool enable, usart_mode_t mode);
-
-void usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t mode);
-void usart_init_gpio(USART_TypeDef* usart, usart_mode_t mode);
-void usart_init_interrupt(USART_TypeDef* device, uint8_t priority, bool enable);
-
-void usart_set_baudrate(USART_TypeDef* usart, uint32_t br);
-uint32_t usart_get_baudrate(USART_TypeDef* usart);
-
-void set_console_usart(USART_TypeDef* usart);
-char phy_getc(void);
-void phy_putc(char c);
+#if USE_LIKEPOSIX
+dev_ioctl_t* get_usart_device_ioctl(USART_HANDLE_t usarth);
+USART_HANDLE_t usart_init_devicefile(char* filename, USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate);
+#endif
 
 #endif // USART_H_
 

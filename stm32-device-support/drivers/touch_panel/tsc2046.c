@@ -100,10 +100,7 @@
 
 void tsc2046_init()
 {
-    assert_true(spi_init(TSC2046_SPI_PERIPH, NULL, true, SPI_FULLDUPLEX));
-//    SPI_FirstBit_MSB
-//    SPI_CPOL_Low
-//    SPI_CPHA_1Edge
+    assert_true(spi_init(TSC2046_SPI_PERIPH, NULL, true, 0, SPI_FIRSTBIT_MSB, SPI_PHASE_1EDGE, SPI_POLARITY_LOW, SPI_DATASIZE_8BIT));
     spi_set_prescaler(TSC2046_SPI_PERIPH, TSC2046_SPI_PRESC);
 
     GPIO_InitTypeDef GPIO_InitStructure;

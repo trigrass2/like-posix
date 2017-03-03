@@ -30,25 +30,27 @@
  *
  */
 
-#ifndef BOARD_SPI_H_
-#define BOARD_SPI_H_
+#ifndef NET_CONF_H_
+#define NET_CONF_H_
 
-#define SPI1_FULL_REMAP 0
-#define SPI3_FULL_REMAP 0
+#define NET_TASK_PRIORITY       2
+#define NET_TASK_STACK          64
 
-/**
- * only specify chip select's for those SPI's that require them.
- * (comment out those that are not needed)
- */
+#define NET_LINK_LED            LED2
 
-#define SPI1_NSS_PORT 	GPIOA
-#define SPI1_NSS_PIN 	GPIO_PIN_4
+/* Definition of the Ethernet driver buffers size and count */
+#define ETH_MAX_ETH_PAYLOAD     	   600
+#define ETH_RX_BUF_SIZE                ETH_MAX_PACKET_SIZE /* buffer size for receive               */
+#define ETH_TX_BUF_SIZE                ETH_MAX_PACKET_SIZE /* buffer size for transmit              */
+#define ETH_RXBUFNB                    ((uint32_t)4)       /* 4 Rx buffers of size ETH_RX_BUF_SIZE  */
+#define ETH_TXBUFNB                    ((uint32_t)8)       /* 4 Tx buffers of size ETH_TX_BUF_SIZE  */
 
-#define SPI2_NSS_PORT 	GPIOB
-#define SPI2_NSS_PIN 	GPIO_PIN_12
 
-#define SPI3_NSS_PORT 	GPIOA
-#define SPI3_NSS_PIN 	GPIO_PIN_15
+#define ENC28J60_SPI_PERIPH     		SPI3
+#define ENC28J60_SPI_BAUDRATE           10000000
+#define ENC28J60_SPI_NRST_PORT   		GPIOB
+#define ENC28J60_SPI_NRST_PIN    		GPIO_PIN_7
+#define ENC28J60_SPI_NINT_PORT   		GPIOB
+#define ENC28J60_SPI_NINT_PIN    		GPIO_PIN_6
 
-#endif /* BOARD_SPI_H_ */
-
+#endif // NET_CONF_H_

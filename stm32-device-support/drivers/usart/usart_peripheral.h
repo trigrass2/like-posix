@@ -30,52 +30,64 @@
  *
  */
 
-#include "services.h"
+/**
+ * @addtogroup usart
+ * @{
+ *
+ * @file    usart.h
+ */
 
-#if USE_DRIVER_SYSTEM_TIMER
-#include "systime.h"
-#endif
-#if USE_DRIVER_LEDS
-#include "leds.h"
-#endif
-#if USE_DRIVER_USART
-#include "usart.h"
-#endif
-#if USE_LIKEPOSIX
+#include <stddef.h>
+#include "board_config.h"
+#include "base_usart.h"
 #include "syscalls.h"
-#endif
-#if USE_LOGGER
-#include <unistd.h>
-#include "cutensils.h"
-#endif
-#if USE_MINLIBC
-#include "minlibc/stdio.h"
-#endif
+#include "vfifo.h"
 
-void init_services()
-{
-#if USE_DRIVER_SYSTEM_TIMER
-    init_systime();
-#endif
-#if USE_LOGGER
-    logger_init();
-#endif
-#if USE_DRIVER_USART && USE_STDIO_USART
-    int usarth = (int)usart_init_polled(CONSOLE_USART, true, USART_FULLDUPLEX, USART_DEFAULT_BAUDRATE);
-    usart_set_stdio_usart(usarth);
-#if USE_LOGGER
-    log_add_handler(STDOUT_FILENO);
-#endif
-#endif
-#if USE_DRIVER_LEDS
-    init_leds();
-#endif
-#if USE_LIKEPOSIX
-    init_likeposix();
-#endif
-#if USE_MINLIBC
-    init_minlibc();
-#endif
-}
+#ifndef USART_PERIPHERAL_H_
+#define USART_PERIPHERAL_H_
 
 
+typedef enum {USART_FULLDUPLEX, USART_ONEWIRE} usart_mode_t;
+
+typedef enum {
+	USART1_HANDLE = 0,
+	USART2_HANDLE,
+	USART3_HANDLE,
+	UART4_HANDLE,
+	UART5_HANDLE,
+	USART6_HANDLE,
+	USART_INVALID_HANDLE,
+}USART_HANDLE_t;
+
+typedef struct {
+	USART_TypeDef* usart;
+	uint32_t baudrate;
+	usart_mode_t mode;
+	bool sending;
+	vfifo_t* rxfifo;
+	vfifo_t* txfifo;
+} usart_ioctl_t;
+
+
+
+USART_HANDLE_t usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate);
+void usart_init_gpio(USART_HANDLE_t usarth);
+void usart_init_interrupt(USART_HANDLE_t usarth, uint8_t priority, bool enable);
+inline void usart_enable_rx_int(USART_HANDLE_t usarth);
+inline void usart_enable_tx_int(USART_HANDLE_t usarth);
+inline void usart_disable_rx_int(USART_HANDLE_t usarth);
+inline void usart_disable_tx_int(USART_HANDLE_t usarth);
+USART_HANDLE_t get_usart_handle(USART_TypeDef* usart);
+USART_TypeDef* get_usart_peripheral(USART_HANDLE_t usarth);
+usart_ioctl_t* get_usart_ioctl(USART_HANDLE_t usarth);
+void usart_tx(USART_HANDLE_t usarth, const uint8_t data);
+uint8_t usart_rx(USART_HANDLE_t usarth);
+void usart_set_baudrate(USART_HANDLE_t usarth, uint32_t baudrate);
+uint32_t usart_get_baudrate(USART_HANDLE_t usarth);
+
+
+#endif // USART_PERIPHERAL_H_
+
+/**
+ * @}
+ */

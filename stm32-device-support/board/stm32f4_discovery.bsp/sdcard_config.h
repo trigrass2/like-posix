@@ -30,25 +30,29 @@
  *
  */
 
-#ifndef BOARD_SPI_H_
-#define BOARD_SPI_H_
+#ifndef SDCARD_CONFIG_H_
+#define SDCARD_CONFIG_H_
 
-#define SPI1_FULL_REMAP 0
-#define SPI3_FULL_REMAP 0
+// define active high sd present pin
+// #define SD_CARD_PRES_PIN            GPIO_PIN_
+// #define SD_CARD_PRES_PORT           GPIO
 
-/**
- * only specify chip select's for those SPI's that require them.
- * (comment out those that are not needed)
- */
+// define active low sd present pin
+#define SD_CARD_NPRES_PIN            GPIO_PIN_7
+#define SD_CARD_NPRES_PORT           GPIOC
 
-#define SPI1_NSS_PORT 	GPIOA
-#define SPI1_NSS_PIN 	GPIO_PIN_4
+// define active high write protect pin
+// #define SD_CARD_WP_PIN              GPIO_PIN_
+// #define SD_CARD_WP_PORT             GPIO
 
-#define SPI2_NSS_PORT 	GPIOB
-#define SPI2_NSS_PIN 	GPIO_PIN_12
+// define active low write protect pin
+// #define SD_CARD_NWP_PIN              GPIO_PIN_
+// #define SD_CARD_NWP_PORT             GPIO
 
-#define SPI3_NSS_PORT 	GPIOA
-#define SPI3_NSS_PIN 	GPIO_PIN_15
+#define SDCARD_IT_PRIORITY          5
+#define SDCARD_TASK_PRIORITY        1
+#define SDCARD_TASK_STACK 		    192
+#define SDCARD_DRIVER_MODE			SDCARD_DRIVER_MODE_SDIO_4BIT
+#define SDIO_CLOCK_DIVIDER          2 // SDIO clock = 12MHz = 48000000 / SDIO_CLOCK_DIVIDER + 2)
 
-#endif /* BOARD_SPI_H_ */
-
+#endif // SDCARD_CONFIG_H_

@@ -51,13 +51,14 @@
 volatile uint8_t enc28j60_current_bank = 0;
 volatile uint16_t enc28j60_rxrdpt = 0;
 static logger_t enclog;
+static SPI_HANDLE_t enc_spi;
 
 #define ENC28J60_SPI_BAUDRATE 10000000
 #define ENC28J60_RESET_TIME_MS 50000
 
-#define enc28j60_select() spi_assert_nss(ENC28J60_SPI_PERIPH)
-#define enc28j60_release() spi_deassert_nss(ENC28J60_SPI_PERIPH)
-#define enc28j60_rxtx(data) spi_transfer(ENC28J60_SPI_PERIPH, data)
+#define enc28j60_select() spi_clear_ss(enc_spi)
+#define enc28j60_release() spi_set_ss(enc_spi)
+#define enc28j60_rxtx(data) spi_transfer_polled(enc_spi, data)
 #define enc28j60_rx() enc28j60_rxtx(0xff)
 #define enc28j60_tx(data) enc28j60_rxtx(data)
 
@@ -65,7 +66,6 @@ static logger_t enclog;
 #define enc28j60_deassert_reset() HAL_GPIO_WritePin(ENC28J60_SPI_NRST_PORT, ENC28J60_SPI_NRST_PIN, GPIO_PIN_SET);
 
 static void enc28j60_gpio_init();
-static void enc28j60_spi_init();
 static void enc28j60_soft_reset();
 static void enc28j60_reset();
 
@@ -78,7 +78,8 @@ void enc28j60_init(uint8_t *macadr)
     log_init(&enclog, "enc28j60");
 
 	enc28j60_gpio_init();
-	enc28j60_spi_init();
+
+	enc_spi = spi_init_polled(ENC28J60_SPI_PERIPH, true, ENC28J60_SPI_BAUDRATE, SPI_FIRSTBIT_MSB, SPI_PHASE_1EDGE, SPI_POLARITY_LOW, SPI_DATASIZE_8BIT);
 
 	enc28j60_release();
 	enc28j60_reset();
@@ -127,12 +128,6 @@ void enc28j60_init(uint8_t *macadr)
 		PHLCON_LFRQ0|PHLCON_STRCH);
 
 	log_debug(&enclog, "device rev.%X", enc28j60_revision());
-}
-
-void enc28j60_spi_init()
-{
-    spi_init(ENC28J60_SPI_PERIPH, NULL, true, SPI_FULLDUPLEX);
-    spi_set_baudrate(ENC28J60_SPI_PERIPH, ENC28J60_SPI_BAUDRATE);
 }
 
 void enc28j60_gpio_init()
