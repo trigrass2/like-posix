@@ -667,12 +667,12 @@ HAL_SD_ErrorTypedef sd_init(HAL_SD_CardInfoTypedef* cardinfo)
     sd_hardware_init();
 
 	// 80 clock cycles with CS high
-	spi_deassert_nss(SDCARD_SPI_PERIPHERAL);
+	spi_set_ss(SDCARD_SPI_PERIPHERAL);
 	for(i = 0; i < 10; i++)
 		spi_transfer(SDCARD_SPI_PERIPHERAL, SD_DUMMY_BYTE);
 
 	// assert CS low permanently
-	spi_assert_nss(SDCARD_SPI_PERIPHERAL);
+	spi_clear_ss(SDCARD_SPI_PERIPHERAL);
 
 	// go to idle state (software reset)
 	code = sd_send_cmd(SD_CMD0, 0);
@@ -758,14 +758,13 @@ HAL_SD_ErrorTypedef sd_init(HAL_SD_CardInfoTypedef* cardinfo)
 
 void sd_hardware_init()
 {
-	spi_deassert_nss(SDCARD_SPI_PERIPHERAL);
-	spi_init(SDCARD_SPI_PERIPHERAL, NULL, true);
-	spi_set_baudrate(SDCARD_SPI_PERIPHERAL, SDCARD_SPI_INIT_BAUDRATE);
+	spi_set_ss(SDCARD_SPI_PERIPHERAL);
+	spi_init_polled(SDCARD_SPI_PERIPHERAL, NULL, true, SDCARD_SPI_INIT_BAUDRATE, SPI_FIRSTBIT_MSB, SPI_PHASE_1EDGE, SPI_POLARITY_LOW, SPI_DATASIZE_8BIT);
 }
 
 void sd_hardware_deinit()
 {
-	spi_deassert_nss(SDCARD_SPI_PERIPHERAL);
+	spi_set_ss(SDCARD_SPI_PERIPHERAL);
 }
 
 //HAL_SD_ErrorTypedef sd_erase(uint32_t startaddr, uint32_t endaddr)

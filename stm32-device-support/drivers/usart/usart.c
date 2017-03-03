@@ -79,13 +79,11 @@
 #endif
 
 #include "usart.h"
+#include "usart_it.h"
 #include "base_usart.h"
 #include "asserts.h"
 #include "cutensils.h"
 #include "system.h"
-
-
-static USART_TypeDef* console_usart;
 
 #if USE_LIKEPOSIX
 static int usart_ioctl(dev_ioctl_t* dev);
@@ -93,489 +91,188 @@ static int usart_close_ioctl(dev_ioctl_t* dev);
 static int usart_open_ioctl(dev_ioctl_t* dev);
 static int usart_enable_tx_ioctl(dev_ioctl_t* dev);
 static int usart_enable_rx_ioctl(dev_ioctl_t* dev);
-usart_ioctl_t usart_ioctls[8];
+
 dev_ioctl_t* usart_dev_ioctls[8];
 #endif
 
-
-
-
-/**
- * write a character to the console usart.
- */
-void phy_putc(char c)
-{
-	USART_HandleTypeDef husart;
-	husart.Instance = console_usart;
-    if(console_usart)
-    {
-
-        while(!__HAL_USART_GET_FLAG(&husart, USART_FLAG_TXE));
-        console_usart->DR =  c;
-    }
-}
-
-/**
- * get a character from the console usart.
- */
-char phy_getc(void)
-{
-	USART_HandleTypeDef husart;
-	husart.Instance = console_usart;
-    if(console_usart)
-    {
-        while(!__HAL_USART_GET_FLAG(&husart, USART_FLAG_RXNE));
-        return (char)console_usart->DR;
-    }
-    return -1;
-}
-
-/**
- * initialize the specified USART device.
- *
- * **note:** this function is called by usart_init.
- */
-void usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t mode)
-{
-    if(enable)
-    {
-        if(usart == USART1)
-            __HAL_RCC_USART1_CLK_ENABLE();
-        else if(usart == USART2)
-            __HAL_RCC_USART2_CLK_ENABLE();
-        else if(usart == USART3)
-            __HAL_RCC_USART3_CLK_ENABLE();
-        else if(usart == UART4)
-            __HAL_RCC_UART4_CLK_ENABLE();
-        else if(usart == UART5)
-            __HAL_RCC_UART5_CLK_ENABLE();
-#ifdef USART6
-        else if(usart == USART6)
-            __HAL_RCC_USART6_CLK_ENABLE();
-#endif
-#ifdef UART7
-        else if(usart == UART7)
-            __HAL_RCC_UART7_CLK_ENABLE();
-#endif
-#ifdef UART8
-        else if(usart == UART8)
-            __HAL_RCC_UART8_CLK_ENABLE();
-#endif
-
-        usart->CR3 = 0U;
-        usart->CR1 = USART_CR1_UE | USART_CR1_OVER8;
-        usart->CR2 = 0U;
-        usart->GTPR = 0U;
-
-        switch(mode)
-        {
-            case USART_FULLDUPLEX:
-            case USART_ONEWIRE:
-            default:
-                usart->CR1 |= USART_CR1_TE | USART_CR1_RE;
-            break;
-        }
-
-        usart_set_baudrate(usart, USART_DEFAULT_BAUDRATE);
-    }
-    else
-    {
-        if(usart == USART1)
-            __HAL_RCC_USART1_CLK_DISABLE();
-        else if(usart == USART2)
-            __HAL_RCC_USART2_CLK_DISABLE();
-        else if(usart == USART3)
-            __HAL_RCC_USART3_CLK_DISABLE();
-        else if(usart == UART4)
-            __HAL_RCC_UART4_CLK_DISABLE();
-        else if(usart == UART5)
-            __HAL_RCC_UART5_CLK_DISABLE();
-#ifdef USART6
-        else if(usart == USART6)
-            __HAL_RCC_USART6_CLK_DISABLE();
-#endif
-#ifdef UART7
-        else if(usart == UART7)
-        	__HAL_RCC_UART7_CLK_DISABLE();
-#endif
-#ifdef UART8
-        else if(usart == UART8)
-        	__HAL_RCC_UART8_CLK_DISABLE();
-#endif
-    }
-}
-
-/**
- * initialize the IO pins for the specified USART.
- *
- * **note:** pin mapping is set in serial_config.h.
- *
- * **note:** this function is called by usart_init.
- */
-void usart_init_gpio(USART_TypeDef* usart, usart_mode_t mode)
-{
-	GPIO_InitTypeDef GPIO_InitStructure_rx;
-	GPIO_InitTypeDef GPIO_InitStructure_tx;
-
-	switch(mode)
-	{
-		case USART_ONEWIRE:
-			GPIO_InitStructure_rx.Mode = GPIO_MODE_AF_PP;
-			GPIO_InitStructure_rx.Pull = GPIO_PULLUP;
-			GPIO_InitStructure_rx.Speed = GPIO_SPEED_MEDIUM;
-			GPIO_InitStructure_tx.Mode = GPIO_MODE_AF_OD;
-			GPIO_InitStructure_tx.Pull = GPIO_PULLUP;
-			GPIO_InitStructure_tx.Speed = GPIO_SPEED_MEDIUM;
-		break;
-
-		case USART_FULLDUPLEX:
-		default:
-			GPIO_InitStructure_rx.Mode = GPIO_MODE_AF_PP;
-			GPIO_InitStructure_rx.Pull = GPIO_PULLUP;
-			GPIO_InitStructure_rx.Speed = GPIO_SPEED_MEDIUM;
-			GPIO_InitStructure_tx.Mode = GPIO_MODE_AF_PP;
-			GPIO_InitStructure_tx.Pull = GPIO_NOPULL;
-			GPIO_InitStructure_tx.Speed = GPIO_SPEED_MEDIUM;
-		break;
-	}
-
-    if(usart == USART1)
-    {
-#if FAMILY == STM32F1
-#ifdef USART1_REMAP
-    	__HAL_AFIO_REMAP_USART1_ENABLE();
-#endif
-#elif FAMILY == STM32F4
-    	GPIO_InitStructure_tx.Alternate = GPIO_AF7_USART1;
-    	GPIO_InitStructure_rx.Alternate = GPIO_AF7_USART1;
-#endif
-    	GPIO_InitStructure_tx.Pin = USART1_TX_PIN;
-    	GPIO_InitStructure_rx.Pin = USART1_RX_PIN;
-    	HAL_GPIO_Init(USART1_PORT, &GPIO_InitStructure_tx);
-    	HAL_GPIO_Init(USART1_PORT, &GPIO_InitStructure_rx);
-    }
-    else if(usart == USART2)
-    {
-#if FAMILY == STM32F1
-#ifdef USART2_REMAP
-        __HAL_AFIO_REMAP_USART2_ENABLE();
-#endif
-#elif FAMILY == STM32F4
-    	GPIO_InitStructure_tx.Alternate = GPIO_AF7_USART2;
-    	GPIO_InitStructure_rx.Alternate = GPIO_AF7_USART2;
-#endif
-    	GPIO_InitStructure_tx.Pin = USART2_TX_PIN;
-    	GPIO_InitStructure_rx.Pin = USART2_RX_PIN;
-    	HAL_GPIO_Init(USART2_PORT, &GPIO_InitStructure_tx);
-    	HAL_GPIO_Init(USART2_PORT, &GPIO_InitStructure_rx);
-    }
-    else if(usart == USART3)
-    {
-#if FAMILY == STM32F1
-#ifdef USART3_REMAP
-    	__HAL_AFIO_REMAP_USART3_ENABLE();
-#elif defined(USART3_PARTIAL_REMAP)
-    	__HAL_AFIO_REMAP_USART3_PARTIAL();
-#endif
-#elif FAMILY == STM32F4
-    	GPIO_InitStructure_tx.Alternate = GPIO_AF7_USART3;
-    	GPIO_InitStructure_rx.Alternate = GPIO_AF7_USART3;
-#endif
-    	GPIO_InitStructure_tx.Pin = USART3_TX_PIN;
-    	GPIO_InitStructure_rx.Pin = USART3_RX_PIN;
-    	HAL_GPIO_Init(USART3_PORT, &GPIO_InitStructure_tx);
-    	HAL_GPIO_Init(USART3_PORT, &GPIO_InitStructure_rx);
-    }
-
-    else if(usart == UART4)
-    {
-#if FAMILY == STM32F4
-    	GPIO_InitStructure_tx.Alternate = GPIO_AF8_UART4;
-    	GPIO_InitStructure_rx.Alternate = GPIO_AF8_UART4;
-#endif
-    	GPIO_InitStructure_tx.Pin = UART4_TX_PIN;
-    	GPIO_InitStructure_rx.Pin = UART4_RX_PIN;
-    	HAL_GPIO_Init(UART4_PORT, &GPIO_InitStructure_tx);
-    	HAL_GPIO_Init(UART4_PORT, &GPIO_InitStructure_rx);
-    }
-
-    else if(usart == UART5)
-    {
-#if FAMILY == STM32F4
-    	GPIO_InitStructure_tx.Alternate = GPIO_AF8_UART5;
-    	GPIO_InitStructure_rx.Alternate = GPIO_AF8_UART5;
-#endif
-    	GPIO_InitStructure_tx.Pin = UART5_TX_PIN;
-    	GPIO_InitStructure_rx.Pin = UART5_RX_PIN;
-    	HAL_GPIO_Init(UART5_TX_PORT, &GPIO_InitStructure_tx);
-    	HAL_GPIO_Init(UART5_RX_PORT, &GPIO_InitStructure_rx);
-    }
-#ifdef USART6
-    else if(usart == USART6)
-    {
-    	GPIO_InitStructure_tx.Alternate = GPIO_AF8_USART6;
-    	GPIO_InitStructure_rx.Alternate = GPIO_AF8_USART6;
-    	GPIO_InitStructure_tx.Pin = USART6_TX_PIN;
-    	GPIO_InitStructure_rx.Pin = USART6_RX_PIN;
-    	HAL_GPIO_Init(USART6_PORT, &GPIO_InitStructure_tx);
-    	HAL_GPIO_Init(USART6_PORT, &GPIO_InitStructure_rx);
-    }
-#endif
-#ifdef UART7
-    else if(usart == UART7)
-    {
-    	GPIO_InitStructure_tx.Alternate = GPIO_AF8_UART7;
-    	GPIO_InitStructure_rx.Alternate = GPIO_AF8_UART7;
-    	GPIO_InitStructure_tx.Pin = UART7_TX_PIN;
-    	GPIO_InitStructure_rx.Pin = UART7_RX_PIN;
-    	HAL_GPIO_Init(UART7_TX_PORT, &GPIO_InitStructure_tx);
-    	HAL_GPIO_Init(UART7_RX_PORT, &GPIO_InitStructure_rx);
-    }
-#endif
-#ifdef UART8
-    else if(usart == UART8)
-    {
-    	GPIO_InitStructure_tx.Alternate = GPIO_AF8_UART8;
-    	GPIO_InitStructure_rx.Alternate = GPIO_AF8_UART8;
-    	GPIO_InitStructure_tx.Pin = UART8_TX_PIN;
-    	GPIO_InitStructure_rx.Pin = UART8_RX_PIN;
-    	HAL_GPIO_Init(UART8_TX_PORT, &GPIO_InitStructure_tx);
-    	HAL_GPIO_Init(UART8_RX_PORT, &GPIO_InitStructure_rx);
-    }
-#endif
-}
-
-int8_t get_usart_devno(USART_TypeDef* usart)
-{
-	if(usart == USART1)
-		return 0;
-	else if(usart == USART2)
-		return 1;
-	else if (usart == USART3)
-		return 2;
-	else if (usart == UART4)
-		return 3;
-	else if (usart == UART5)
-		return 4;
-#ifdef USART6
-	else if (usart == USART6)
-		return 5;
-#endif
-#ifdef UART7
-	else if (usart == UART7)
-		return 6;
-#endif
-#ifdef UART8
-	else if (usart == UART8)
-		return 7;
-#endif
-	return -1;
-}
+USART_HANDLE_t stdio_usarth;
 
 /**
  * initialize the the specified USART, interrupts, device file, and its GPIO pins.
  *
  * @param	usart is the usart to init (USART1,2,3,6 UART4,5)
- * @param	install, is the name of the file to install as. if specified,
- * 			creates a new file in the directory /dev, and installs the USART peripheral as a device.
- * 			if set to NULL, does not install the device, but simply configures the peripheral.
  * @param	enable, when set to true enables the peripheral. use this option when using the peripehral
  * 			raw, not as a device.
  * 			set to false when using as a device - it will be enabled when the open()
  * 			function is invoked on its device file.
  * @retval	returns true if the operation succeeded, false otherwise.
  */
-bool usart_init(USART_TypeDef* usart, char* install, bool enable, usart_mode_t mode)
+USART_HANDLE_t usart_init_polled(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate)
 {
-	bool ret = true;
-	int8_t usart_devno = get_usart_devno(usart);
+	USART_HANDLE_t usarth = USART_INVALID_HANDLE;
+    usarth = usart_init_device(usart, enable, mode, baudrate);
+    usart_init_gpio(usarth);
+	usart_init_interrupt(usarth, USART_INTERRUPT_PRIORITY, false);
+    return usarth;
+}
 
-	log_syslog(NULL, "init usart%d", usart_devno+1);
+USART_HANDLE_t usart_init_async(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize)
+{
+	USART_HANDLE_t usarth = USART_INVALID_HANDLE;
+	uint8_t* fifomem = malloc(2 * (sizeof(vfifo_t) + (buffersize * sizeof(vfifo_primitive_t))));
+	if(fifomem) {
+		usarth = usart_init_device(usart, enable, mode, baudrate);
+		usart_init_gpio(usarth);
 
-	assert_true(usart_devno != -1);
+		usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
+		usart_ioctl->rxfifo = (vfifo_t*)fifomem;
+		usart_ioctl->txfifo = (vfifo_t*)(fifomem + sizeof(vfifo_t) + (buffersize * sizeof(vfifo_primitive_t)));
+		vfifo_init(usart_ioctl->rxfifo, usart_ioctl->rxfifo + sizeof(vfifo_t), buffersize);
+		vfifo_init(usart_ioctl->txfifo, usart_ioctl->txfifo + sizeof(vfifo_t), buffersize);
 
-    if(install)
-    {
-#if USE_LIKEPOSIX
-    	usart_ioctls[usart_devno].usart = usart;
-    	usart_ioctls[usart_devno].mode = mode;
-    	usart_dev_ioctls[usart_devno] = install_device(install,
-    													&usart_ioctls[usart_devno],
-														usart_enable_rx_ioctl,
-														usart_enable_tx_ioctl,
-														usart_open_ioctl,
-														usart_close_ioctl,
-														usart_ioctl);
-    	// installed USART can only work with interrupt enabled
-    	usart_init_interrupt(usart, USART_INTERRUPT_PRIORITY, true);
-    	ret = usart_dev_ioctls[usart_devno] != NULL;
-#else
-    	ret = true;
-#endif
-        log_syslog(NULL, "install usart%d: %s", usart_devno+1, ret ? "successful" : "failed");
-    }
-
-    if(enable)
-    {
-    	// installed usarts are opened automatically... this is optional
-        usart_init_gpio(usart, mode);
-        usart_init_device(usart, true, mode);
-    }
-
-    return ret;
+		usart_init_interrupt(usarth, USART_INTERRUPT_PRIORITY, enable);
+	}
+    return usarth;
 }
 
 
-/**
- * initialize interrupts for the specified USART.
- *
- * **note:** this function is called by usart_init.
- */
-void usart_init_interrupt(USART_TypeDef* usart, uint8_t priority, bool enable)
+void usart_set_stdio_usart(int usarth)
 {
-	uint8_t irq = 0;
-	USART_HandleTypeDef husart;
-	husart.Instance = usart;
-
-	__HAL_USART_DISABLE_IT(&husart, USART_IT_RXNE);
-	__HAL_USART_DISABLE_IT(&husart, USART_IT_TXE);
-	__HAL_USART_DISABLE_IT(&husart, USART_IT_ERR);
-
-	if(usart == USART1)
-		irq = USART1_IRQn;
-	else if(usart == USART2)
-		irq = USART2_IRQn;
-	else if (usart == USART3)
-		irq = USART3_IRQn;
-	else if (usart == UART4)
-		irq = UART4_IRQn;
-	else if (usart == UART5)
-		irq = UART5_IRQn;
-#ifdef USART6
-	else if (usart == USART6)
-		irq = USART6_IRQn;
-#endif
-#ifdef UART7
-	else if (usart == UART7)
-		irq = UART7_IRQn;
-#endif
-#ifdef UART8
-	else if (usart == UART8)
-		irq = UART8_IRQn;
-#endif
-	else
-		assert_true(0);
-
-    if(enable)
-    {
-    	HAL_NVIC_SetPriority(irq, priority, 0);
-    	HAL_NVIC_EnableIRQ(irq);
-    }
-    else
-    	HAL_NVIC_DisableIRQ(irq);
+	stdio_usarth = usarth;
 }
 
-/**
- * sets the console USART. this enables printf through the console USART.
- */
-void set_console_usart(USART_TypeDef* usart)
+void usart_stdio_tx(const char data)
 {
-	console_usart = usart;
+	usart_tx(stdio_usarth, (const uint8_t)data);
 }
 
-/**
- * sets the usart baudrate.
- *
- * The baud rate is computed using the following formula:
- * - IntegerDivider = ((PCLKx) / (8 * (OVR8+1) * baudrate))
- * - FractionalDivider = ((IntegerDivider - IntegerDivider) * 8 * (OVR8+1)) + 0.5
- * Where OVR8 is the "oversampling by 8 mode" configuration bit in the CR1 register.
- */
-void usart_set_baudrate(USART_TypeDef* usart, uint32_t br)
+char usart_stdio_rx()
 {
-#if FAMILY == STM32F4
-	if((usart == USART1) || (usart == USART6))
-#else
-    if(usart == USART1)
-#endif
-		usart->BRR = USART_BRR(HAL_RCC_GetPCLK2Freq(), br);
-	else
-		usart->BRR = USART_BRR(HAL_RCC_GetPCLK1Freq(), br);
+	return usart_rx(stdio_usarth);
 }
 
-/**
- * reads the current baudrate.
- */
-uint32_t usart_get_baudrate(USART_TypeDef* usart)
+int32_t usart_put_async(USART_HANDLE_t usarth, const uint8_t* data, int32_t length)
 {
-    uint32_t pclock;
+	int32_t sent = 0;
+	if(length) {
+		usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
 
-#if FAMILY == STM32F4
-    if(usart == USART1 || usart == USART6)
-#else
-    if(usart == USART1)
-#endif
-    	pclock = HAL_RCC_GetPCLK2Freq();
-    else
-    	pclock = HAL_RCC_GetPCLK1Freq();
-
-    // multiply by 25 as 25 * max of 168MHz just avoids overflow and give better prescicon
-    uint32_t div = (25 * (usart->BRR >> 4)) + ((25 * (usart->BRR & 0x000f))/16);
-    return ((pclock * 25) / div) / 16;
+		if(usart_ioctl->sending) {
+			sent = vfifo_put_block(usart_ioctl->txfifo, data, length);
+		}
+		else {
+			usart_ioctl->sending = true;
+			sent = vfifo_put_block(usart_ioctl->txfifo, data, length);
+			usart_enable_tx_int(usarth);
+		}
+	}
+	return sent;
 }
+
+int32_t usart_get_async(USART_HANDLE_t usarth, uint8_t* data, int32_t length)
+{
+	int32_t recvd = 0;
+	if(length) {
+		usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
+		recvd = vfifo_get_block(usart_ioctl->rxfifo, (void*)data, length);
+	}
+	return recvd;
+}
+
+
+
 
 #if USE_LIKEPOSIX
-static int usart_enable_rx_ioctl(dev_ioctl_t* dev)
+
+
+dev_ioctl_t* get_usart_device_ioctl(USART_HANDLE_t usarth)
 {
-	USART_HandleTypeDef husart;
-	husart.Instance = ((usart_ioctl_t*)(dev->ctx))->usart;
-	__HAL_USART_ENABLE_IT(&husart, USART_IT_RXNE);
+	return usart_dev_ioctls[usarth];
+}
+
+/**
+ * call this function to install an USART port as a device file (requires USE_LIKEPOSIX=1 in the Makefile).
+ *
+ * when installed as device file, posix system calls amy be made including open, close, read, write, etc.
+ * termios functions are also available (tcgetattr, tcsetattr, etc)
+ * file stream functions are also available (fputs, fgets, etc)
+ *
+ * @param usart is the USART peripheral to initialize.
+ * @param filename is the device file name to install as Eg "/dev/ttyUSART0".
+ *        if set to NULL, the device may be used in polled mode only.
+ * @param enable - set to true when using in polled mode. when the device file is specified,
+ *        set to false - the device is enabled automatically when the file is opened.
+ *
+ * @param baudrate
+ */
+USART_HANDLE_t usart_init_devicefile(char* filename, USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate)
+{
+    USART_HANDLE_t usarth = USART_INVALID_HANDLE;
+
+	usarth = usart_init_device(usart, enable, mode, baudrate);
+    usart_init_gpio(usarth);
+
+	usart_dev_ioctls[usarth] = (void*)install_device(filename,
+													usarth,
+													usart_enable_rx_ioctl,
+													usart_enable_tx_ioctl,
+													usart_open_ioctl,
+													usart_close_ioctl,
+													usart_ioctl);
+
+	log_syslog(NULL, "install usart%d: %s", usarth, usart_dev_ioctls[usarth] ? "successful" : "failed");
+
+	if(usart_dev_ioctls[usarth]) {
+		usart_init_interrupt(usarth, USART_INTERRUPT_PRIORITY, enable);
+	}
+
+    assert_true(usart_dev_ioctls[usarth]);
+
+    return usarth;
+}
+
+int usart_enable_rx_ioctl(dev_ioctl_t* dev)
+{
+	usart_enable_rx_int(dev->device_handle);
     return 0;
 }
 
-static int usart_enable_tx_ioctl(dev_ioctl_t* dev)
+int usart_enable_tx_ioctl(dev_ioctl_t* dev)
 {
-	USART_HandleTypeDef husart;
-	husart.Instance = ((usart_ioctl_t*)(dev->ctx))->usart;
-	__HAL_USART_ENABLE_IT(&husart, USART_IT_TXE);
+	usart_enable_tx_int(dev->device_handle);
     return 0;
 }
 
-static int usart_open_ioctl(dev_ioctl_t* dev)
+int usart_open_ioctl(dev_ioctl_t* dev)
 {
-    usart_ioctl_t* ioctl = (usart_ioctl_t*)(dev->ctx);
-    usart_init_gpio(ioctl->usart, ioctl->mode);
-    usart_init_device(ioctl->usart, true, ioctl->mode);
+    usart_ioctl_t* usart_ioctl = get_usart_ioctl(dev->device_handle);
+    usart_init_gpio(dev->device_handle);
+    usart_init_device(usart_ioctl->usart, true, usart_ioctl->mode, usart_ioctl->baudrate);
     return 0;
 }
 
-static int usart_close_ioctl(dev_ioctl_t* dev)
+int usart_close_ioctl(dev_ioctl_t* dev)
 {
-	usart_ioctl_t* ioctl = (usart_ioctl_t*)(dev->ctx);
-	USART_HandleTypeDef husart;
-	husart.Instance = ioctl->usart;
-	__HAL_USART_DISABLE_IT(&husart, USART_IT_RXNE);
-	__HAL_USART_DISABLE_IT(&husart, USART_IT_TXE);
-    usart_init_device(husart.Instance, false, ioctl->mode);
+    usart_ioctl_t* usart_ioctl = get_usart_ioctl(dev->device_handle);
+	usart_disable_rx_int(dev->device_handle);
+	usart_disable_tx_int(dev->device_handle);
+    usart_init_device(usart_ioctl->usart, false, usart_ioctl->mode, usart_ioctl->baudrate);
     return 0;
 }
 
 static int usart_ioctl(dev_ioctl_t* dev)
 {
-    USART_TypeDef* usart = ((usart_ioctl_t*)(dev->ctx))->usart;
-
     uint32_t baudrate = dev->termios->c_ispeed ?
             dev->termios->c_ispeed : dev->termios->c_ospeed;
     if(baudrate)
     {
         // set baudrate
-        usart_set_baudrate(usart, baudrate);
+        usart_set_baudrate(dev->device_handle, baudrate);
     }
     else
     {
         // read baudrate
-        dev->termios->c_ispeed = usart_get_baudrate(usart);
-        dev->termios->c_ospeed = dev->termios->c_ispeed;
+    	dev->termios->c_ospeed = dev->termios->c_ispeed = usart_get_baudrate(dev->device_handle);
     }
 
     if(dev->termios->c_cc[VTIME] > 0)
