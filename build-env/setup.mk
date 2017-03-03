@@ -13,7 +13,7 @@ debug: all
 SHELL = /bin/bash
 
 DATE := $(shell date +"%F_%T")
-BUILDNO := $(shell date +"%m:%d:%T")
+BUILDNO := $(shell date +"%m.%d.%H.%M.%S")
 
 
 # STM32DEVSUPPORTDIR
