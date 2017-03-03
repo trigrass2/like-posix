@@ -146,6 +146,8 @@ extern "C" {
 #ifndef FREAD
 #define FREAD   1
 #define FWRITE  2
+#define FAPPEND  8
+#define FCREAT  0x200
 #endif
 
 /**
