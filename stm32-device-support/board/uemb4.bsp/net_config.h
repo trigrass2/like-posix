@@ -39,12 +39,11 @@
 #define NET_LINK_LED            LED2
 
 /* Definition of the Ethernet driver buffers size and count */
-#define ETH_MAX_ETH_PAYLOAD     	   600
+#define ETH_MAX_ETH_PAYLOAD     	   1500
 #define ETH_RX_BUF_SIZE                ETH_MAX_PACKET_SIZE /* buffer size for receive               */
 #define ETH_TX_BUF_SIZE                ETH_MAX_PACKET_SIZE /* buffer size for transmit              */
 #define ETH_RXBUFNB                    ((uint32_t)4)       /* 4 Rx buffers of size ETH_RX_BUF_SIZE  */
-#define ETH_TXBUFNB                    ((uint32_t)8)       /* 4 Tx buffers of size ETH_TX_BUF_SIZE  */
-
+#define ETH_TXBUFNB                    ((uint32_t)4)       /* 4 Tx buffers of size ETH_TX_BUF_SIZE  */
 
 #define ENC28J60_SPI_PERIPH     		SPI3
 #define ENC28J60_SPI_BAUDRATE           10000000

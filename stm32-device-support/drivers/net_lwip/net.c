@@ -24,7 +24,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of the lollyjar project, <https://github.com/drmetal/lollyjar>
+ * This file is part of the Appleseed project, <https://github.com/drmetal/appleseed>
  *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
@@ -58,78 +58,78 @@
 #include "leds.h"
 #endif
 
-netconf_t* netconf_default;
-static char lip[16];
-static char mac[18];
 
-#if USE_DRIVER_MII_RMII_PHY
-
-/**
- * call from ethernet ISR to flag new frame is ready
- */
 #define give_rx_ready_from_isr() \
 	static BaseType_t xHigherPriorityTaskWoken; \
 	xHigherPriorityTaskWoken = pdFALSE; \
 	xSemaphoreGiveFromISR(netconf_default->rxpkt, &xHigherPriorityTaskWoken); \
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 
-/**
- * call from ethernet poll (NOT an ISR) loop to flag new frame is ready
- */
 #define give_rx_ready() xSemaphoreGive(netconf_default->rxpkt)
 
-/**
- * call to wait on RX packet ready
- */
+#if USE_DRIVER_MII_RMII_PHY
 #define wait_for_rx_ready() (xSemaphoreTake(netconf->rxpkt, 100/portTICK_RATE_MS) == pdTRUE)
-
-/**
- * implement stm32 MAC RX interrupt callback
- */
-void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef *heth)
-{
-	give_rx_ready_from_isr();
-}
-
 #elif USE_DRIVER_ENC28J60_PHY
-
-/**
- * todo - implement enc28j60 rx interrupt line
- */
 #include "enc28j60.h"
-#define give_rx_ready_from_isr()
-#define give_rx_ready()
-/**
- * call to wait on RX packet ready
- */
 #define wait_for_rx_ready() enc28j60_check_incoming()
-
 #endif
 
 
+#if LWIP_DHCP
+static void dhcp_begin(netconf_t* netconf);
+static void dhcp_process(netconf_t* netconf);
+#endif
 static void net_task(void *pvParameters);
 static void link_callback(struct netif *netif);
 static void status_callback(struct netif *netif);
 static void tcpip_init_done(void *arg);
 
-
+netconf_t* netconf_default;
 
 void net_init(netconf_t* netconf)
 {
 	log_init(&netconf->log, "net_init");
 	netconf_default = netconf;
 	netconf->net_task_enabled = true;
-	netconf->address_ok = xSemaphoreCreateBinary();
+
+#if NO_SYS
+	lwip_init();
+#else
+	tcpip_init(tcpip_init_done, (void*)&netconf->netif);
+#endif
+
+	netif_add(&netconf->netif, &netconf->addr_cache[0], &netconf->addr_cache[1], &netconf->addr_cache[2], NULL, &ethernetif_init, &ethernet_input);
+	netif_set_link_callback(&netconf->netif, link_callback);
+	netif_set_status_callback(&netconf->netif, status_callback);
+	netif_set_default(&netconf->netif);
+
+    netconf->address_ok = xSemaphoreCreateBinary();
     assert_true(netconf->address_ok != NULL);
     netconf->rxpkt = xSemaphoreCreateBinary();
     assert_true(netconf->rxpkt != NULL);
 
-#if NO_SYS
-	lwip_init();
-	tcpip_init_done((void*)&netconf->netif);
-#else
-	tcpip_init(tcpip_init_done, (void*)&netconf->netif);
+#if LWIP_DHCP
+    if(netconf->resolv == NET_RESOLV_DHCP)
+    {
+        dhcp_start(&netconf->netif);
+        netconf->dhcp_state = DHCP_STATE_INIT;
+        log_info(&netconf->log, "DHCP started");
+    }
+    else
+    {
+    	netif_set_up(&netconf->netif);
+    	dns_setserver(0, &netconf->addr_cache[3]);
+    	dns_setserver(1, &netconf->addr_cache[4]);
+        xSemaphoreGive(netconf->address_ok);
+    }
 #endif
+
+	xTaskCreate(net_task,
+				"lwIP",
+				configMINIMAL_STACK_SIZE+NET_TASK_STACK,
+				netconf,
+				tskIDLE_PRIORITY+NET_TASK_PRIORITY,
+				NULL);
 }
 
 void net_deinit(netconf_t* netconf)
@@ -140,8 +140,17 @@ void net_deinit(netconf_t* netconf)
 
 bool wait_for_address(netconf_t* netconf)
 {
-    return xSemaphoreTake(netconf->address_ok, 2000/portTICK_RATE_MS) == pdTRUE;
+    return xSemaphoreTake(netconf->address_ok, 10000/portTICK_RATE_MS) == pdTRUE;
 }
+
+#if USE_DRIVER_MII_RMII_PHY
+
+void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef *heth)
+{
+	give_rx_ready_from_isr();
+}
+
+#endif
 
 void net_task(void *pvParameters)
 {
@@ -149,13 +158,12 @@ void net_task(void *pvParameters)
 
     while(netconf->net_task_enabled)
     {
-    	if(wait_for_rx_ready()) {
+    	if(wait_for_rx_ready()){
     		ethernetif_input(&netconf->netif);
     	}
     	else {
-    		vTaskDelay(10);
-    	}
-
+    		vTaskDelay(1);
+		}
 #if NO_SYS
 	    sys_check_timeouts();
 #endif
@@ -169,7 +177,9 @@ void net_task(void *pvParameters)
  */
 void link_callback(struct netif *netif)
 {
-	log_info(&netconf_default->log, "link state: %s", netif_is_up(netif) ? "up" : "down");
+	logger_t status_cb_log;
+	log_init(&status_cb_log, "link_callback");
+	log_info(&status_cb_log, "link state: %s", netif_is_up(netif) ? "up" : "down");
 	ethernetif_update_config(netif);
 }
 
@@ -178,16 +188,20 @@ void link_callback(struct netif *netif)
  */
 void status_callback(struct netif *netif)
 {
+	logger_t status_cb_log;
+	log_init(&status_cb_log, "net_status_callback");
+#if USE_LOGGER
 	uint8_t* pt;
 	pt = (uint8_t*)&(netif->ip_addr.addr);
-	log_info(&netconf_default->log, "ip: %d.%d.%d.%d", pt[0], pt[1], pt[2], pt[3]);
+	log_info(&status_cb_log, "ip: %d.%d.%d.%d", pt[0], pt[1], pt[2], pt[3]);
 	pt = (uint8_t*)&(netif->netmask.addr);
-	log_info(&netconf_default->log, "nm: %d.%d.%d.%d", pt[0], pt[1], pt[2], pt[3]);
+	log_info(&status_cb_log, "nm: %d.%d.%d.%d", pt[0], pt[1], pt[2], pt[3]);
 	pt = (uint8_t*)&(netif->gw.addr);
-	log_info(&netconf_default->log, "gw: %d.%d.%d.%d", pt[0], pt[1], pt[2], pt[3]);
+	log_info(&status_cb_log, "gw: %d.%d.%d.%d", pt[0], pt[1], pt[2], pt[3]);
 	pt = netif->hwaddr;
-	log_info(&netconf_default->log, "mac: %02x:%02x:%02x:%02x:%02x:%02x", pt[0], pt[1], pt[2], pt[3], pt[4], pt[5]);
+	log_info(&status_cb_log, "mac: %02x:%02x:%02x:%02x:%02x:%02x", pt[0], pt[1], pt[2], pt[3], pt[4], pt[5]);
 
+#endif
 	if(netif_is_up(netif))
 	{
 #ifdef NET_LINK_LED
@@ -198,35 +212,14 @@ void status_callback(struct netif *netif)
 
 void tcpip_init_done(void *arg)
 {
+	logger_t tcp_cb_log;
+	log_init(&tcp_cb_log, "tcpip_init_done");
+#if USE_LOGGER
 	struct netif* netif = (struct netif*)arg;
-
-	netif_add(netif, &netconf_default->addr_cache[0], &netconf_default->addr_cache[1], &netconf_default->addr_cache[2], NULL, &ethernetif_init, &ethernet_input);
-	netif_set_link_callback(netif, link_callback);
-	netif_set_status_callback(netif, status_callback);
-	netif_set_default(netif);
-
-#if LWIP_DHCP
-    if(netconf_default->resolv == NET_RESOLV_DHCP)
-    {
-    	netif_set_down(netif);
-        dhcp_start(netif);
-        log_info(&netconf_default->log, "DHCP started");
-    }
-    else
-    {
-    	netif_set_up(netif);
-    	dns_setserver(0, &netconf_default->addr_cache[3]);
-    	dns_setserver(1, &netconf_default->addr_cache[4]);
-        xSemaphoreGive(netconf_default->address_ok);
-    }
+	log_info(&tcp_cb_log, "hostname: %s", netif->hostname);
+#else
+	(void)arg;
 #endif
-
-	xTaskCreate(net_task,
-				"lwIP",
-				configMINIMAL_STACK_SIZE+NET_TASK_STACK,
-				netconf_default,
-				tskIDLE_PRIORITY+NET_TASK_PRIORITY,
-				NULL);
 }
 
 bool net_is_up()
@@ -289,6 +282,8 @@ const char* net_hostname()
     return netconf_default->netif.hostname;
 }
 
+static char mac[18];
+
 const char* net_mac()
 {
     // get the local IP address
@@ -301,6 +296,8 @@ const char* net_mac()
              ((char*)&netconf_default->netif.hwaddr)[5]);
     return (const char*)mac;
 }
+
+static char lip[16];
 
 const char* net_lip()
 {
