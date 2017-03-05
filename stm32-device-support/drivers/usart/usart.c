@@ -36,7 +36,7 @@
  * provides basic USART IO functions, as well as a high level dev IO driver that enables
  * USART access via system calls.
  *
- * - supports USARTS on STM32F1 and STM32F4 devices: USART1,2,3,6 and UART4,5
+ * - supports USARTS on STM32F1 and STM32F4 devices: USART1,2,3,6 and UART4,5,7,8
  *
  * relies upon a config file usart_config.h,
  *
@@ -98,16 +98,18 @@ dev_ioctl_t* usart_dev_ioctls[8];
 USART_HANDLE_t stdio_usarth;
 
 /**
- * initialize the the specified USART, interrupts, device file, and its GPIO pins.
+ * initialize the the specified USART in polled mode.
  *
  * @param	usart is the usart to init (USART1,2,3,6 UART4,5)
  * @param	enable, when set to true enables the peripheral. use this option when using the peripehral
  * 			raw, not as a device.
  * 			set to false when using as a device - it will be enabled when the open()
  * 			function is invoked on its device file.
+ * @param   mode is the mode to setup, select from usart_mode_t.
+ * @param   baudrate is the baudrate to set.
  * @retval	returns true if the operation succeeded, false otherwise.
  */
-USART_HANDLE_t usart_init_polled(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate)
+USART_HANDLE_t usart_create_polled(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate)
 {
 	USART_HANDLE_t usarth = USART_INVALID_HANDLE;
     usarth = usart_init_device(usart, enable, mode, baudrate);
@@ -116,7 +118,20 @@ USART_HANDLE_t usart_init_polled(USART_TypeDef* usart, bool enable, usart_mode_t
     return usarth;
 }
 
-USART_HANDLE_t usart_init_async(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize)
+/**
+ * initialize the the specified USART in interrupt driven mode.
+ *
+ * @param	usart is the usart to init (USART1,2,3,6 UART4,5)
+ * @param	enable, when set to true enables the peripheral. use this option when using the peripehral
+ * 			raw, not as a device.
+ * 			set to false when using as a device - it will be enabled when the open()
+ * 			function is invoked on its device file.
+ * @param   mode is the mode to setup, select from usart_mode_t.
+ * @param   buffersize is the number of slots to initialize.
+ * @param   baudrate is the baudrate to set.
+ * @retval	returns true if the operation succeeded, false otherwise.
+ */
+USART_HANDLE_t usart_create_async(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize)
 {
 	USART_HANDLE_t usarth = USART_INVALID_HANDLE;
 	uint8_t* fifomem = malloc(2 * (sizeof(vfifo_t) + (buffersize * sizeof(vfifo_primitive_t))));
@@ -193,7 +208,7 @@ dev_ioctl_t* get_usart_device_ioctl(USART_HANDLE_t usarth)
 /**
  * call this function to install an USART port as a device file (requires USE_LIKEPOSIX=1 in the Makefile).
  *
- * when installed as device file, posix system calls amy be made including open, close, read, write, etc.
+ * when installed as device file, posix system calls may be made including open, close, read, write, etc.
  * termios functions are also available (tcgetattr, tcsetattr, etc)
  * file stream functions are also available (fputs, fgets, etc)
  *
@@ -202,10 +217,10 @@ dev_ioctl_t* get_usart_device_ioctl(USART_HANDLE_t usarth)
  *        if set to NULL, the device may be used in polled mode only.
  * @param enable - set to true when using in polled mode. when the device file is specified,
  *        set to false - the device is enabled automatically when the file is opened.
- *
- * @param baudrate
+ * @param   mode is the mode to setup, select from usart_mode_t.
+ * @param baudrate is the baudrate to set.
  */
-USART_HANDLE_t usart_init_devicefile(char* filename, USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate)
+USART_HANDLE_t usart_create_dev(char* filename, USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate)
 {
     USART_HANDLE_t usarth = USART_INVALID_HANDLE;
 

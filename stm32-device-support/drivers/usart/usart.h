@@ -44,18 +44,18 @@
 #ifndef USART_H_
 #define USART_H_
 
-USART_HANDLE_t usart_init_polled(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate);
+USART_HANDLE_t usart_create_polled(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate);
 void usart_set_stdio_usart(int usarth);
 void usart_stdio_tx(const char data);
 char usart_stdio_rx();
 
-USART_HANDLE_t usart_init_async(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize);
+USART_HANDLE_t usart_create_async(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize);
 int32_t usart_put_async(USART_HANDLE_t usarth, const uint8_t* data, int32_t length);
 int32_t usart_get_async(USART_HANDLE_t usarth, uint8_t* data, int32_t length);
 
 #if USE_LIKEPOSIX
 dev_ioctl_t* get_usart_device_ioctl(USART_HANDLE_t usarth);
-USART_HANDLE_t usart_init_devicefile(char* filename, USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate);
+USART_HANDLE_t usart_create_dev(char* filename, USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate);
 #endif
 
 #endif // USART_H_

@@ -211,7 +211,7 @@ void touch_panel_interpreter_task(void *pvParameters)
 {
     touch_handler_t* handler;
 	touch_task_t* tt_params = (touch_task_t*)pvParameters;
-    point_t held_at;
+    point_t held_at = {.x=0, .y=0};
     uint16_t down_count = 0;
 
     for(;;)

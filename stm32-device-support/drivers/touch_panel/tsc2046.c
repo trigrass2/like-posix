@@ -94,14 +94,16 @@
 #endif
 
 
-#define tsc2046_txrx(data)      spi_transfer(TSC2046_SPI_PERIPH, data)
-#define tsc2046_select()        spi_assert_nss(TSC2046_SPI_PERIPH)
-#define tsc2046_deselect()      spi_deassert_nss(TSC2046_SPI_PERIPH)
+#define tsc2046_txrx(data)      spi_transfer_polled(tsc2046_spih, data)
+#define tsc2046_select()        spi_clear_ss(tsc2046_spih)
+#define tsc2046_deselect()      spi_set_ss(tsc2046_spih)
+
+static SPI_HANDLE_t tsc2046_spih;
 
 void tsc2046_init()
 {
-    assert_true(spi_init(TSC2046_SPI_PERIPH, NULL, true, 0, SPI_FIRSTBIT_MSB, SPI_PHASE_1EDGE, SPI_POLARITY_LOW, SPI_DATASIZE_8BIT));
-    spi_set_prescaler(TSC2046_SPI_PERIPH, TSC2046_SPI_PRESC);
+	tsc2046_spih = spi_create_polled(TSC2046_SPI_PERIPH, true, 0, SPI_FIRSTBIT_MSB, SPI_PHASE_1EDGE, SPI_POLARITY_LOW, SPI_DATASIZE_8BIT);
+    spi_set_prescaler(tsc2046_spih, TSC2046_SPI_PRESC);
 
     GPIO_InitTypeDef GPIO_InitStructure;
 

@@ -59,21 +59,16 @@ static dev_ioctl_t* spi_dev_ioctls[NUM_ONCHIP_SPIS];
 /**
  * call this function to initialize an SPI port in polled mode.
  *
- * when installed as device file, posix system calls amy be made including open, close, read, write, etc.
- * termios functions are also available (tcgetattr, tcsetattr, etc)
- * file stream functions are also available (fputs, fgets, etc)
- *
  * @param spi is the SPI peripheral to initialize.
  * @param enable - set to true when using in polled mode. when the device file is specified,
  *        set to false - the device is enabled automatically when the file is opened.
- *
- * @param baudrate
+ * @param baudrate is the baudrate to set.
  * @param bit_order Eg SPI_FIRSTBIT_MSB
  * @param clock_phase Eg SPI_PHASE_1EDGE
  * @param clock_polarity Eg SPI_POLARITY_LOW
  * @param data_width Eg SPI_DATASIZE_8BIT
  */
-SPI_HANDLE_t spi_init_polled(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width)
+SPI_HANDLE_t spi_create_polled(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width)
 {
     SPI_HANDLE_t spih = spi_init_device(spi, enable, baudrate, bit_order, clock_phase, clock_polarity, data_width);
     spi_init_gpio(spih);
@@ -83,23 +78,18 @@ SPI_HANDLE_t spi_init_polled(SPI_TypeDef* spi, bool enable, uint32_t baudrate, u
 }
 /**
  * call this function to initialize an SPI port in interrupt driven mode.
- *
- * when installed as device file, posix system calls amy be made including open, close, read, write, etc.
- * termios functions are also available (tcgetattr, tcsetattr, etc)
- * file stream functions are also available (fputs, fgets, etc)
- *
+
  * @param spi is the SPI peripheral to initialize.
  * @param enable - set to true when using in polled mode. when the device file is specified,
  *        set to false - the device is enabled automatically when the file is opened.
- *
- * @param baudrate
+ * @param baudrate is the baudrate to set.
  * @param bit_order Eg SPI_FIRSTBIT_MSB
  * @param clock_phase Eg SPI_PHASE_1EDGE
  * @param clock_polarity Eg SPI_POLARITY_LOW
  * @param data_width Eg SPI_DATASIZE_8BIT
- * @param buffersize is the number of fifo slots to initialize. if
+ * @param buffersize is the number of fifo slots to initialize.
  */
-SPI_HANDLE_t spi_init_async(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t buffersize)
+SPI_HANDLE_t spi_create_async(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t buffersize)
 {
     SPI_HANDLE_t spih = SPI_INVALID_HANDLE;
 
@@ -283,7 +273,7 @@ dev_ioctl_t* get_spi_device_ioctl(SPI_HANDLE_t spih)
 /**
  * call this function to install an SPI port as a device file (requires USE_LIKEPOSIX=1 in the Makefile).
  *
- * when installed as device file, posix system calls amy be made including open, close, read, write, etc.
+ * when installed as device file, posix system calls may be made including open, close, read, write, etc.
  * termios functions are also available (tcgetattr, tcsetattr, etc)
  * file stream functions are also available (fputs, fgets, etc)
  *
@@ -292,14 +282,13 @@ dev_ioctl_t* get_spi_device_ioctl(SPI_HANDLE_t spih)
  *        if set to NULL, the device may be used in polled mode only.
  * @param enable - set to true when using in polled mode. when the device file is specified,
  *        set to false - the device is enabled automatically when the file is opened.
- *
- * @param baudrate
+ * @param baudrate is the baudrate to set,
  * @param bit_order Eg SPI_FIRSTBIT_MSB
  * @param clock_phase Eg SPI_PHASE_1EDGE
  * @param clock_polarity Eg SPI_POLARITY_LOW
  * @param data_width Eg SPI_DATASIZE_8BIT
  */
-SPI_HANDLE_t spi_init_devicefile(char* filename, SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width)
+SPI_HANDLE_t spi_create_dev(char* filename, SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width)
 {
     SPI_HANDLE_t spih = SPI_INVALID_HANDLE;
 
