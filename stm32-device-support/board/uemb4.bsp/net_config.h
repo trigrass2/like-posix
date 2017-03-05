@@ -46,10 +46,11 @@
 #define ETH_TXBUFNB                    ((uint32_t)4)       /* 4 Tx buffers of size ETH_TX_BUF_SIZE  */
 
 #define ENC28J60_SPI_PERIPH     		SPI3
-#define ENC28J60_SPI_BAUDRATE           10000000
 #define ENC28J60_SPI_NRST_PORT   		GPIOB
 #define ENC28J60_SPI_NRST_PIN    		GPIO_PIN_7
 #define ENC28J60_SPI_NINT_PORT   		GPIOB
 #define ENC28J60_SPI_NINT_PIN    		GPIO_PIN_6
+#define ENC28J60_SPI_BAUDRATE           2000000
+#define ENC28J60_RESET_TIME_US 			50000
 
 #endif // NET_CONF_H_
