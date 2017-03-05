@@ -53,9 +53,6 @@ volatile uint16_t enc28j60_rxrdpt = 0;
 static logger_t enclog;
 static SPI_HANDLE_t enc_spi;
 
-#define ENC28J60_SPI_BAUDRATE 10000000
-#define ENC28J60_RESET_TIME_MS 50000
-
 #define enc28j60_select() spi_clear_ss(enc_spi)
 #define enc28j60_release() spi_set_ss(enc_spi)
 #define enc28j60_rxtx(data) spi_transfer_polled(enc_spi, data)
@@ -187,7 +184,7 @@ void enc28j60_reset()
 {
     log_debug(&enclog, "hard reset");
     enc28j60_assert_reset();
-    usleep(ENC28J60_RESET_TIME_MS);
+    usleep(ENC28J60_RESET_TIME_US);
     enc28j60_deassert_reset();
 }
 
