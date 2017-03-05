@@ -40,14 +40,15 @@
  * only specify chip select's for those SPI's that require them.
  * (comment out those that are not needed)
  */
-#define SPI1_NSS_PORT 	GPIOA
-#define SPI1_NSS_PIN 	GPIO_PIN_15
+//#define SPI1_NSS_PORT 	GPIO
+//#define SPI1_NSS_PIN 	GPIO_PIN_
+
+// on target uemb4 this is the XPT2046 chip select
 #define SPI2_NSS_PORT   GPIOB
 #define SPI2_NSS_PIN    GPIO_PIN_12
-//#define SPI2_NSS_PORT
-//#define SPI2_NSS_PIN
-//#define SPI2_NSS_PORT
-//#define SPI2_NSS_PIN
+// on target uemb4 this is the ENC28J60 chip select
+#define SPI3_NSS_PORT	GPIOA
+#define SPI3_NSS_PIN	GPIO_PIN_15
 
 #endif /* BOARD_SPI_H_ */
 

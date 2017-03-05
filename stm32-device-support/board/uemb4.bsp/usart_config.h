@@ -35,6 +35,7 @@
 
 #define USART_DEFAULT_BAUDRATE  115200
 
+// uemb1 is jumpered for USART3 by default
 #define CONSOLE_USART       USART3
 
 #define USART1_FULL_REMAP 0
