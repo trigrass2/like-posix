@@ -51,8 +51,6 @@
 #pragma message "building for LCD controller ILI9325"
 #endif
 
-SRAM_HandleTypeDef hsram;
-
 static void lcd_reset();
 static void lcd_display_on(void);
 static void lcd_display_off(void);
@@ -60,6 +58,7 @@ static void lcd_set_gamma(void);
 static void lcd_set_power(void);
 static void LCD_FSMCConfig(void);
 
+static void lcd_gpio_init();
 static unsigned short lcd_read_gram(unsigned int x,unsigned int y);
 static void lcd_data_bus_test(void);
 static void lcd_gram_test(void);
@@ -77,6 +76,7 @@ void lcd_init(void)
 
     // init IO
     LCD_FSMCConfig();
+    lcd_gpio_init();
 
     lcd_reset();
 
@@ -174,6 +174,8 @@ void lcd_set_power(void)
 
 void LCD_FSMCConfig(void)
 {
+	SRAM_HandleTypeDef hsram;
+
 #if defined(FMC_NORSRAM_TimingTypeDef)
     FMC_NORSRAM_TimingTypeDef Timing;
 #else
@@ -182,12 +184,20 @@ void LCD_FSMCConfig(void)
 
     hsram.Instance  = FSMC_NORSRAM_DEVICE;
     hsram.Extended  = FSMC_NORSRAM_EXTENDED_DEVICE;
+    hsram.State = HAL_SRAM_STATE_RESET;
+
+    // clock enable
+#if FAMILY==STM32F4
+    RCC->AHB3ENR  = ((uint32_t)(0x01<<0));
+#elif FAMILY==STM32F1
+    RCC->AHBENR  = ((uint32_t)(0x01<<8));
+#endif
 
     /* SRAM device configuration */
     Timing.AddressSetupTime       = 2;
     Timing.AddressHoldTime        = 1;
-    Timing.DataSetupTime          = 3;//2;
-    Timing.BusTurnAroundDuration  = 0;//1;
+    Timing.DataSetupTime          = 2;//3;
+    Timing.BusTurnAroundDuration  = 1;//0;
     Timing.CLKDivision            = 2;//2;
     Timing.DataLatency            = 2;//2;
     Timing.AccessMode             = FSMC_ACCESS_MODE_A;
@@ -209,9 +219,10 @@ void LCD_FSMCConfig(void)
     HAL_SRAM_DeInit(&hsram);
     HAL_StatusTypeDef ret = HAL_SRAM_Init(&hsram, &Timing, &Timing);
     assert_true(ret == HAL_OK);
+    HAL_SRAM_WriteOperation_Enable(&hsram);
 }
 
-void HAL_SRAM_MspInit(SRAM_HandleTypeDef *hsram)
+void lcd_gpio_init()
 {
     GPIO_InitTypeDef gpio_init;
     uint16_t pins[] = FSMC_PINS;
