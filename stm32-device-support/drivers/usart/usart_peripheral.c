@@ -84,10 +84,18 @@
 #include "cutensils.h"
 #include "system.h"
 
+
+#ifndef USART_CR1_OVER8
+#define USART_CR1_OVER8 ((uint32_t)0x0000)
+#endif
+
+
 static usart_ioctl_t usart_ioctls[8];
 
 USART_HANDLE_t usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate)
 {
+    USART_HandleTypeDef husart;
+
 	USART_HANDLE_t usarth = get_usart_handle(usart);
     usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
 
@@ -135,21 +143,29 @@ USART_HANDLE_t usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t
         }
 #endif
 
-        usart->CR3 = 0U;
-        usart->CR1 = USART_CR1_UE | USART_CR1_OVER8;
-        usart->CR2 = 0U;
-        usart->GTPR = 0U;
+        husart.Instance = usart_ioctl->usart;
+        husart.Init.BaudRate = usart_ioctl->baudrate;
+        husart.Init.CLKLastBit = USART_LASTBIT_DISABLE;
+        husart.Init.CLKPhase = USART_PHASE_1EDGE;
+        husart.Init.CLKPolarity = USART_POLARITY_LOW;
+        husart.Init.Parity = USART_PARITY_NONE;
+        husart.Init.StopBits = USART_STOPBITS_1;
+        husart.Init.WordLength = USART_WORDLENGTH_8B;
 
         switch(mode)
         {
             case USART_FULLDUPLEX:
             case USART_ONEWIRE:
+                husart.Init.Mode = USART_MODE_TX_RX;
+            break;
             default:
-                usart->CR1 |= USART_CR1_TE | USART_CR1_RE;
+                assert_true(0);
             break;
         }
 
-        usart_set_baudrate(usarth, USART_DEFAULT_BAUDRATE);
+        HAL_USART_Init(&husart);
+
+//        usart_set_baudrate(usarth, USART_DEFAULT_BAUDRATE);
     }
     else
     {
