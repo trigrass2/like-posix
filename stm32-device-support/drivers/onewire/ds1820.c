@@ -40,27 +40,24 @@
 /**
  * opens a onewire USART peripheral for ds1820 communication.
  *
- * @param filename - the filename to assign to the usart device, typically "/dev/onewire0".
  * @retval returns a file descriptor of > 0 if successful, or -1 on failure.
  */
-int ds1820_open(const char* filename)
+int ds1820_open(USART_TypeDef* usart)
 {
-    int fd = open(filename, O_RDWR, 128);
-    //  struct termios t;
-    //  tcgetattr(fd, &t);
-    //  t.c_cc[VTIME] = 10; // 100ms timeout
-    //  tcsetattr(fd, TCSANOW, &t);
-    return fd;
+	return onewire_create(usart);
+}
+
+uint64_t ds1820_discover(int fd)
+{
+	uint64_t code = 0;
+	onewire_search_ids(fd, &code, 1);
+	return code;
 }
 
 void ds1820_close(int fd)
 {
-    close(fd);
+	(void)fd;
 }
-
-//uint64_t ds1820_search();
-//void ds1820_convert(void);
-//float ds1820_read_device(uint64_t devcode);
 
 void ds1820_convert(int fd, uint64_t devcode)
 {
@@ -81,17 +78,13 @@ float ds1820_read_temperature(int fd, uint64_t devcode)
         onewire_address_command(fd, devcode);
         onewire_write_byte(fd, DS1820_READ_SCRATCHPAD); // read scratch
 
-        for(i = 0; i < 9; i++)
-        {
+        for(i = 0; i < 9; i++) {
             data[i] = onewire_read_byte(fd);
-    //      printf("%x\n", data[i]);
         }
         int ds1820_temperature = data[1] & 0x0f;
         ds1820_temperature <<= 8;
         ds1820_temperature |= data[0];
-        double ds1820_temperature1 = (double)ds1820_temperature * (double)0.0625;
-        printf("%f\n", ds1820_temperature1);
-        return ds1820_temperature1;
+        return ((float)ds1820_temperature) * 0.0625f;
     }
     return 211;
 }

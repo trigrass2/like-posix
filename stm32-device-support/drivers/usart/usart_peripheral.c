@@ -224,7 +224,7 @@ void usart_init_gpio(USART_HANDLE_t usarth)
 	switch(usart_ioctl->mode)
 	{
 		case USART_ONEWIRE:
-			gpio_input_init.Mode = GPIO_MODE_AF_PP;
+			gpio_input_init.Mode = GPIO_MODE_AF_OD;
 			gpio_input_init.Pull = GPIO_PULLUP;
 			gpio_input_init.Speed = GPIO_SPEED_MEDIUM;
 			gpio_output_init.Mode = GPIO_MODE_AF_OD;

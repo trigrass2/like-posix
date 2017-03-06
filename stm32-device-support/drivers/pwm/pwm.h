@@ -49,7 +49,7 @@ typedef struct {
     TIM_TypeDef* timer;          ///< timer used for each channel, eg TIM3. same timer may be used in multiple positions. set to NULL to terminate.
     uint16_t channel;            ///< timer output compare channels, TIM_Channel_x, where x may be 1-4
     GPIO_TypeDef* port;          ///< GPIO port for each channel, eg GPIOA
-    uint16_t pinsource;          ///< GPIO pinsource for each port, eg GPIO_PinSource6
+    uint16_t pin;          			///< GPIO pin for each port, eg GPIO_PIN_6
     uint16_t resolution;         ///< the resolution of the pwm channel, in counts. set by the driver.
     logger_t log;
 }pwm_t;

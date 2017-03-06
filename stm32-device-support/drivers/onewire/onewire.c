@@ -37,6 +37,10 @@
 #include <unistd.h>
 #include "onewire.h"
 
+#if ONEWIRE_POLLED
+#include "usart.h"
+#endif
+
 
 typedef struct {
     unsigned char ROM_NO[8];
@@ -59,13 +63,40 @@ static void onewire_family_skip_setup(onewire_search_t* search);
  * initializes a USART peripheral for use as a 1 wire master.
  *
  * @param usart - the usart device to use.
+ */
+#if ONEWIRE_POLLED
+USART_HANDLE_t onewire_create(USART_TypeDef* usart)
+{
+    return usart_create_polled(usart, true, USART_ONEWIRE, 9600);
+}
+#else
+/**
+ * initializes a USART peripheral for use as a 1 wire master.
+ *
+ * @param usart - the usart device to use.
  * @param filename - the filename to assign to the usart device, typically "/dev/onewire0".
  */
-void onewire_init(USART_TypeDef* usart, char* filename)
+USART_HANDLE_t onewire_create(USART_TypeDef* usart, char* filename)
 {
-    usart_init(usart, filename, false, USART_ONEWIRE);
+    return usart_create_dev(filename, usart, true, USART_ONEWIRE, 9600);
 }
 
+int onewire_open(const char* filename)
+{
+    int fd = open(filename, O_RDWR, 128);
+    //  struct termios t;
+    //  tcgetattr(fd, &t);
+    //  t.c_cc[VTIME] = 10; // 100ms timeout
+    //  tcsetattr(fd, TCSANOW, &t);
+    return fd;
+}
+
+void onewire_close(int fd)
+{
+	close(fd);
+}
+
+#endif
 /**
  * sends the 1 wire bus reset, reads the response.
  *
@@ -75,23 +106,23 @@ void onewire_init(USART_TypeDef* usart, char* filename)
 unsigned char onewire_reset(int fd)
 {
     char c = 0xf0;
+#if ONEWIRE_POLLED
+    usart_set_baudrate(fd, 9600);
+    usart_tx(fd, c);
+    c = usart_rx(fd);
+    usart_set_baudrate(fd, 115200);
+#else
     struct termios t;
-
     tcgetattr(fd, &t);
     cfsetispeed(&t, 9600);
     tcsetattr(fd, TCSADRAIN, &t);
-
     write(fd, &c, 1);
     read(fd, &c, 1);
-
-    printf("reset: %x\n", c);
-
-    c = c > 0x10 && c < 0x90;
-
     tcgetattr(fd, &t);
     cfsetispeed(&t, 115200);
     tcsetattr(fd, TCSADRAIN, &t);
-
+#endif
+    c = c > 0x10 && c < 0x90;
     return c;
 }
 
@@ -111,11 +142,19 @@ unsigned char onewire_xfer_byte(int fd, unsigned char byte)
     unsigned char c = 0;
     int i;
     char bits[8];
-    for(i = 0; i < 8; i++)
+    for(i = 0; i < 8; i++) {
         bits[i] = byte & (1<<i) ? 0xff : 0;
+    }
 
+#if ONEWIRE_POLLED
+    for(i = 0; i < 8; i++) {
+		usart_tx(fd, bits[i]);
+		bits[i] = usart_rx(fd);
+    }
+#else
     write(fd, bits, 8);
     read(fd, bits, 8);
+#endif
 
     for(i = 0; i < 8; i++)
         c |= bits[i] == 0xff ? (1<<i) : 0;
@@ -138,8 +177,13 @@ unsigned char onewire_xfer_bit(int fd, unsigned char bit)
 {
     bit = !bit ? 0 : 0xff;
 
+#if ONEWIRE_POLLED
+	usart_tx(fd, bit);
+	bit = usart_rx(fd);
+#else
     write(fd, &bit, 1);
     read(fd, &bit, 1);
+#endif
 
     return bit == 0xff ? 1 : 0;
 }
@@ -174,12 +218,11 @@ void onewire_address_command(int fd, uint64_t devcode)
  *        if length > 1 then the device search algorithm is used.
  *        if length = 1 then no search is performed, the first device code is simply read.
  */
-void onewire_search(int fd, uint64_t* buffer, int length)
+void onewire_search_ids(int fd, uint64_t* buffer, int length)
 {
     int i;
 
     // find ALL devices
-    printf("\nFIND ALL\n");
 
     if(length == 1)
     {
@@ -187,21 +230,24 @@ void onewire_search(int fd, uint64_t* buffer, int length)
         {
             unsigned char* byte = (unsigned char*)buffer;
             onewire_write_byte(fd, ONEWIRE_READ_ROM);
-            for(i = 0; i < 8; i++, byte++)
+            for(i = 0; i < 8; i++, byte++) {
                 *byte = onewire_read_byte(fd);
+                printf("%d,", *byte);
+            }
+            printf("\n");
         }
     }
     else if(length > 1)
     {
         onewire_search_t search;
-        int cnt = 0;
+//        int cnt = 0;
         int rslt = onewire_first(fd, &search);
         while(length && rslt)
         {
-           // print device found
-           for (i = 7; i >= 0; i--)
-              printf("%02X", search.ROM_NO[i]);
-           printf("  %d\n",++cnt);
+//           // print device found
+//           for (i = 7; i >= 0; i--)
+//              printf("%02X", search.ROM_NO[i]);
+//           printf("  %d\n",++cnt);
 
            memcpy(buffer, search.ROM_NO, 8);
            buffer++;

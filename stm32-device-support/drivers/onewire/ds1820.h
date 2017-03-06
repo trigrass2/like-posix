@@ -41,39 +41,10 @@
 #define DS1820_RECALL_EEPROM       0xB8
 #define DS1820_READ_PS             0xB4
 
-int ds1820_open(const char* filename);
+int ds1820_open(USART_TypeDef* usart);
+uint64_t ds1820_discover(int fd);
 void ds1820_close(int fd);
 void ds1820_convert(int fd, uint64_t devcode);
 float ds1820_read_temperature(int fd, uint64_t devcode);
-
-/////////////////////////////////////////////////////////////////////////////////
-////Brad Goold 2012
-//// Modified by Mike Stuart, Feb 2014
-/////////////////////////////////////////////////////////////////////////////////
-//
-//#include <stdint.h>
-//#include "board_config.h"
-//#include "ds1820_config.h.in"
-//
-//#ifndef DS1820_H
-//#define DS1820_H
-//
-//#define DS1820_MAX_VALUE              125
-//#define DS1820_MIN_VALUE              -55
-
-
-
-//
-//// error codes
-//#define BUS_ERROR           0xFE
-//#define PRESENCE_ERROR      0xFD
-//#define NO_ERROR            0x00
-//
-//void ds1820_init(void);
-//uint64_t ds1820_search();
-//void ds1820_convert(void);
-//float ds1820_read_device(uint64_t devcode);
-//
-//#endif
 
 #endif //DS1820_H_

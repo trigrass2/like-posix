@@ -73,7 +73,7 @@ static statusbar_t statusbar = {
             .border_colour=STATUSBAR_BORDER_COLOUR,
             .fill=STATUSBAR_FILL,
             .size=STATUSBAR_SIZE,
-            .radius=5,
+            .radius=STATUSBAR_BORDER_RADIUS,
         },
     },
     .statusbar_task_handle=NULL,

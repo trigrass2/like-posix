@@ -48,16 +48,16 @@
 
 pwm_t pwm1 = {
     .timer=TIM3,
-    .channel=TIM_Channel_1,
+    .channel=TIM_CHANNEL_1,
     .port=GPIOA,
-    .pinsource=GPIO_PinSource6
+    .pin=GPIO_PIN_6
 };
 
 pwm_t pwm2 = {
     .timer=TIM3,
-    .channel=TIM_Channel_2,
+    .channel=TIM_CHANNEL_2,
     .port=GPIOA,
-    .pinsource=GPIO_PinSource7
+    .pin=GPIO_PIN_7
 };
 
 // init both PWM's at 1000Hz, duty resolution of 100 steps.
@@ -81,21 +81,17 @@ pwm_set_duty(&pwm2, 100);
 
 void pwm_init(pwm_t* pwm, const char* name, uint32_t frequency, uint16_t resolution)
 {
-#if FAMILY == STM32F4
-    uint8_t altfunc = 0;
-#endif
     uint32_t apbclock;
     uint32_t prescaler;
-    GPIO_InitTypeDef pwm_pin_config;
-    RCC_ClocksTypeDef RCC_ClocksStatus;
 
     log_init(&pwm->log, name);
 
-    RCC_GetClocksFreq(&RCC_ClocksStatus);
-    if(pwm->timer == TIM1 || pwm->timer == TIM8)
-        apbclock = RCC_ClocksStatus.PCLK2_Frequency;
-    else
-        apbclock = RCC_ClocksStatus.PCLK1_Frequency;
+    if(pwm->timer == TIM1 || pwm->timer == TIM8) {
+        apbclock = HAL_RCC_GetPCLK2Freq();
+    }
+    else {
+        apbclock = HAL_RCC_GetPCLK1Freq();
+    }
 
     prescaler = apbclock / (frequency * resolution);
 
@@ -106,129 +102,123 @@ void pwm_init(pwm_t* pwm, const char* name, uint32_t frequency, uint16_t resolut
 
     pwm->resolution = resolution;
 
-    TIM_TimeBaseInitTypeDef timebase =
-    {
-            prescaler-1,                    // prescaler value
-            TIM_CounterMode_Up,             // counter mode
-            resolution-1,                             // period reload value
-            TIM_CKD_DIV1,                   // clock divider value
-            0                               //
-    };
+    TIM_HandleTypeDef htim;
+    htim.Instance = pwm->timer;
+    htim.Init.Prescaler=prescaler-1;
+	htim.Init.CounterMode=TIM_COUNTERMODE_UP;
+	htim.Init.Period=resolution-1;
+	htim.Init.ClockDivision=TIM_CLOCKDIVISION_DIV1;
+	htim.Init.RepetitionCounter=0;
 
-    TIM_OCInitTypeDef occonfig =
+    TIM_OC_InitTypeDef oc_config;
+	oc_config.OCMode = TIM_OCMODE_PWM1;
+	oc_config.Pulse=0;
+	oc_config.OCPolarity = TIM_OCPOLARITY_HIGH;
+	oc_config.OCNPolarity = TIM_OCNPOLARITY_LOW;
+	oc_config.OCFastMode = TIM_OCFAST_ENABLE;
+	oc_config.OCIdleState = TIM_OCIDLESTATE_SET;
+	oc_config.OCNIdleState = TIM_OCNIDLESTATE_SET;
+
+    HAL_TIM_PWM_Init(&htim);
+    HAL_TIM_PWM_ConfigChannel(&htim, &oc_config, pwm->channel);
+
+    GPIO_InitTypeDef pwm_pin_config;
+    pwm_pin_config.Mode = GPIO_MODE_AF_PP;
+    pwm_pin_config.Speed = GPIO_SPEED_HIGH;
+    pwm_pin_config.Pull = GPIO_NOPULL;
+
+#if FAMILY==STM32F4
+    switch((uint32_t)pwm->timer)
     {
-            TIM_OCMode_PWM1,            // PWM mode
-            TIM_OutputState_Enable,     // output state
-            TIM_OutputState_Enable,     // complementary output state
-            0,                          // capture compare pulse value
-            TIM_OCPolarity_High,        // output polarity
-            TIM_OCNPolarity_Low,        // complementary output polarity
-            TIM_OCIdleState_Set,        // idle state
-            TIM_OCIdleState_Set,        // complementary idle state
-    };
+        case (uint32_t)TIM1:
+        pwm_pin_config.Alternate = GPIO_AF1_TIM1;
+        break;
+        case (uint32_t)TIM2:
+        pwm_pin_config.Alternate = GPIO_AF1_TIM2;
+        break;
+        case (uint32_t)TIM3:
+        pwm_pin_config.Alternate = GPIO_AF2_TIM3;
+        break;
+        case (uint32_t)TIM4:
+        pwm_pin_config.Alternate = GPIO_AF2_TIM4;
+        break;
+        case (uint32_t)TIM5:
+        pwm_pin_config.Alternate = GPIO_AF2_TIM5;
+        break;
+        case (uint32_t)TIM8:
+        pwm_pin_config.Alternate = GPIO_AF3_TIM8;
+        break;
+#ifdef TIM9
+        case (uint32_t)TIM9:
+        pwm_pin_config.Alternate = GPIO_AF3_TIM9;
+        break;
+#endif
+#ifdef TIM10
+        case (uint32_t)TIM10:
+        pwm_pin_config.Alternate = GPIO_AF3_TIM10;
+        break;
+#endif
+#ifdef TIM11
+        case (uint32_t)TIM11:
+        pwm_pin_config.Alternate = GPIO_AF3_TIM11;
+        break;
+#endif
+    }
+#endif
 
     switch((uint32_t)pwm->timer)
     {
         case (uint32_t)TIM1:
-            RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
-#if FAMILY == STM32F4
-            altfunc = GPIO_AF_TIM1;
-#endif
+        	__TIM1_CLK_ENABLE();
         break;
         case (uint32_t)TIM2:
-            RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-#if FAMILY == STM32F4
-            altfunc = GPIO_AF_TIM2;
-#endif
+        	__TIM2_CLK_ENABLE();
         break;
         case (uint32_t)TIM3:
-            RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
-#if FAMILY == STM32F4
-            altfunc = GPIO_AF_TIM3;
-#endif
+        	__TIM3_CLK_ENABLE();
         break;
         case (uint32_t)TIM4:
-            RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
-#if FAMILY == STM32F4
-            altfunc = GPIO_AF_TIM4;
-#endif
+        	__TIM4_CLK_ENABLE();
         break;
         case (uint32_t)TIM5:
-            RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5, ENABLE);
-#if FAMILY == STM32F4
-            altfunc = GPIO_AF_TIM5;
-#endif
+        	__TIM5_CLK_ENABLE();
         break;
         case (uint32_t)TIM8:
-            RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);
-#if FAMILY == STM32F4
-            altfunc = GPIO_AF_TIM8;
-#endif
+        	__TIM8_CLK_ENABLE();
         break;
+#ifdef __TIM9_CLK_ENABLE
+        case (uint32_t)TIM9:
+        	__TIM9_CLK_ENABLE();
+        break;
+#endif
+#ifdef __TIM10_CLK_ENABLE
+        case (uint32_t)TIM10:
+        	__TIM10_CLK_ENABLE();
+        break;
+#endif
+#ifdef __TIM11_CLK_ENABLE
+        case (uint32_t)TIM11:
+        	__TIM11_CLK_ENABLE();
+        break;
+#endif
     }
 
-    TIM_TimeBaseInit(pwm->timer, &timebase);
+    pwm_pin_config.Pin = pwm->pin;
+    HAL_GPIO_Init(pwm->port, &pwm_pin_config);
 
-    switch(pwm->channel)
-    {
-        case TIM_Channel_1:
-            TIM_OC1Init(pwm->timer, &occonfig);
-            TIM_OC1PreloadConfig(pwm->timer, TIM_OCPreload_Enable);
-        break;
-        case TIM_Channel_2:
-            TIM_OC2Init(pwm->timer, &occonfig);
-            TIM_OC2PreloadConfig(pwm->timer, TIM_OCPreload_Enable);
-        break;
-        case TIM_Channel_3:
-            TIM_OC3Init(pwm->timer, &occonfig);
-            TIM_OC3PreloadConfig(pwm->timer, TIM_OCPreload_Enable);
-        break;
-        case TIM_Channel_4:
-            TIM_OC4Init(pwm->timer, &occonfig);
-            TIM_OC4PreloadConfig(pwm->timer, TIM_OCPreload_Enable);
-        break;
-    }
-
-    TIM_ARRPreloadConfig(pwm->timer, ENABLE);
-    TIM_Cmd(pwm->timer, ENABLE);
-
-    pwm_pin_config.GPIO_Speed = GPIO_Speed_2MHz;
-    pwm_pin_config.GPIO_Pin = (1 << pwm->pinsource);
-#if FAMILY == STM32F1
-    pwm_pin_config.GPIO_Mode = GPIO_Mode_AF_PP;
-#elif FAMILY == STM32F4
-    assert_true(altfunc);
-    pwm_pin_config.GPIO_Mode = GPIO_Mode_AF;
-    pwm_pin_config.GPIO_OType = GPIO_OType_PP;
-    pwm_pin_config.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_PinAFConfig(pwm->port, pwm->pinsource, altfunc);
-#endif
-    GPIO_Init(pwm->port, &pwm_pin_config);
+    HAL_TIM_PWM_Start(&htim, pwm->channel);
 }
 
 void pwm_set_duty(pwm_t* pwm, uint16_t duty)
 {
-    if(duty <= pwm->resolution)
-    {
-        switch(pwm->channel)
-        {
-            case TIM_Channel_1:
-                TIM_SetCompare1(pwm->timer, duty);
-            break;
-            case TIM_Channel_2:
-                TIM_SetCompare2(pwm->timer, duty);
-            break;
-            case TIM_Channel_3:
-                TIM_SetCompare3(pwm->timer, duty);
-            break;
-            case TIM_Channel_4:
-                TIM_SetCompare4(pwm->timer, duty);
-            break;
-        }
-        log_debug(&pwm->log, "duty=%d", duty);
+    TIM_HandleTypeDef htim;
+    htim.Instance = pwm->timer;
+    if(duty <= pwm->resolution){
+    	__HAL_TIM_SET_COMPARE(&htim, pwm->channel, duty);
     }
-    else
+    else {
         log_error(&pwm->log, "duty %d out of range (0-%d)", duty, pwm->resolution);
+    }
 }
 
 /**

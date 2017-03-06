@@ -64,11 +64,12 @@
 #define STATUSBAR_ORIGIN_X                  LCD_WIDTH - STATUSBAR_SIZE_X
 #define STATUSBAR_ORIGIN_Y                  0
 
-#define STATUSBAR_FONT                      Ubuntu_20
-#define STATUSBAR_TEXT_COLOUR               VERY_LIGHT_GREY
-#define STATUSBAR_BORDER_COLOUR             LIGHT_GREY
+#define STATUSBAR_FONT                      Ubuntu_24 //Ubuntu_20
+#define STATUSBAR_TEXT_COLOUR               MID_ORANGE//VERY_LIGHT_GREY
+#define STATUSBAR_BORDER_COLOUR            	BLACK
 #define STATUSBAR_BACKGROUND_COLOUR         BLACK
-#define STATUSBAR_FILL                      false
+#define STATUSBAR_FILL                      true//false
+#define STATUSBAR_BORDER_RADIUS				0//5
 
 #if STATUSBAR_INCLUDE_CLOCK
 #define CLOCK_JUSTIFICATION                 JUSTIFY_RIGHT
