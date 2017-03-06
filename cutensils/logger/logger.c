@@ -118,7 +118,7 @@ void logger_init()
     {
         handlers[i] = -1;
 #if USE_UDP_LOGGER
-        bzero(&udp_handlers[i], sizeof(udp_handlers[i]));
+        memset(&udp_handlers[i], 0, sizeof(udp_handlers[i]));
 #endif
     }
 
@@ -210,7 +210,7 @@ void log_remove_handler(int file)
 		{
 			handlers[i] = -1;
 #if USE_UDP_LOGGER
-			bzero(&udp_handlers[i], sizeof(udp_handlers[i]));
+			memset(&udp_handlers[i], 0, sizeof(udp_handlers[i]));
 #endif
         }
 	}
