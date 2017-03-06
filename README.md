@@ -44,9 +44,10 @@ For eample under Debian Linux:
 - choose the bz2 archive - unpack to a location, eg /opt/ARM/ and then add the bin directory to your PATH.
 - sudo mkdir /opt/ARM
 - sudo tar xvjf gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -C /opt/ARM
-- echo "export PATH=$PATH:/opt/ARM/gcc-arm-none-eabi-5_4-2016q3/bin" >> ~/.bashrc
-- source ~/.bashrc
-if running under a 64bit Debian,
+- echo "export PATH=$PATH:/opt/ARM/gcc-arm-none-eabi-5_4-2016q3/bin" >> ~/.profile
+- source ~/.profile
+
+If running under a 64bit Debian, add 32 bit support:
 - sudo dpkg --add-architecture i386
 - sudo apt-get update
 - sudo apt-get install libc6:i386 libncurses5:i386 libstdc++6:i386
@@ -56,8 +57,6 @@ The programs *sed* and *make* are required by the build system. Under windows th
 
 [http://gnuwin32.sourceforge.net/downlinks/sed.php](http://gnuwin32.sourceforge.net/downlinks/sed.php)
 [http://gnuwin32.sourceforge.net/downlinks/make.php](http://gnuwin32.sourceforge.net/downlinks/make.php)
-
-For example under windows:
 
 - download each and install.
 - add "C:\Program Files (x86)\GnuWin32\bin" to your PATH
