@@ -186,17 +186,17 @@ void pwm_init(pwm_t* pwm, const char* name, uint32_t frequency, uint16_t resolut
         case (uint32_t)TIM8:
         	__TIM8_CLK_ENABLE();
         break;
-#ifdef __TIM9_CLK_ENABLE
+#ifdef TIM9
         case (uint32_t)TIM9:
         	__TIM9_CLK_ENABLE();
         break;
 #endif
-#ifdef __TIM10_CLK_ENABLE
+#ifdef TIM10
         case (uint32_t)TIM10:
         	__TIM10_CLK_ENABLE();
         break;
 #endif
-#ifdef __TIM11_CLK_ENABLE
+#ifdef TIM11
         case (uint32_t)TIM11:
         	__TIM11_CLK_ENABLE();
         break;
