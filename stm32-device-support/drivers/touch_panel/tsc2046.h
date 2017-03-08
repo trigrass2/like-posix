@@ -40,18 +40,16 @@
 #define TSC2046_H_
 
 #define TSC2046_POLLED_SPI 0 // set to 1 for polled SPI, 0 for interrupt driven SPI
-
 typedef SPI_HANDLE_t TSC2046_t;
-
-TSC2046_t tsc2046_init();
-void tsc2046_read(TSC2046_t tsc2046, int16_t* x, int16_t* y);
-bool tsc2046_ready();
 
 /**
  * http://e2e.ti.com/support/other_analog/touch/f/750/t/177249.aspx
  * ignore busy signal, is redundant and not documented in:
  * http://www.ti.com/lit/ds/symlink/tsc2046.pdf
  */
-//#define tsc2046_busy()        (HAL_GPIO_ReadPin(TSC2046_BUSY_PORT, TSC2046_BUSY_PIN) == GPIO_PIN_SET)
+
+TSC2046_t tsc2046_init();
+void tsc2046_read(TSC2046_t tsc2046, int16_t* x, int16_t* y);
+bool tsc2046_ready();
 
 #endif // TSC2046_H_

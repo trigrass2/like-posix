@@ -36,7 +36,7 @@
 #include "lcd.h"
 #include "spi.h"
 
-
+#define TSC2046_TRANSEFR_BYTES 8
 #define TSC2046_START  0x80
 #define TSC2046_CH_X   0x50
 #define TSC2046_CH_Y   0x10
@@ -96,23 +96,18 @@
 TSC2046_t tsc2046_init()
 {
 #if TSC2046_POLLED_SPI
-	TSC2046_t tsc2046 = spi_create_polled(TSC2046_SPI_PERIPH, true, 0, SPI_FIRSTBIT_MSB, SPI_PHASE_1EDGE, SPI_POLARITY_LOW, SPI_DATASIZE_8BIT);
+	TSC2046_t tsc2046 = spi_create_polled(TSC2046_SPI_PERIPH, true, TSC2046_SPI_BAUDRATE, SPI_FIRSTBIT_MSB, SPI_PHASE_1EDGE, SPI_POLARITY_LOW, SPI_DATASIZE_8BIT);
 #else
-	TSC2046_t tsc2046 = spi_create_async(TSC2046_SPI_PERIPH, true, 0, SPI_FIRSTBIT_MSB, SPI_PHASE_1EDGE, SPI_POLARITY_LOW, SPI_DATASIZE_8BIT, 12);
+	TSC2046_t tsc2046 = spi_create_async(TSC2046_SPI_PERIPH, true, TSC2046_SPI_BAUDRATE, SPI_FIRSTBIT_MSB, SPI_PHASE_1EDGE, SPI_POLARITY_LOW, SPI_DATASIZE_8BIT, TSC2046_TRANSEFR_BYTES);
 #endif
-    spi_set_prescaler(tsc2046, TSC2046_SPI_PRESC);
 
     GPIO_InitTypeDef GPIO_InitStructure;
 
     GPIO_InitStructure.Speed = GPIO_SPEED_LOW;
     GPIO_InitStructure.Mode = GPIO_MODE_INPUT;
     GPIO_InitStructure.Pull = GPIO_PULLUP;
-//    GPIO_InitStructure.Pin = TSC2046_BUSY_PIN;
-//    HAL_GPIO_Init(TSC2046_BUSY_PORT, &GPIO_InitStructure);
-
-    GPIO_InitStructure.Pull = GPIO_NOPULL;
-    GPIO_InitStructure.Pin = TSC2046_IRQ_PIN;
-    HAL_GPIO_Init(TSC2046_IRQ_PORT, &GPIO_InitStructure);
+    GPIO_InitStructure.Pin = TSC2046_NIRQ_PIN;
+    HAL_GPIO_Init(TSC2046_NIRQ_PORT, &GPIO_InitStructure);
 
     return tsc2046;
 }
@@ -120,7 +115,7 @@ TSC2046_t tsc2046_init()
 
 bool tsc2046_ready()
 {
-	return HAL_GPIO_ReadPin(TSC2046_IRQ_PORT, TSC2046_IRQ_PIN) != GPIO_PIN_SET;
+	return HAL_GPIO_ReadPin(TSC2046_NIRQ_PORT, TSC2046_NIRQ_PIN) != GPIO_PIN_SET;
 }
 
 void tsc2046_read(TSC2046_t tsc2046, int16_t* x, int16_t* y)
@@ -156,4 +151,5 @@ void tsc2046_read(TSC2046_t tsc2046, int16_t* x, int16_t* y)
     if(y) {
     	*y = _y;
     }
+    printf("%d %d\n", _x, _y);
 }
