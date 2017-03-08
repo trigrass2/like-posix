@@ -46,15 +46,31 @@
 
 
 #if USE_LIKEPOSIX
-int spi_enable_rx_ioctl(dev_ioctl_t* dev);
-int spi_enable_tx_ioctl(dev_ioctl_t* dev);
-int spi_open_ioctl(dev_ioctl_t* dev);
-int spi_close_ioctl(dev_ioctl_t* dev);
-int spi_ioctl(dev_ioctl_t* dev);
 
+static int spi_enable_rx_ioctl(dev_ioctl_t* dev);
+static int spi_enable_tx_ioctl(dev_ioctl_t* dev);
+static int spi_open_ioctl(dev_ioctl_t* dev);
+static int spi_close_ioctl(dev_ioctl_t* dev);
+static int spi_ioctl(dev_ioctl_t* dev);
 static dev_ioctl_t* spi_dev_ioctls[NUM_ONCHIP_SPIS];
+
 #endif
 
+#if USE_FREERTOS
+
+#define spi_async_wait_rx_sem_create(spi_ioctl)				do {\
+																spi_ioctl->rx_expect = 0;\
+																spi_ioctl->rx_sem = xSemaphoreCreateBinary(); \
+																assert_true(spi_ioctl->rx_sem);\
+															} while(0)
+#define spi_async_wait_rx(spi_ioctl, timeout)				xSemaphoreTake(spi_ioctl->rx_sem, timeout)
+
+#else
+
+#define spi_async_wait_rx_sem_create(spi_ioctl)				(void)spi_ioctl
+#define spi_async_wait_rx(spi_ioctl, timeout)				(void)spi_ioctl; (void)timeout; 1
+
+#endif
 
 /**
  * call this function to initialize an SPI port in polled mode.
@@ -104,6 +120,8 @@ SPI_HANDLE_t spi_create_async(SPI_TypeDef* spi, bool enable, uint32_t baudrate, 
 		spi_ioctl->txfifo = (vfifo_t*)(fifomem + sizeof(vfifo_t) + (buffersize * sizeof(vfifo_primitive_t)));
 		vfifo_init(spi_ioctl->rxfifo, spi_ioctl->rxfifo + sizeof(vfifo_t), buffersize);
 		vfifo_init(spi_ioctl->txfifo, spi_ioctl->txfifo + sizeof(vfifo_t), buffersize);
+
+		spi_async_wait_rx_sem_create(spi_ioctl);
 
 		spi_init_interrupt(spih, SPI_INTERRUPT_PRIORITY, enable);
     }
@@ -240,35 +258,29 @@ int32_t spi_put_async(SPI_HANDLE_t spih, const uint8_t* data, int32_t length)
 	int32_t sent = 0;
 	if(length) {
 		spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
+		sent = vfifo_put_block(spi_ioctl->txfifo, data, length);
 
-		if(spi_ioctl->sending) {
-			sent = vfifo_put_block(spi_ioctl->txfifo, data, length);
-		}
-		else {
+		if(sent > 0) {
 			spi_ioctl->sending = true;
-			sent = vfifo_put_block(spi_ioctl->txfifo, data, length);
 			spi_enable_tx_int(spih);
 		}
 	}
 	return sent;
 }
 
-int32_t spi_get_async(SPI_HANDLE_t spih, uint8_t* data, int32_t length)
+int32_t spi_get_async(SPI_HANDLE_t spih, uint8_t* data, int32_t length, uint32_t timeout)
 {
 	int32_t recvd = 0;
 	if(length) {
 		spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
+		spi_ioctl->rx_expect = length;
+		spi_async_wait_rx(spi_ioctl, timeout);
 		recvd = vfifo_get_block(spi_ioctl->rxfifo, (void*)data, length);
 	}
 	return recvd;
 }
 
 #if USE_LIKEPOSIX
-
-dev_ioctl_t* get_spi_device_ioctl(SPI_HANDLE_t spih)
-{
-	return spi_dev_ioctls[spih];
-}
 
 /**
  * call this function to install an SPI port as a device file (requires USE_LIKEPOSIX=1 in the Makefile).
@@ -389,4 +401,71 @@ int spi_ioctl(dev_ioctl_t* dev)
 }
 
 #endif
+
+/**
+  * @brief	function called by the SPI receive register not empty interrupt.
+  * 		the SPI RX register contents are inserted into the RX FIFO.
+  */
+inline bool _spi_rx_isr(SPI_HANDLE_t spih)
+{
+#if USE_FREERTOS
+	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+#endif
+	spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
+	assert_true(spi_ioctl);
+
+	if(spi_rx_inwaiting(spih))
+	{
+#if USE_LIKEPOSIX
+		if(spi_dev_ioctls[spih]) {
+			xQueueSendFromISR(spi_dev_ioctls[spih]->pipe.read, (char*)&(spi_ioctl->spi->DR), &xHigherPriorityTaskWoken);
+			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+			return true;
+		}
+#endif
+		vfifo_put(spi_ioctl->rxfifo, (void*)&spi_ioctl->spi->DR);
+#if USE_FREERTOS
+		if((spi_ioctl->rx_expect > 0) && (vfifo_used_slots(spi_ioctl->rxfifo) >= spi_ioctl->rx_expect || vfifo_full(spi_ioctl->rxfifo))) {
+			spi_ioctl->rx_expect = 0;
+			xSemaphoreGiveFromISR(spi_ioctl->rx_sem, &xHigherPriorityTaskWoken);
+			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+		}
+#endif
+		return true;
+	}
+	return false;
+}
+
+/**
+  * @brief	function called by the SPI transmit register empty interrupt.
+  * 		data is sent from SPI till no data is left in the tx fifo.
+  */
+inline bool _spi_tx_isr(SPI_HANDLE_t spih)
+{
+#if USE_LIKEPOSIX
+	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+#endif
+	spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
+	assert_true(spi_ioctl);
+
+	if(spi_tx_readytosend(spih))
+	{
+#if USE_LIKEPOSIX
+		if(spi_dev_ioctls[spih]) {
+			if(xQueueReceiveFromISR(spi_dev_ioctls[spih]->pipe.write, (char*)&spi_ioctl->spi->DR, &xHigherPriorityTaskWoken) == pdFALSE) {
+				spi_disable_tx_int(spih);
+			}
+			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+			return true;
+		}
+#endif
+		if(!vfifo_get(spi_ioctl->txfifo, (void*)&spi_ioctl->spi->DR)) {
+			spi_ioctl->sending = false;
+			spi_disable_tx_int(spih);
+		}
+		return true;
+	}
+	return false;
+}
+
 

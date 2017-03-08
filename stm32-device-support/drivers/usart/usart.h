@@ -51,13 +51,14 @@ char usart_stdio_rx();
 
 USART_HANDLE_t usart_create_async(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize);
 int32_t usart_put_async(USART_HANDLE_t usarth, const uint8_t* data, int32_t length);
-int32_t usart_get_async(USART_HANDLE_t usarth, uint8_t* data, int32_t length);
+int32_t usart_get_async(USART_HANDLE_t usarth, uint8_t* data, int32_t length, uint32_t timeout);
 
 #if USE_LIKEPOSIX
-dev_ioctl_t* get_usart_device_ioctl(USART_HANDLE_t usarth);
 USART_HANDLE_t usart_create_dev(char* filename, USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate);
 #endif
 
+inline bool _usart_rx_isr(USART_HANDLE_t usarth);
+inline bool _usart_tx_isr(USART_HANDLE_t usarth);
 #endif // USART_H_
 
 /**

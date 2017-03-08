@@ -30,83 +30,18 @@
  *
  */
 
-#include "spi_it.h"
-#include "base_spi.h"
-
 #include "board_config.h"
-#include "asserts.h"
 #include "spi.h"
-#include "syscalls.h"
-
-/**
-  * @brief	function called by the SPI receive register not empty interrupt.
-  * 		the SPI RX register contents are inserted into the RX FIFO.
-  */
-inline void spi_rx_isr(SPI_HANDLE_t spih)
-{
-	spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
-#if USE_LIKEPOSIX
-	dev_ioctl_t* dev_ioctl = get_spi_device_ioctl(spih);
-#endif
-	assert_true(spi_ioctl);
-
-    SPI_HandleTypeDef hspi = {.Instance=spi_ioctl->spi};
-
-	if(__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_RXNE))
-	{
-#if USE_LIKEPOSIX
-		if(dev_ioctl) {
-			static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-			xQueueSendFromISR(dev_ioctl->pipe.read, (char*)&(hspi.Instance->DR), &xHigherPriorityTaskWoken);
-			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-			return;
-		}
-#endif
-		vfifo_put(spi_ioctl->rxfifo, (void*)&spi_ioctl->spi->DR);
-	}
-}
-
-/**
-  * @brief	function called by the SPI transmit register empty interrupt.
-  * 		data is sent from SPI till no data is left in the tx fifo.
-  */
-inline void spi_tx_isr(SPI_HANDLE_t spih)
-{
-	spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
-#if USE_LIKEPOSIX
-	dev_ioctl_t* dev_ioctl = get_spi_device_ioctl(spih);
-#endif
-	assert_true(spi_ioctl);
-
-    SPI_HandleTypeDef hspi = {.Instance=spi_ioctl->spi};
-
-	if(__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_TXE))
-	{
-#if USE_LIKEPOSIX
-		if(dev_ioctl) {
-			static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-			if(xQueueReceiveFromISR(dev_ioctl->pipe.write, (char*)&hspi.Instance->DR, &xHigherPriorityTaskWoken) == pdFALSE) {
-				__HAL_SPI_DISABLE_IT(&hspi, SPI_IT_TXE);
-			}
-			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-			return;
-		}
-#endif
-		if(!vfifo_get(spi_ioctl->txfifo, (void*)&spi_ioctl->spi->DR)) {
-			spi_ioctl->sending = false;
-			spi_disable_tx_int(spih);
-		}
-	}
-}
-
+#include "spi_it.h"
 
 /**
   * @brief  This function handles SPI1 interrupt.
   */
 void SPI1_IRQHandler(void)
 {
-	spi_rx_isr(SPI1_HANDLE);
-	spi_tx_isr(SPI1_HANDLE);
+	if(!_spi_rx_isr(SPI1_HANDLE)) {
+		_spi_tx_isr(SPI1_HANDLE);
+	}
 }
 
 /**
@@ -114,8 +49,9 @@ void SPI1_IRQHandler(void)
   */
 void SPI2_IRQHandler(void)
 {
-	spi_rx_isr(SPI2_HANDLE);
-	spi_tx_isr(SPI2_HANDLE);
+	if(!_spi_rx_isr(SPI2_HANDLE)) {
+		_spi_tx_isr(SPI2_HANDLE);
+	}
 }
 
 /**
@@ -123,8 +59,9 @@ void SPI2_IRQHandler(void)
   */
 void SPI3_IRQHandler(void)
 {
-	spi_rx_isr(SPI3_HANDLE);
-	spi_tx_isr(SPI3_HANDLE);
+	if(!_spi_rx_isr(SPI3_HANDLE)) {
+		_spi_tx_isr(SPI3_HANDLE);
+	}
 }
 
 

@@ -56,6 +56,10 @@ typedef struct {
 	bool sending;
 	vfifo_t* rxfifo;
 	vfifo_t* txfifo;
+#if USE_FREERTOS
+	SemaphoreHandle_t rx_sem;
+	int32_t rx_expect;
+#endif
 } spi_ioctl_t;
 
 SPI_HANDLE_t spi_init_device(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width);
@@ -70,6 +74,8 @@ void spi_set_prescaler(SPI_HANDLE_t spih, uint16_t presc);
 void spi_set_baudrate(SPI_HANDLE_t spih, uint32_t baudrate);
 uint32_t spi_get_baudrate(SPI_HANDLE_t spih);
 
+inline bool spi_rx_inwaiting(SPI_HANDLE_t spih);
+inline bool spi_tx_readytosend(SPI_HANDLE_t spih);
 inline void spi_enable_rx_int(SPI_HANDLE_t spih);
 inline void spi_enable_tx_int(SPI_HANDLE_t spih);
 inline void spi_disable_rx_int(SPI_HANDLE_t spih);

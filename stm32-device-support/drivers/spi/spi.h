@@ -42,7 +42,8 @@ uint8_t spi_transfer_polled(SPI_HANDLE_t spih, uint8_t data);
 
 SPI_HANDLE_t spi_create_async(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t buffersize);
 int32_t spi_put_async(SPI_HANDLE_t spih, const uint8_t* data, int32_t length);
-int32_t spi_get_async(SPI_HANDLE_t spih, uint8_t* data, int32_t length);
+int32_t spi_get_async(SPI_HANDLE_t spih, uint8_t* data, int32_t length, uint32_t timeout);
+
 
 void spi_init_ss_gpio(SPI_HANDLE_t spi);
 void spi_clear_ss(SPI_HANDLE_t spi);
@@ -50,7 +51,9 @@ void spi_set_ss(SPI_HANDLE_t spi);
 
 #if USE_LIKEPOSIX
 SPI_HANDLE_t spi_create_dev(char* filename, SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width);
-dev_ioctl_t* get_spi_device_ioctl(SPI_HANDLE_t spih);
 #endif
+
+inline bool _spi_tx_isr(SPI_HANDLE_t spih);
+inline bool _spi_rx_isr(SPI_HANDLE_t spih);
 
 #endif /* SPI_H_ */

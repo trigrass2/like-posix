@@ -33,77 +33,13 @@
 /**
  * @addtogroup usart
  *
- * @file usart_it.c
+ * @file _usart_it.c
  * @{
  */
 
-#include "usart_it.h"
 #include "board_config.h"
-#include "asserts.h"
 #include "usart.h"
-#include "syscalls.h"
-
-
-/**
-  * @brief	function called by the USART receive register not empty interrupt.
-  * 		the USART RX register contents are inserted into the RX FIFO.
-  */
-inline void usart_rx_isr(USART_HANDLE_t usarth)
-{
-	usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
-#if USE_LIKEPOSIX
-	dev_ioctl_t* dev_ioctl = get_usart_device_ioctl(usarth);
-#endif
-	assert_true(usart_ioctl);
-
-    USART_HandleTypeDef husart = {.Instance=usart_ioctl->usart};
-
-	if(__HAL_USART_GET_IT_SOURCE(&husart, USART_IT_RXNE))
-	{
-#if USE_LIKEPOSIX
-		if(dev_ioctl) {
-			static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-			xQueueSendFromISR(dev_ioctl->pipe.read, (char*)&husart.Instance->DR, &xHigherPriorityTaskWoken);
-			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-			return;
-		}
-#endif
-		vfifo_put(usart_ioctl->rxfifo, (void*)&usart_ioctl->usart->DR);
-	}
-}
-
-/**
-  * @brief	function called by the USART transmit register empty interrupt.
-  * 		data is sent from USART till no data is left in the tx fifo.
-  */
-inline void usart_tx_isr(USART_HANDLE_t usarth)
-{
-	usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
-#if USE_LIKEPOSIX
-	dev_ioctl_t* dev_ioctl = get_usart_device_ioctl(usarth);
-#endif
-	assert_true(usart_ioctl);
-
-    USART_HandleTypeDef husart = {.Instance=usart_ioctl->usart};
-
-	if(__HAL_USART_GET_IT_SOURCE(&husart, USART_IT_TXE))
-	{
-#if USE_LIKEPOSIX
-		if(dev_ioctl) {
-			static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-			if(xQueueReceiveFromISR(dev_ioctl->pipe.write, (char*)&husart.Instance->DR, &xHigherPriorityTaskWoken) == pdFALSE) {
-				__HAL_USART_DISABLE_IT(&husart, USART_IT_TXE);
-			}
-			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-			return;
-		}
-#endif
-		if(!vfifo_get(usart_ioctl->txfifo, (void*)&usart_ioctl->usart->DR)) {
-			usart_ioctl->sending = false;
-			usart_disable_tx_int(usarth);
-		}
-	}
-}
+#include "usart_it.h"
 
 
 /**
@@ -111,8 +47,9 @@ inline void usart_tx_isr(USART_HANDLE_t usarth)
   */
 void USART1_IRQHandler(void)
 {
-	usart_rx_isr(USART1_HANDLE);
-	usart_tx_isr(USART1_HANDLE);
+	if(_usart_rx_isr(USART1_HANDLE)) {
+		_usart_tx_isr(USART1_HANDLE);
+	}
 }
 
 /**
@@ -120,8 +57,9 @@ void USART1_IRQHandler(void)
   */
 void USART2_IRQHandler(void)
 {
-	usart_rx_isr(USART2_HANDLE);
-	usart_tx_isr(USART2_HANDLE);
+	if(_usart_rx_isr(USART2_HANDLE)) {
+		_usart_tx_isr(USART2_HANDLE);
+	}
 }
 
 /**
@@ -129,8 +67,9 @@ void USART2_IRQHandler(void)
   */
 void USART3_IRQHandler(void)
 {
-	usart_rx_isr(USART3_HANDLE);
-	usart_tx_isr(USART3_HANDLE);
+	if(_usart_rx_isr(USART3_HANDLE)) {
+		_usart_tx_isr(USART3_HANDLE);
+	}
 }
 
 /**
@@ -138,8 +77,9 @@ void USART3_IRQHandler(void)
   */
 void UART4_IRQHandler(void)
 {
-	usart_rx_isr(UART4_HANDLE);
-	usart_tx_isr(UART4_HANDLE);
+	if(_usart_rx_isr(UART4_HANDLE)) {
+		_usart_tx_isr(UART4_HANDLE);
+	}
 }
 
 /**
@@ -147,8 +87,9 @@ void UART4_IRQHandler(void)
   */
 void UART5_IRQHandler(void)
 {
-	usart_rx_isr(UART5_HANDLE);
-	usart_tx_isr(UART5_HANDLE);
+	if(_usart_rx_isr(UART5_HANDLE)) {
+		_usart_tx_isr(UART5_HANDLE);
+	}
 }
 
 #ifdef USART6
@@ -157,8 +98,9 @@ void UART5_IRQHandler(void)
   */
  void USART6_IRQHandler(void)
  {
-	 usart_rx_isr(USART6_HANDLE);
-	 usart_tx_isr(USART6_HANDLE);
+	 if(_usart_rx_isr(USART6_HANDLE)) {
+		 _usart_tx_isr(USART6_HANDLE);
+	 }
  }
 #endif
 
@@ -168,8 +110,9 @@ void UART5_IRQHandler(void)
    */
  void UART7_IRQHandler(void)
  {
-	 usart_rx_isr(UART7_HANDLE);
-	 usart_tx_isr(UART7_HANDLE);
+	 if(_usart_rx_isr(UART7_HANDLE)) {
+		 _usart_tx_isr(UART7_HANDLE);
+	 }
  }
 #endif
 
@@ -179,8 +122,9 @@ void UART5_IRQHandler(void)
    */
  void UART8_IRQHandler(void)
  {
-	 usart_rx_isr(UART8_HANDLE);
-	 usart_tx_isr(UART8_HANDLE);
+	 if(_usart_rx_isr(UART8_HANDLE)) {
+		 _usart_tx_isr(UART8_HANDLE);
+	 }
  }
 #endif
 

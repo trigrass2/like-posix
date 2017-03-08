@@ -91,8 +91,23 @@ static int usart_close_ioctl(dev_ioctl_t* dev);
 static int usart_open_ioctl(dev_ioctl_t* dev);
 static int usart_enable_tx_ioctl(dev_ioctl_t* dev);
 static int usart_enable_rx_ioctl(dev_ioctl_t* dev);
-
 dev_ioctl_t* usart_dev_ioctls[8];
+#endif
+
+#if USE_FREERTOS
+
+#define usart_async_wait_rx_sem_create(usart_ioctl)				do {\
+																usart_ioctl->rx_expect = 0;\
+																usart_ioctl->rx_sem = xSemaphoreCreateBinary(); \
+																assert_true(usart_ioctl->rx_sem);\
+															} while(0)
+#define usart_async_wait_rx(usart_ioctl, timeout)				xSemaphoreTake(usart_ioctl->rx_sem, timeout)
+
+#else
+
+#define usart_async_wait_rx_sem_create(usart_ioctl)				(void)usart_ioctl
+#define usart_async_wait_rx(usart_ioctl, timeout)				(void)usart_ioctl; (void)timeout; 1
+
 #endif
 
 USART_HANDLE_t stdio_usarth;
@@ -171,24 +186,23 @@ int32_t usart_put_async(USART_HANDLE_t usarth, const uint8_t* data, int32_t leng
 	int32_t sent = 0;
 	if(length) {
 		usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
+		sent = vfifo_put_block(usart_ioctl->txfifo, data, length);
 
-		if(usart_ioctl->sending) {
-			sent = vfifo_put_block(usart_ioctl->txfifo, data, length);
-		}
-		else {
+		if(sent > 0) {
 			usart_ioctl->sending = true;
-			sent = vfifo_put_block(usart_ioctl->txfifo, data, length);
 			usart_enable_tx_int(usarth);
 		}
 	}
 	return sent;
 }
 
-int32_t usart_get_async(USART_HANDLE_t usarth, uint8_t* data, int32_t length)
+int32_t usart_get_async(USART_HANDLE_t usarth, uint8_t* data, int32_t length, uint32_t timeout)
 {
 	int32_t recvd = 0;
 	if(length) {
 		usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
+		usart_ioctl->rx_expect = length;
+		usart_async_wait_rx(usart_ioctl, timeout);
 		recvd = vfifo_get_block(usart_ioctl->rxfifo, (void*)data, length);
 	}
 	return recvd;
@@ -198,12 +212,6 @@ int32_t usart_get_async(USART_HANDLE_t usarth, uint8_t* data, int32_t length)
 
 
 #if USE_LIKEPOSIX
-
-
-dev_ioctl_t* get_usart_device_ioctl(USART_HANDLE_t usarth)
-{
-	return usart_dev_ioctls[usarth];
-}
 
 /**
  * call this function to install an USART port as a device file (requires USE_LIKEPOSIX=1 in the Makefile).
@@ -321,6 +329,73 @@ static int usart_ioctl(dev_ioctl_t* dev)
 }
 
 #endif
+
+/**
+  * @brief	function called by the USART receive register not empty interrupt.
+  * 		the USART RX register contents are inserted into the RX FIFO.
+  */
+inline bool _usart_rx_isr(USART_HANDLE_t usarth)
+{
+#if USE_FREERTOS
+	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+#endif
+	usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
+	assert_true(usart_ioctl);
+
+	if(usart_rx_inwaiting(usarth))
+	{
+#if USE_LIKEPOSIX
+		if(usart_dev_ioctls[usarth]) {
+			xQueueSendFromISR(usart_dev_ioctls[usarth]->pipe.read, (char*)&usart_ioctl->usart->DR, &xHigherPriorityTaskWoken);
+			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+			return true;
+		}
+#endif
+
+		vfifo_put(usart_ioctl->rxfifo, (void*)&usart_ioctl->usart->DR);
+#if USE_FREERTOS
+		if((usart_ioctl->rx_expect > 0) && (vfifo_used_slots(usart_ioctl->rxfifo) >= usart_ioctl->rx_expect || vfifo_full(usart_ioctl->rxfifo))) {
+			usart_ioctl->rx_expect = 0;
+			xSemaphoreGiveFromISR(usart_ioctl->rx_sem, &xHigherPriorityTaskWoken);
+			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+		}
+#endif
+		return true;
+	}
+	return false;
+}
+
+/**
+  * @brief	function called by the USART transmit register empty interrupt.
+  * 		data is sent from USART till no data is left in the tx fifo.
+  */
+inline bool _usart_tx_isr(USART_HANDLE_t usarth)
+{
+#if USE_LIKEPOSIX
+	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+#endif
+	usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
+	assert_true(usart_ioctl);
+
+	if(usart_tx_readytosend(usarth))
+	{
+#if USE_LIKEPOSIX
+		if(usart_dev_ioctls[usarth]) {
+			if(xQueueReceiveFromISR(usart_dev_ioctls[usarth]->pipe.write, (char*)&usart_ioctl->usart->DR, &xHigherPriorityTaskWoken) == pdFALSE) {
+				usart_disable_tx_int(usarth);
+			}
+			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+			return true;
+		}
+#endif
+		if(!vfifo_get(usart_ioctl->txfifo, (void*)&usart_ioctl->usart->DR)) {
+			usart_ioctl->sending = false;
+			usart_disable_tx_int(usarth);
+		}
+		return true;
+	}
+	return false;
+}
 
 /**
  * @}

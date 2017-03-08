@@ -209,6 +209,20 @@ void spi_init_interrupt(SPI_HANDLE_t spih, uint8_t priority, bool enable)
         HAL_NVIC_DisableIRQ(irq);
 }
 
+inline bool spi_rx_inwaiting(SPI_HANDLE_t spih)
+{
+	SPI_HandleTypeDef hspi;
+	hspi.Instance = get_spi_peripheral(spih);
+	return __HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_RXNE);
+}
+
+inline bool spi_tx_readytosend(SPI_HANDLE_t spih)
+{
+	SPI_HandleTypeDef hspi;
+	hspi.Instance = get_spi_peripheral(spih);
+	return __HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_TXE);
+}
+
 inline void spi_enable_rx_int(SPI_HANDLE_t spih)
 {
 	SPI_HandleTypeDef hspi;

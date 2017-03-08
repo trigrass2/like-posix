@@ -68,6 +68,10 @@ typedef struct {
 	bool sending;
 	vfifo_t* rxfifo;
 	vfifo_t* txfifo;
+	int32_t rx_expect;
+#if USE_FREERTOS
+	SemaphoreHandle_t rx_sem;
+#endif
 } usart_ioctl_t;
 
 
@@ -75,6 +79,8 @@ typedef struct {
 USART_HANDLE_t usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate);
 void usart_init_gpio(USART_HANDLE_t usarth);
 void usart_init_interrupt(USART_HANDLE_t usarth, uint8_t priority, bool enable);
+inline bool usart_rx_inwaiting(USART_HANDLE_t spih);
+inline bool usart_tx_readytosend(USART_HANDLE_t spih);
 inline void usart_enable_rx_int(USART_HANDLE_t usarth);
 inline void usart_enable_tx_int(USART_HANDLE_t usarth);
 inline void usart_disable_rx_int(USART_HANDLE_t usarth);

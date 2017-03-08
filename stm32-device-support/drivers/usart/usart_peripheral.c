@@ -402,6 +402,20 @@ void usart_init_interrupt(USART_HANDLE_t usarth, uint8_t priority, bool enable)
     	HAL_NVIC_DisableIRQ(irq);
 }
 
+inline bool usart_rx_inwaiting(USART_HANDLE_t usarth)
+{
+	USART_HandleTypeDef husart;
+	husart.Instance = get_usart_peripheral(usarth);
+	return __HAL_USART_GET_FLAG(&husart, USART_FLAG_RXNE);
+}
+
+inline bool usart_tx_readytosend(USART_HANDLE_t usarth)
+{
+	USART_HandleTypeDef husart;
+	husart.Instance = get_usart_peripheral(usarth);
+	return __HAL_USART_GET_FLAG(&husart, USART_FLAG_TXE);
+}
+
 inline void usart_enable_rx_int(USART_HANDLE_t usarth)
 {
 	USART_HandleTypeDef husart;
