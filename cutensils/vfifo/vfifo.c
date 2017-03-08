@@ -168,6 +168,16 @@ int32_t	vfifo_number_of_slots(vfifo_t* fifo)
 }
 
 /**
+  * @brief	returns the total number of locations in the fifo data space that are in free.
+  * @param	fifo is a pointer to a fifo structure.
+  * @retval	returns true if the fifo is full.
+  */
+bool vfifo_full(vfifo_t* fifo)
+{
+	return fifo->free == 0;
+}
+
+/**
   * @brief	resets the fifo buffer pointers, effectively emptying the fifo.
   * @param	fifo is a pointer to a fifo structure.
   */

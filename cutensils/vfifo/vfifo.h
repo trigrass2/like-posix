@@ -68,6 +68,7 @@ int32_t vfifo_get_block(vfifo_t* fifo, void* data, int32_t size);
 int32_t vfifo_used_slots(vfifo_t* fifo);
 int32_t	vfifo_free_slots(vfifo_t* fifo);
 int32_t	vfifo_number_of_slots(vfifo_t* fifo);
+bool vfifo_full(vfifo_t* fifo);
 void	vfifo_reset(vfifo_t* fifo);
 
 #endif /* VFIFO_H_ */
