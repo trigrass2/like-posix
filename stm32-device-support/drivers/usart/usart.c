@@ -126,10 +126,9 @@ USART_HANDLE_t stdio_usarth;
  */
 USART_HANDLE_t usart_create_polled(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate)
 {
-	USART_HANDLE_t usarth = USART_INVALID_HANDLE;
-    usarth = usart_init_device(usart, enable, mode, baudrate);
-    usart_init_gpio(usarth);
+	USART_HANDLE_t usarth = usart_init_device(usart, enable, mode, baudrate);
 	usart_init_interrupt(usarth, USART_INTERRUPT_PRIORITY, false);
+    usart_init_gpio(usarth);
     return usarth;
 }
 
