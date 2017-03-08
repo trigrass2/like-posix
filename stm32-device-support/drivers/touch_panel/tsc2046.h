@@ -31,23 +31,27 @@
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
  */
-
+#include <stdbool.h>
 #include "tsc2046_config.h"
+#include "spi.h"
 #include "board_config.h"
 
 #ifndef TSC2046_H_
 #define TSC2046_H_
 
-void tsc2046_init();
-uint16_t tsc2046_x();
-uint16_t tsc2046_y();
+#define TSC2046_POLLED_SPI 0 // set to 1 for polled SPI, 0 for interrupt driven SPI
 
-#define tsc2046_nirq()        (HAL_GPIO_ReadPin(TSC2046_IRQ_PORT, TSC2046_IRQ_PIN) == GPIO_PIN_SET)
+typedef SPI_HANDLE_t TSC2046_t;
+
+TSC2046_t tsc2046_init();
+void tsc2046_read(TSC2046_t tsc2046, int16_t* x, int16_t* y);
+bool tsc2046_ready();
+
 /**
  * http://e2e.ti.com/support/other_analog/touch/f/750/t/177249.aspx
  * ignore busy signal, is redundant and not documented in:
  * http://www.ti.com/lit/ds/symlink/tsc2046.pdf
  */
-#define tsc2046_busy()        (HAL_GPIO_ReadPin(TSC2046_BUSY_PORT, TSC2046_BUSY_PIN) == GPIO_PIN_SET)
+//#define tsc2046_busy()        (HAL_GPIO_ReadPin(TSC2046_BUSY_PORT, TSC2046_BUSY_PIN) == GPIO_PIN_SET)
 
 #endif // TSC2046_H_

@@ -53,15 +53,6 @@
 #define TOUCH_DEFAULT_SWIPE_LENGTH 	70
 #define TOUCH_DEFAULT_INACTIVITY_TIMEOUT   (15000/TOUCH_TASK_POLL_RATE)
 
-/**
- * setup panel interface
- */
-#define panel_x() 					tsc2046_x()
-#define panel_y() 					tsc2046_y()
-#define panel_ready()               (tsc2046_nirq() == RESET)
-#define panel_init() 				tsc2046_init()
-#define panel_deinit() 				tsc2046_deinit()
-
 #define TOUCH_MAX_HANDLERS 			10
 
 extern const char* key_press_type[];

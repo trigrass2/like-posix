@@ -93,17 +93,14 @@
 
 #endif
 
-
-#define tsc2046_txrx(data)      spi_transfer_polled(tsc2046_spih, data)
-#define tsc2046_select()        spi_clear_ss(tsc2046_spih)
-#define tsc2046_deselect()      spi_set_ss(tsc2046_spih)
-
-static SPI_HANDLE_t tsc2046_spih;
-
-void tsc2046_init()
+TSC2046_t tsc2046_init()
 {
-	tsc2046_spih = spi_create_polled(TSC2046_SPI_PERIPH, true, 0, SPI_FIRSTBIT_MSB, SPI_PHASE_1EDGE, SPI_POLARITY_LOW, SPI_DATASIZE_8BIT);
-    spi_set_prescaler(tsc2046_spih, TSC2046_SPI_PRESC);
+#if TSC2046_POLLED_SPI
+	TSC2046_t tsc2046 = spi_create_polled(TSC2046_SPI_PERIPH, true, 0, SPI_FIRSTBIT_MSB, SPI_PHASE_1EDGE, SPI_POLARITY_LOW, SPI_DATASIZE_8BIT);
+#else
+	TSC2046_t tsc2046 = spi_create_async(TSC2046_SPI_PERIPH, true, 0, SPI_FIRSTBIT_MSB, SPI_PHASE_1EDGE, SPI_POLARITY_LOW, SPI_DATASIZE_8BIT, 12);
+#endif
+    spi_set_prescaler(tsc2046, TSC2046_SPI_PRESC);
 
     GPIO_InitTypeDef GPIO_InitStructure;
 
@@ -116,31 +113,47 @@ void tsc2046_init()
     GPIO_InitStructure.Pull = GPIO_NOPULL;
     GPIO_InitStructure.Pin = TSC2046_IRQ_PIN;
     HAL_GPIO_Init(TSC2046_IRQ_PORT, &GPIO_InitStructure);
+
+    return tsc2046;
 }
 
 
-uint16_t tsc2046_x()
+bool tsc2046_ready()
 {
-    uint16_t x;
-    tsc2046_select();
-    tsc2046_txrx(TSC2046_READ_X);
-    x = ((tsc2046_txrx(0) & 0x7F) << 8);
-    x |= tsc2046_txrx(0);
-    x >>= 3;
-    x = ((x * TSC2046_PIX_X) / TSC2046_MAX_X) + TSC2046_X_OFFSET;
-    tsc2046_deselect();
-    return x;
+	return HAL_GPIO_ReadPin(TSC2046_IRQ_PORT, TSC2046_IRQ_PIN) != GPIO_PIN_SET;
 }
 
-uint16_t tsc2046_y()
+void tsc2046_read(TSC2046_t tsc2046, int16_t* x, int16_t* y)
 {
-    uint16_t y;
-    tsc2046_select();
-    tsc2046_txrx(TSC2046_READ_Y);
-    y = ((tsc2046_txrx(0) & 0x7F) << 8);
-    y |= tsc2046_txrx(0);
-    y >>= 3;
-    y = ((y * TSC2046_PIX_Y) / TSC2046_MAX_Y) + TSC2046_Y_OFFSET;
-    tsc2046_deselect();
-    return y;
+	int16_t _x;
+	int16_t _y;
+    spi_clear_ss(tsc2046);
+#if TSC2046_POLLED_SPI
+    spi_transfer_polled(tsc2046, TSC2046_READ_X);
+    _x = ((spi_transfer_polled(tsc2046, 0) & 0x7F) << 8);
+    _x |= spi_transfer_polled(tsc2046, 0);
+    _x >>= 3;
+    _x = ((_x * TSC2046_PIX_X) / TSC2046_MAX_X) + TSC2046_X_OFFSET;
+    spi_transfer_polled(tsc2046, TSC2046_READ_Y);
+    _y = ((spi_transfer_polled(tsc2046, 0) & 0x7F) << 8);
+    _y |= spi_transfer_polled(tsc2046, 0);
+    _y >>= 3;
+    _y = ((_y * TSC2046_PIX_Y) / TSC2046_MAX_Y) + TSC2046_Y_OFFSET;
+#else
+    uint8_t buffer[6] = {TSC2046_READ_X, 0,0, TSC2046_READ_Y, 0, 0};
+    spi_put_async(tsc2046, buffer, sizeof(buffer));
+    spi_get_async(tsc2046, buffer, sizeof(buffer), 1000);
+    _x = (((buffer[1] & 0x7F) << 8) | buffer[2]) >> 3;
+    _x = ((_x * TSC2046_PIX_X) / TSC2046_MAX_X) + TSC2046_X_OFFSET;
+    _y = (((buffer[4] & 0x7F) << 8) | buffer[5]) >> 3;
+    _y = ((_y * TSC2046_PIX_Y) / TSC2046_MAX_Y) + TSC2046_Y_OFFSET;
+#endif
+    spi_set_ss(tsc2046);
+
+    if(x) {
+    	*x = _x;
+    }
+    if(y) {
+    	*y = _y;
+    }
 }

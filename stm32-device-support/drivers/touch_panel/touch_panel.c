@@ -60,6 +60,7 @@ typedef struct {
     uint16_t  _inactivity_count;                         ///< not user settable
     void(*inactivity_callback)(void);                   ///< user settable, a function that is called after a period of inactivity.
     void(*activity_callback)(void);                     ///< user settable, a function that is called once on activity.
+    TSC2046_t tpdrv;
 }touch_task_t;
 
 touch_task_t touch_task_data;
@@ -71,8 +72,9 @@ static void touch_panel_interpreter_task(void *pvParameters);
  */
 bool touch_panel_init()
 {
-    panel_init();
     memset(&touch_task_data, 0, sizeof(touch_task_t));
+
+	touch_task_data.tpdrv = tsc2046_init();
 
     touch_panel_set_long_press_duration(TOUCH_DEFAULT_LONG_PRESS_MS);
     touch_panel_set_tap_duration(TOUCH_DEFAULT_TAP_MIN_MS, TOUCH_DEFAULT_TAP_MAX_MS);
@@ -216,7 +218,7 @@ void touch_panel_interpreter_task(void *pvParameters)
 
     for(;;)
     {
-		while(!panel_ready() && !down_count)
+		while(!tsc2046_ready() && !down_count)
 		{
 		    usleep(TOUCH_TASK_POLL_RATE * 1000);
 
@@ -236,10 +238,9 @@ void touch_panel_interpreter_task(void *pvParameters)
 		    tt_params->_inactivity_count = 3;
 
         // flush last reading
-        panel_x();
-        panel_y();
+		tsc2046_read(tt_params->tpdrv, NULL, NULL);
 
-		while(panel_ready() || down_count)
+		while(tsc2046_ready() || down_count)
 		{
 		    if(tt_params->_inactivity_count == 0 && tt_params->activity_callback)
 		    {
@@ -254,10 +255,7 @@ void touch_panel_interpreter_task(void *pvParameters)
 		    else
 		    {
                 // get new reading
-                tt_params->_touch_point.x = panel_x();
-                tt_params->_touch_point.y = panel_y();
-
-    //            log_edebug(NULL, "%d,%d", tt_params->_touch_point.x, tt_params->_touch_point.y);
+		    	tsc2046_read(tt_params->tpdrv, &tt_params->_touch_point.x, &tt_params->_touch_point.y);
 
                 for(uint8_t i = 0; i < TOUCH_MAX_HANDLERS; i++)
                 {
@@ -328,21 +326,20 @@ void touch_panel_interpreter_task(void *pvParameters)
                                     handler->press_type = SWIPE_DOWN;
                             }
 
-                            if(swiped)
+                            if(swiped) {
                                 handler->backend_key_callback(handler);
+                            }
 
                             // tap condition
                             else if(tt_params->_tap_count <= (tt_params->tap_max_duration) &&
-                                tt_params->_tap_count >= (tt_params->tap_min_duration))
-                            {
+                                tt_params->_tap_count >= (tt_params->tap_min_duration)) {
                                 handler->press_type = KEY_TAP;
                                 handler->backend_key_callback(handler);
                             }
-    //                        else
-    //                        {
+
                             handler->press_type = KEY_UP;
                             handler->backend_key_callback(handler);
-    //                        }
+
                             handler->long_pressed = false;
                             handler->pressed = false;
 
