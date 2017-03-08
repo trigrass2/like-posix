@@ -42,6 +42,10 @@
 #include "base_usart.h"
 #include "syscalls.h"
 #include "vfifo.h"
+#if USE_FREERTOS
+#include "FreeRTOS.h"
+#include "semphr.h"
+#endif
 
 #ifndef USART_PERIPHERAL_H_
 #define USART_PERIPHERAL_H_

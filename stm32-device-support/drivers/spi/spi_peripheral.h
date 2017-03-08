@@ -35,6 +35,10 @@
 #include "base_spi.h"
 #include "syscalls.h"
 #include "vfifo.h"
+#if USE_FREERTOS
+#include "FreeRTOS.h"
+#include "semphr.h"
+#endif
 
 #ifndef SPI_PERIPHERAL_H_
 #define SPI_PERIPHERAL_H_
