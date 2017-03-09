@@ -69,7 +69,6 @@ typedef struct {
 	USART_TypeDef* usart;
 	uint32_t baudrate;
 	usart_mode_t mode;
-	bool sending;
 	vfifo_t* rxfifo;
 	vfifo_t* txfifo;
 	int32_t rx_expect;

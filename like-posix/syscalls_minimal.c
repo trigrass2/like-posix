@@ -36,11 +36,12 @@ extern unsigned int _eheap;
  caddr_t heap = NULL;
 
 
-/**
- * to make printf work with serial IO,
- * please define "void phy_putc(char c)"
- */
-extern void usart_tx(char c) __attribute__((weak));
+ /**
+  * to make STDIO work with serial IO,
+  * please define "void usart_put_polled(int usarth, const char c)" somewhere
+  */
+ extern void usart_stdio_tx(const char c) __attribute__((weak));
+ extern char usart_stdio_rx() __attribute__((weak));
 
 void _exit(int i)
 {
@@ -48,16 +49,29 @@ void _exit(int i)
 	while (1);
 }
 
-int _write(int file, char *buffer, unsigned int count)
+int _write(int file, char *ptr, unsigned int len)
 {
 	(void)file;
 	register unsigned int i;
-	for (i=0; i<count; ++i)
+	for (i=0; i<len; ++i)
 	{
-		usart_tx(*buffer++);
+		usart_stdio_tx(*ptr++);
 	}
 
-	return count;
+	return len;
+}
+
+int _read(int file, char *ptr, unsigned int len)
+{
+	(void)file;
+	register unsigned int i;
+	for (i=0; i<len; ++i)
+	{
+		*ptr = usart_stdio_rx();
+		ptr++;
+	}
+
+	return len;
 }
 
 int _close(int file)
@@ -90,14 +104,6 @@ int _lseek(int file, int ptr, int dir)
 	(void)file;
 	(void)ptr;
 	(void)dir;
-	return 0;
-}
-
-int _read(int file, char *ptr, int len)
-{
-	(void)file;
-	(void)ptr;
-	(void)len;
 	return 0;
 }
 
