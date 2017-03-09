@@ -57,7 +57,7 @@
 #include "sock_utils.h"
 #endif
 
-static log_level_t _log_level = LOG_SYSLOG;
+static log_level_t _log_level = LOG_DEBUG;
 static bool _log_coloured = true;
 static bool _log_timestamp = true;
 static int handlers[MAX_LOG_HANDLERS];
@@ -87,8 +87,6 @@ struct timeval ts_tv;
 static logger_t _syslog;
 
 static const char* levelstr[] = {
-	"syslog\t",
-	"edebug\t",
 	"debug\t",
 	"info\t",
 	"warning\t",
@@ -96,8 +94,6 @@ static const char* levelstr[] = {
 };
 
 static const char* colourstart[] = {
-    "\x1b[0m",
-    "\x1b[0;36m",
     "\x1b[1;34m",
     "\x1b[32m",
     "\x1b[33m",
@@ -223,7 +219,7 @@ void log_remove_handler(int file)
  */
 log_level_t log_level(log_level_t level)
 {
-	if(level <= LOG_DISABLED && level >= LOG_SYSLOG)
+	if(level <= LOG_DISABLED && level >= LOG_DEBUG)
 		_log_level = level;
 	return _log_level;
 }
@@ -329,36 +325,6 @@ static inline void write_log_record(logger_t* logger, log_level_t level, char* m
 	}
 
 	give_mutex(_logger_write_mutex);
-}
-
-/**
- * creates a log record at the level LOG_SYSLOG
- *
- * @param	logger is a pointer to the particular logger to use,
- * 			or NULL to use the root logger.
- * @param	message is a pointer to the message string.
- */
-void log_syslog(logger_t* logger, char* message, ...)
-{
-	va_list va_args;
-	va_start(va_args, message);
-	write_log_record(logger, LOG_SYSLOG, message, va_args);
-	va_end(va_args);
-}
-
-/**
- * creates a log record at the level LOG_EDEBUG
- *
- * @param	logger is a pointer to the particular logger to use,
- * 			or NULL to use the root logger.
- * @param	message is a pointer to the message string.
- */
-void log_edebug(logger_t* logger, char* message, ...)
-{
-	va_list va_args;
-	va_start(va_args, message);
-	write_log_record(logger, LOG_EDEBUG, message, va_args);
-	va_end(va_args);
 }
 
 /**

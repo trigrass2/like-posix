@@ -286,7 +286,7 @@ void sock_server_thread(void* parameters)
                     memcpy(conn, &newconn, sizeof(sock_conn_t));
                     if(servinfo->handle_incoming(servinfo, conn) == 0)
                     {
-                        log_syslog(&servinfo->log, "handled service successfully");
+                        log_debug(&servinfo->log, "handled service successfully");
                         handled = true;
                     }
                 }

@@ -109,8 +109,6 @@
 
 typedef enum {
 	LOG_LEVEL_CHECK = -1,
-	LOG_SYSLOG,
-	LOG_EDEBUG,
 	LOG_DEBUG,
 	LOG_INFO,
 	LOG_WARNING,
@@ -137,8 +135,6 @@ log_level_t log_level(log_level_t level);
 void log_timestamp(bool ts);
 void log_coloured(bool c);
 
-void log_syslog(logger_t* logger, char* message, ...);
-void log_edebug(logger_t* logger, char* message, ...);
 void log_debug(logger_t* logger, char* message, ...);
 void log_info(logger_t* logger, char* message, ...);
 void log_warning(logger_t* logger, char* message, ...);
@@ -169,8 +165,7 @@ typedef  SemaphoreHandle_t logger_mutex_t;
 #define log_level(l)        0
 #define log_timestamp(ts)    {(void)ts;}
 #define log_coloured(c)    {(void)c;}
-#define log_syslog(l, ...) {(void)l;}
-#define log_edebug(l, ...) {(void)l;}
+
 #define log_debug(l, ...) {(void)l;}
 #define log_info(l, ...) {(void)l;}
 #define log_warning(l, ...) {(void)l;}

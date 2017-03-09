@@ -243,7 +243,7 @@ void http_server_connection(sock_conn_t* conn)
 			else
 				strcat(httpconn->scratch, httpconn->url);
 
-			log_syslog(&httpserver->log, "path: %s", httpconn->scratch);
+			log_debug(&httpserver->log, "path: %s", httpconn->scratch);
 
 			httpconn->file = fopen(httpconn->scratch, httpconn->req_type == (char*)HTTP_POST ? "w" : "r");
 
@@ -312,13 +312,13 @@ void http_server_connection(sock_conn_t* conn)
 	// POST or GET, RPC response
 	else if(httpconn->api_call)
 	{
-        log_syslog(&httpserver->log, "process API call");
+        log_debug(&httpserver->log, "process API call");
 		http_api_process(httpconn->api_call, conn->connfd, httpconn->content_length, httpconn->scratch, sizeof(httpconn->scratch));
 	}
 	// POST file response
 	else if(httpconn->file && httpconn->req_type == (char*)HTTP_POST)
 	{
-		log_syslog(&httpserver->log, "write %s %ub", httpconn->scratch, httpconn->content_length);
+		log_debug(&httpserver->log, "write %s %ub", httpconn->scratch, httpconn->content_length);
 		while(httpconn->content_length)
 		{
 			httpconn->length = recv(conn->connfd, httpconn->scratch, sizeof(httpconn->scratch), 0);
@@ -332,7 +332,7 @@ void http_server_connection(sock_conn_t* conn)
 	// GET file response
 	else if(httpconn->file && httpconn->req_type == (char*)HTTP_GET)
 	{
-		log_syslog(&httpserver->log, "read %s", httpconn->scratch);
+		log_debug(&httpserver->log, "read %s", httpconn->scratch);
 		httpconn->length = sizeof(httpconn->scratch);
 		while(httpconn->length > 0)
 		{
