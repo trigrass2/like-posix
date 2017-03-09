@@ -99,7 +99,6 @@ USART_HANDLE_t usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t
 	USART_HANDLE_t usarth = get_usart_handle(usart);
     usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
 
-	log_syslog(NULL, "init usart%d", usarth);
 	assert_true(usarth != USART_INVALID_HANDLE);
 
     usart_ioctl->baudrate = baudrate;
@@ -144,6 +143,7 @@ USART_HANDLE_t usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t
 #endif
 
         husart.Instance = usart_ioctl->usart;
+        husart.State = HAL_USART_STATE_RESET;
         husart.Init.BaudRate = usart_ioctl->baudrate;
         husart.Init.CLKLastBit = USART_LASTBIT_DISABLE;
         husart.Init.CLKPhase = USART_PHASE_1EDGE;
@@ -521,17 +521,22 @@ usart_ioctl_t* get_usart_ioctl(USART_HANDLE_t usarth)
 void usart_tx(USART_HANDLE_t usarth, const uint8_t data)
 {
 	USART_HandleTypeDef husart;
-	husart.Instance = get_usart_peripheral(usarth);
-    while(!__HAL_USART_GET_FLAG(&husart, USART_FLAG_TXE));
-    husart.Instance->DR =  data;
+	if(usarth != USART_INVALID_HANDLE){
+		husart.Instance = get_usart_peripheral(usarth);
+		while(!__HAL_USART_GET_FLAG(&husart, USART_FLAG_TXE));
+		husart.Instance->DR =  data;
+	}
 }
 
 uint8_t usart_rx(USART_HANDLE_t usarth)
 {
 	USART_HandleTypeDef husart;
-	husart.Instance = get_usart_peripheral(usarth);
-    while(!__HAL_USART_GET_FLAG(&husart, USART_FLAG_RXNE));
-    return husart.Instance->DR;
+	if(usarth != USART_INVALID_HANDLE){
+		husart.Instance = get_usart_peripheral(usarth);
+		while(!__HAL_USART_GET_FLAG(&husart, USART_FLAG_RXNE));
+		return husart.Instance->DR;
+	}
+	return 0;
 }
 
 /**

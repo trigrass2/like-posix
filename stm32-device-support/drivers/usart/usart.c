@@ -106,11 +106,11 @@ dev_ioctl_t* usart_dev_ioctls[8];
 #else
 
 #define usart_async_wait_rx_sem_create(usart_ioctl)				(void)usart_ioctl
-#define usart_async_wait_rx(usart_ioctl, timeout)				(void)usart_ioctl; (void)timeout; 1
+#define usart_async_wait_rx(usart_ioctl, timeout)				(void)usart_ioctl; (void)timeout
 
 #endif
 
-USART_HANDLE_t stdio_usarth;
+USART_HANDLE_t stdio_usarth = USART_INVALID_HANDLE;
 
 /**
  * initialize the the specified USART in polled mode.
@@ -159,6 +159,8 @@ USART_HANDLE_t usart_create_async(USART_TypeDef* usart, bool enable, usart_mode_
 		vfifo_init(usart_ioctl->rxfifo, usart_ioctl->rxfifo + sizeof(vfifo_t), buffersize);
 		vfifo_init(usart_ioctl->txfifo, usart_ioctl->txfifo + sizeof(vfifo_t), buffersize);
 
+		usart_async_wait_rx_sem_create(usart_ioctl);
+
 		usart_init_interrupt(usarth, USART_INTERRUPT_PRIORITY, enable);
 	}
     return usarth;
@@ -188,7 +190,6 @@ int32_t usart_put_async(USART_HANDLE_t usarth, const uint8_t* data, int32_t leng
 		sent = vfifo_put_block(usart_ioctl->txfifo, data, length);
 
 		if(sent > 0) {
-			usart_ioctl->sending = true;
 			usart_enable_tx_int(usarth);
 		}
 	}
@@ -198,11 +199,22 @@ int32_t usart_put_async(USART_HANDLE_t usarth, const uint8_t* data, int32_t leng
 int32_t usart_get_async(USART_HANDLE_t usarth, uint8_t* data, int32_t length, uint32_t timeout)
 {
 	int32_t recvd = 0;
+	int32_t inwaiting = 1; // dummy start value
+
 	if(length) {
 		usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
 		usart_ioctl->rx_expect = length;
-		usart_async_wait_rx(usart_ioctl, timeout);
-		recvd = vfifo_get_block(usart_ioctl->rxfifo, (void*)data, length);
+
+		while(recvd < length && inwaiting) {
+
+			usart_async_wait_rx(usart_ioctl, timeout);
+			inwaiting = vfifo_used_slots(usart_ioctl->rxfifo);
+
+			if(inwaiting) {
+				recvd += vfifo_get_block(usart_ioctl->rxfifo, (void*)data, length - recvd);
+				usart_ioctl->rx_expect = length - recvd;
+			}
+		}
 	}
 	return recvd;
 }
@@ -227,7 +239,7 @@ int32_t usart_get_async(USART_HANDLE_t usarth, uint8_t* data, int32_t length, ui
  * @param   mode is the mode to setup, select from usart_mode_t.
  * @param baudrate is the baudrate to set.
  */
-USART_HANDLE_t usart_create_dev(char* filename, USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate)
+USART_HANDLE_t usart_create_dev(char* filename, USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize)
 {
     USART_HANDLE_t usarth = USART_INVALID_HANDLE;
 
@@ -240,9 +252,10 @@ USART_HANDLE_t usart_create_dev(char* filename, USART_TypeDef* usart, bool enabl
 													usart_enable_tx_ioctl,
 													usart_open_ioctl,
 													usart_close_ioctl,
-													usart_ioctl);
+													usart_ioctl,
+													buffersize);
 
-	log_syslog(NULL, "install usart%d: %s", usarth, usart_dev_ioctls[usarth] ? "successful" : "failed");
+	log_debug(NULL, "install usart%d: %s", usarth, usart_dev_ioctls[usarth] ? "successful" : "failed");
 
 	if(usart_dev_ioctls[usarth]) {
 		usart_init_interrupt(usarth, USART_INTERRUPT_PRIORITY, enable);
@@ -343,18 +356,20 @@ inline bool _usart_rx_isr(USART_HANDLE_t usarth)
 
 	if(usart_rx_inwaiting(usarth))
 	{
+		uint8_t byte = usart_ioctl->usart->DR;
+
 #if USE_LIKEPOSIX
 		if(usart_dev_ioctls[usarth]) {
-			xQueueSendFromISR(usart_dev_ioctls[usarth]->pipe.read, (char*)&usart_ioctl->usart->DR, &xHigherPriorityTaskWoken);
+			xQueueSendFromISR(usart_dev_ioctls[usarth]->pipe.read, (char*)&byte, &xHigherPriorityTaskWoken);
 			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 			return true;
 		}
 #endif
 
-		vfifo_put(usart_ioctl->rxfifo, (void*)&usart_ioctl->usart->DR);
+		vfifo_put(usart_ioctl->rxfifo, (void*)&byte);
+
 #if USE_FREERTOS
-		if((usart_ioctl->rx_expect > 0) && (vfifo_used_slots(usart_ioctl->rxfifo) >= usart_ioctl->rx_expect || vfifo_full(usart_ioctl->rxfifo))) {
-			usart_ioctl->rx_expect = 0;
+		if(usart_ioctl->rx_expect && ((vfifo_used_slots(usart_ioctl->rxfifo) >= usart_ioctl->rx_expect) || vfifo_full(usart_ioctl->rxfifo))) {
 			xSemaphoreGiveFromISR(usart_ioctl->rx_sem, &xHigherPriorityTaskWoken);
 			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 		}
@@ -388,7 +403,6 @@ inline bool _usart_tx_isr(USART_HANDLE_t usarth)
 		}
 #endif
 		if(!vfifo_get(usart_ioctl->txfifo, (void*)&usart_ioctl->usart->DR)) {
-			usart_ioctl->sending = false;
 			usart_disable_tx_int(usarth);
 		}
 		return true;
