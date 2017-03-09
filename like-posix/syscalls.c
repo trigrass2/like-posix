@@ -83,7 +83,6 @@ typedef struct {
     int mode;               ///< the the mode under which the device was opened
 	int flags;				///< the the mode under which the device was opened
 	FIL file;				///< regular file, or device interface file
-	unsigned int size;		///< size, used only for queues
 	SemaphoreHandle_t read_lock; 	///< file read lock, mutex
 	SemaphoreHandle_t write_lock; 	///< file write lock, mutex
 	unsigned char dupcount;	///< increments for every dup / dup2
@@ -230,7 +229,7 @@ inline void __delete_filtab_item(filtab_entry_t* fte)
  *
  * @retval 0 on success, -1 on failure.
  */
-inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int flags, int mode, int length, int sockparam1, int sockparam2, int sockparam3)
+inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int flags, int mode, int sockparam1, int sockparam2, int sockparam3)
 {
 	int success = EOF;
 	BYTE ff_flags = 0;
@@ -244,7 +243,6 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 		fte->mode = mode;
 		fte->device = NULL;
 		fte->flags = flags+1;
-		fte->size = length;
 		fte->read_lock = NULL;
 		fte->write_lock = NULL;
 		fte->dupcount = 0;
@@ -318,7 +316,7 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 					fte->device->pipe.write = NULL;
 					if(fte->flags&FWRITE)
 					{
-						fte->device->pipe.write = xQueueCreate(fte->size, 1);
+						fte->device->pipe.write = xQueueCreate(fte->device->buffersize, 1);
 						write_q = fte->device->pipe.write ? 1 : 0;
 					}
 
@@ -327,7 +325,7 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 					fte->device->pipe.read = NULL;
 					if(fte->flags&FREAD)
 					{
-						fte->device->pipe.read = xQueueCreate(fte->size, 1);
+						fte->device->pipe.read = xQueueCreate(fte->device->buffersize, 1);
 						read_q = fte->device->pipe.read ? 1 : 0;
 					}
 
@@ -341,7 +339,6 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 				if(fte->flags & FCREAT)
 				{
 					fte->flags = FWRITE | FREAD;
-					fte->size = 0;
 					fte->fdes = lwip_socket(sockparam1, sockparam2, sockparam3);
 					if(fte->fdes != -1)
 						success = 0;
@@ -349,7 +346,6 @@ inline int __create_filtab_item(filtab_entry_t** fdes, const char* name, int fla
 				else
 				{
 					fte->flags = FWRITE | FREAD;
-					fte->size = 0;
 					fte->fdes = lwip_accept(sockparam1, (struct sockaddr *)sockparam2, (socklen_t *)sockparam3);
 					if(fte->fdes != -1)
 						success = 0;
@@ -487,7 +483,8 @@ dev_ioctl_t* install_device(char* name,
 					dev_ioctl_fn_t write_enable,
                     dev_ioctl_fn_t open_dev,
 					dev_ioctl_fn_t close_dev,
-					dev_ioctl_fn_t ioctl)
+					dev_ioctl_fn_t ioctl,
+					unsigned int buffersize)
 {
 	FIL f;
 	unsigned char buf[DEVICED_INTERFACE_FILE_SIZE];
@@ -496,7 +493,7 @@ dev_ioctl_t* install_device(char* name,
 	unsigned int n = 0;
 	bool file_installed = false;
 
-	log_syslog(NULL, "installing %s...", name);
+	log_debug(NULL, "installing %s...", name);
 
 	// try to create the directory first, if it fails it is already there
 	// or, the disk isnt in. the next step will also fail in that case.
@@ -539,9 +536,10 @@ dev_ioctl_t* install_device(char* name,
 						filtab.devtab[device]->close = close_dev;
 						filtab.devtab[device]->device_handle = device_handle;
 						filtab.devtab[device]->termios = NULL;
+						filtab.devtab[device]->buffersize = buffersize;
 					}
 					ret = filtab.devtab[device];
-					log_syslog(NULL, "%s installed", name);
+					log_debug(NULL, "%s installed", name);
                 }
 				else
 					log_error(NULL, "failed to install device %s", name);
@@ -597,11 +595,10 @@ int _open(const char *name, int flags, int mode)
 		return EOF;
 
 	filtab_entry_t* fte = NULL;
-	int length = mode;
 	int file = EOF;
 
 	// if we got 0 here it means a file table entry was made successfully
-	if(__create_filtab_item(&fte, name, flags, __determine_mode(name), length, 0, 0, 0) == 0)
+	if(__create_filtab_item(&fte, name, flags, __determine_mode(name), 0, 0, 0) == 0)
 	{
 		if((fte->mode == S_IFIFO) && fte->device)
 		{
@@ -884,7 +881,6 @@ int _read(int file, char *buffer, int count)
 					{
 						if(xQueueReceive(fte->device->pipe.read, buffer++, timeout) != pdTRUE)
 							break;
-						timeout = 0;
 					}
 				}
 	#if ENABLE_LIKEPOSIX_SOCKETS
@@ -965,7 +961,7 @@ int _fstat(int file, struct stat *st)
 				}
 				if(fte->mode == S_IFIFO)
 				{
-					st->st_size = fte->size;
+					st->st_size = fte->device->buffersize;
 				}
 
 				st->st_mode = fte->mode;
@@ -1434,7 +1430,7 @@ int socket(int namespace, int style, int protocol)
 	int file = EOF;
 
 	// if we got 0 here it means a file table entry was made successfully
-	if(__create_filtab_item(&fte, NULL, O_CREAT, __determine_mode(NULL), 0, namespace, style, protocol) == 0)
+	if(__create_filtab_item(&fte, NULL, O_CREAT, __determine_mode(NULL), namespace, style, protocol) == 0)
 	{
 		// add file to table
 		file = __insert_entry(fte);
@@ -1467,7 +1463,7 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *length_ptr)
 	if(parent && parent->fdes != -1)
 	{
 		// if we got 0 here it means a file table entry was made successfully
-		if(__create_filtab_item(&fte, NULL, 0, __determine_mode(NULL), 0, parent->fdes, (int)addr, (int)length_ptr) == 0)
+		if(__create_filtab_item(&fte, NULL, 0, __determine_mode(NULL), parent->fdes, (int)addr, (int)length_ptr) == 0)
 		{
 			// add file to table
 			file = __insert_entry(fte);

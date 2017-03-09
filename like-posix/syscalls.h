@@ -122,6 +122,7 @@
  	dev_ioctl_fn_t open;			///< pointer to open device function
  	dev_ioctl_fn_t close;			///< pointer to close device function
     struct termios* termios;        ///< a termios structure to define device settings via termios interface.
+    unsigned int buffersize;		///< the length in bytes of the buffer.
  	queue_pair_t pipe;
  };
 
@@ -132,7 +133,8 @@ dev_ioctl_t* install_device(char* name,
 							dev_ioctl_fn_t write_enable,
                             dev_ioctl_fn_t open_dev,
 							dev_ioctl_fn_t close_dev,
-							dev_ioctl_fn_t ioctl);
+							dev_ioctl_fn_t ioctl,
+							unsigned int buffersize);
 int file_table_open_files();
 int file_table_hwm();
 
