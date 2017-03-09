@@ -151,5 +151,4 @@ void tsc2046_read(TSC2046_t tsc2046, int16_t* x, int16_t* y)
     if(y) {
     	*y = _y;
     }
-    printf("%d %d\n", _x, _y);
 }
