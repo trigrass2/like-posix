@@ -47,7 +47,7 @@
   */
 void USART1_IRQHandler(void)
 {
-	if(_usart_rx_isr(USART1_HANDLE)) {
+	if(!_usart_rx_isr(USART1_HANDLE)) {
 		_usart_tx_isr(USART1_HANDLE);
 	}
 }
@@ -57,7 +57,7 @@ void USART1_IRQHandler(void)
   */
 void USART2_IRQHandler(void)
 {
-	if(_usart_rx_isr(USART2_HANDLE)) {
+	if(!_usart_rx_isr(USART2_HANDLE)) {
 		_usart_tx_isr(USART2_HANDLE);
 	}
 }
@@ -67,7 +67,7 @@ void USART2_IRQHandler(void)
   */
 void USART3_IRQHandler(void)
 {
-	if(_usart_rx_isr(USART3_HANDLE)) {
+	if(!_usart_rx_isr(USART3_HANDLE)) {
 		_usart_tx_isr(USART3_HANDLE);
 	}
 }
@@ -77,7 +77,7 @@ void USART3_IRQHandler(void)
   */
 void UART4_IRQHandler(void)
 {
-	if(_usart_rx_isr(UART4_HANDLE)) {
+	if(!_usart_rx_isr(UART4_HANDLE)) {
 		_usart_tx_isr(UART4_HANDLE);
 	}
 }
@@ -87,7 +87,7 @@ void UART4_IRQHandler(void)
   */
 void UART5_IRQHandler(void)
 {
-	if(_usart_rx_isr(UART5_HANDLE)) {
+	if(!_usart_rx_isr(UART5_HANDLE)) {
 		_usart_tx_isr(UART5_HANDLE);
 	}
 }
@@ -98,7 +98,7 @@ void UART5_IRQHandler(void)
   */
  void USART6_IRQHandler(void)
  {
-	 if(_usart_rx_isr(USART6_HANDLE)) {
+	 if(!_usart_rx_isr(USART6_HANDLE)) {
 		 _usart_tx_isr(USART6_HANDLE);
 	 }
  }
@@ -110,7 +110,7 @@ void UART5_IRQHandler(void)
    */
  void UART7_IRQHandler(void)
  {
-	 if(_usart_rx_isr(UART7_HANDLE)) {
+	 if(!_usart_rx_isr(UART7_HANDLE)) {
 		 _usart_tx_isr(UART7_HANDLE);
 	 }
  }
@@ -122,7 +122,7 @@ void UART5_IRQHandler(void)
    */
  void UART8_IRQHandler(void)
  {
-	 if(_usart_rx_isr(UART8_HANDLE)) {
+	 if(!_usart_rx_isr(UART8_HANDLE)) {
 		 _usart_tx_isr(UART8_HANDLE);
 	 }
  }
