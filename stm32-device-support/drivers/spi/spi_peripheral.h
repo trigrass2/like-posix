@@ -32,6 +32,7 @@
 
 
 #include <stddef.h>
+#include "board_config.h"
 #include "base_spi.h"
 #include "syscalls.h"
 #include "vfifo.h"
@@ -57,7 +58,6 @@ typedef struct {
 	uint32_t clock_phase;
 	uint32_t clock_polarity;
 	uint32_t data_width;
-	bool sending;
 	vfifo_t* rxfifo;
 	vfifo_t* txfifo;
 #if USE_FREERTOS
@@ -66,26 +66,24 @@ typedef struct {
 #endif
 } spi_ioctl_t;
 
+#define spi_rx_inwaiting(spi_ioctl)		(spi_ioctl->spi->SR & SPI_SR_RXNE)
+#define spi_tx_readytosend(spi_ioctl)	(spi_ioctl->spi->SR & SPI_SR_TXE)
+#define spi_enable_rx_int(spi_ioctl)	(spi_ioctl->spi->CR2 |= SPI_CR2_RXNEIE)
+#define spi_enable_tx_int(spi_ioctl)	(spi_ioctl->spi->CR2 |= SPI_CR2_TXEIE)
+#define spi_disable_rx_int(spi_ioctl)	(spi_ioctl->spi->CR2 &= ~SPI_CR2_RXNEIE)
+#define spi_disable_tx_int(spi_ioctl)	(spi_ioctl->spi->CR2 &= ~SPI_CR2_TXEIE)
+
 SPI_HANDLE_t spi_init_device(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width);
 void spi_init_gpio(SPI_HANDLE_t spih);
 void spi_init_interrupt(SPI_HANDLE_t spih, uint8_t priority, bool enable);
-
 SPI_HANDLE_t get_spi_handle(SPI_TypeDef* spi);
 SPI_TypeDef* get_spi_peripheral(SPI_HANDLE_t spih);
 spi_ioctl_t* get_spi_ioctl(SPI_HANDLE_t spih);
-
+void spi_tx(SPI_HANDLE_t spih, const uint8_t data);
+uint8_t spi_rx(SPI_HANDLE_t spih);
 void spi_set_prescaler(SPI_HANDLE_t spih, uint16_t presc);
 void spi_set_baudrate(SPI_HANDLE_t spih, uint32_t baudrate);
 uint32_t spi_get_baudrate(SPI_HANDLE_t spih);
 
-inline bool spi_rx_inwaiting(SPI_HANDLE_t spih);
-inline bool spi_tx_readytosend(SPI_HANDLE_t spih);
-inline void spi_enable_rx_int(SPI_HANDLE_t spih);
-inline void spi_enable_tx_int(SPI_HANDLE_t spih);
-inline void spi_disable_rx_int(SPI_HANDLE_t spih);
-inline void spi_disable_tx_int(SPI_HANDLE_t spih);
-
-void spi_tx(SPI_HANDLE_t spih, const uint8_t data);
-uint8_t spi_rx(SPI_HANDLE_t spih);
 
 #endif // SPI_PERIPHERAL_H_

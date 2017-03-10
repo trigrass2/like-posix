@@ -40,13 +40,6 @@ extern "C" {
 #include "minlibc/config.h"
 
 /**
- * buffer size in bytes used by some stdio functions
- */
-#ifndef MINLIBC_STDIO_BUFFER_SIZE
-#define MINLIBC_STDIO_BUFFER_SIZE   128
-#endif
-
-/**
  * include floating point string formatting in xxprintf() functions
  */
 #ifndef MINLIBC_INCLUDE_FLOAT_SUPPORT

@@ -39,9 +39,7 @@
   */
 void SPI1_IRQHandler(void)
 {
-	if(!_spi_rx_isr(SPI1_HANDLE)) {
-		_spi_tx_isr(SPI1_HANDLE);
-	}
+	_spi_isr(SPI1_HANDLE);
 }
 
 /**
@@ -49,9 +47,7 @@ void SPI1_IRQHandler(void)
   */
 void SPI2_IRQHandler(void)
 {
-	if(!_spi_rx_isr(SPI2_HANDLE)) {
-		_spi_tx_isr(SPI2_HANDLE);
-	}
+	_spi_isr(SPI2_HANDLE);
 }
 
 /**
@@ -59,9 +55,7 @@ void SPI2_IRQHandler(void)
   */
 void SPI3_IRQHandler(void)
 {
-	if(!_spi_rx_isr(SPI3_HANDLE)) {
-		_spi_tx_isr(SPI3_HANDLE);
-	}
+	_spi_isr(SPI3_HANDLE);
 }
 
 

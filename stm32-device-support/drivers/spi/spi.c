@@ -30,6 +30,26 @@
  *
  */
 
+/**
+ * STM32 SPI Driver
+ *
+ * provides basic SPI IO functions, as well as a high level dev IO driver that enables
+ * SPI access via system calls.
+ *
+ * - supports spi's on STM32F1 and STM32F4 devices: spi1,2,3
+ *
+ * relies upon a config file spi_config.h.
+ * see stm32-device-support/board/board.bsp/spi_config.h.
+ *
+ * Supports the like-posix device backend API. When compiled together with USE_LIKEPOSIX set to 1,
+ * the following posix functions are available for spiS:
+ *
+ * open, close, read, write, fstat, stat, isatty, tcgetattr, tcsetattr, cfgetispeed,
+ * cfgetospeed, cfsetispeed, cfsetospeed, tcdrain, tcflow, tcflush
+ *
+ * baudrate and timeout settings are supported by tcgetattr/tcsetattr.
+ *
+ */
 
 #if USE_LIKEPOSIX
 #include <termios.h>
@@ -52,7 +72,7 @@ static int spi_enable_tx_ioctl(dev_ioctl_t* dev);
 static int spi_open_ioctl(dev_ioctl_t* dev);
 static int spi_close_ioctl(dev_ioctl_t* dev);
 static int spi_ioctl(dev_ioctl_t* dev);
-static dev_ioctl_t* spi_dev_ioctls[NUM_ONCHIP_SPIS];
+static volatile dev_ioctl_t* spi_dev_ioctls[NUM_ONCHIP_SPIS];
 
 #endif
 
@@ -68,9 +88,12 @@ static dev_ioctl_t* spi_dev_ioctls[NUM_ONCHIP_SPIS];
 #else
 
 #define spi_async_wait_rx_sem_create(spi_ioctl)				(void)spi_ioctl
-#define spi_async_wait_rx(spi_ioctl, timeout)				(void)spi_ioctl; (void)timeout; 1
+#define spi_async_wait_rx(spi_ioctl, timeout)				(void)spi_ioctl; (void)timeout
 
 #endif
+
+
+static void spi_init_ss_gpio(SPI_HANDLE_t spi);
 
 /**
  * call this function to initialize an SPI port in polled mode.
@@ -84,12 +107,12 @@ static dev_ioctl_t* spi_dev_ioctls[NUM_ONCHIP_SPIS];
  * @param clock_polarity Eg SPI_POLARITY_LOW
  * @param data_width Eg SPI_DATASIZE_8BIT
  */
-SPI_HANDLE_t spi_create_polled(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width)
+SPI_HANDLE_t spi_create_polled(SPI_TypeDef* spi, bool enable, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t baudrate)
 {
     SPI_HANDLE_t spih = spi_init_device(spi, enable, baudrate, bit_order, clock_phase, clock_polarity, data_width);
+    spi_init_interrupt(spih, SPI_INTERRUPT_PRIORITY, false);
     spi_init_gpio(spih);
     spi_init_ss_gpio(spih);
-	spi_init_interrupt(spih, SPI_INTERRUPT_PRIORITY, false);
 	return spih;
 }
 /**
@@ -98,17 +121,17 @@ SPI_HANDLE_t spi_create_polled(SPI_TypeDef* spi, bool enable, uint32_t baudrate,
  * @param spi is the SPI peripheral to initialize.
  * @param enable - set to true when using in polled mode. when the device file is specified,
  *        set to false - the device is enabled automatically when the file is opened.
- * @param baudrate is the baudrate to set.
  * @param bit_order Eg SPI_FIRSTBIT_MSB
  * @param clock_phase Eg SPI_PHASE_1EDGE
  * @param clock_polarity Eg SPI_POLARITY_LOW
  * @param data_width Eg SPI_DATASIZE_8BIT
- * @param buffersize is the number of fifo slots to initialize.
+ * @param   baudrate is the baudrate to set.
+ * @param   buffersize is the number of slots to initialize.
+ * @retval	returns the SPI handle, or SPI_INVALID_HANDLE on error.
  */
-SPI_HANDLE_t spi_create_async(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t buffersize)
+SPI_HANDLE_t spi_create_async(SPI_TypeDef* spi, bool enable, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t baudrate, uint32_t buffersize)
 {
     SPI_HANDLE_t spih = SPI_INVALID_HANDLE;
-
     uint8_t* fifomem = malloc((2 * sizeof(vfifo_t)) + (2 * buffersize * sizeof(vfifo_primitive_t)));
     if(fifomem) {
     	spih = spi_init_device(spi, enable, baudrate, bit_order, clock_phase, clock_polarity, data_width);
@@ -124,8 +147,11 @@ SPI_HANDLE_t spi_create_async(SPI_TypeDef* spi, bool enable, uint32_t baudrate, 
 		spi_async_wait_rx_sem_create(spi_ioctl);
 
 		spi_init_interrupt(spih, SPI_INTERRUPT_PRIORITY, enable);
-    }
 
+		if(enable) {
+			spi_enable_rx_int(spi_ioctl);
+		}
+    }
 	return spih;
 }
 
@@ -258,11 +284,11 @@ int32_t spi_put_async(SPI_HANDLE_t spih, const uint8_t* data, int32_t length)
 	int32_t sent = 0;
 	if(length) {
 		spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
+		spi_disable_tx_int(spi_ioctl);
 		sent = vfifo_put_block(spi_ioctl->txfifo, data, length);
 
 		if(sent > 0) {
-			spi_ioctl->sending = true;
-			spi_enable_tx_int(spih);
+			spi_enable_tx_int(spi_ioctl);
 		}
 	}
 	return sent;
@@ -271,11 +297,27 @@ int32_t spi_put_async(SPI_HANDLE_t spih, const uint8_t* data, int32_t length)
 int32_t spi_get_async(SPI_HANDLE_t spih, uint8_t* data, int32_t length, uint32_t timeout)
 {
 	int32_t recvd = 0;
+	int32_t inwaiting = 1; // dummy start value
+
 	if(length) {
 		spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
 		spi_ioctl->rx_expect = length;
-		spi_async_wait_rx(spi_ioctl, timeout);
-		recvd = vfifo_get_block(spi_ioctl->rxfifo, (void*)data, length);
+
+		while(spi_ioctl->rx_expect && inwaiting) {
+
+			spi_disable_rx_int(spi_ioctl);
+			recvd += vfifo_get_block(spi_ioctl->rxfifo, (void*)data, spi_ioctl->rx_expect);
+			spi_ioctl->rx_expect = length - recvd;
+			spi_enable_rx_int(spi_ioctl);
+
+			if(spi_ioctl->rx_expect) {
+				spi_async_wait_rx(spi_ioctl, timeout);
+			}
+
+			spi_disable_rx_int(spi_ioctl);
+			inwaiting = vfifo_used_slots(spi_ioctl->rxfifo);
+			spi_enable_rx_int(spi_ioctl);
+		}
 	}
 	return recvd;
 }
@@ -300,7 +342,7 @@ int32_t spi_get_async(SPI_HANDLE_t spih, uint8_t* data, int32_t length, uint32_t
  * @param clock_polarity Eg SPI_POLARITY_LOW
  * @param data_width Eg SPI_DATASIZE_8BIT
  */
-SPI_HANDLE_t spi_create_dev(char* filename, SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width)
+SPI_HANDLE_t spi_create_dev(char* filename, SPI_TypeDef* spi, bool enable, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t baudrate, uint32_t buffersize)
 {
     SPI_HANDLE_t spih = SPI_INVALID_HANDLE;
 
@@ -314,13 +356,15 @@ SPI_HANDLE_t spi_create_dev(char* filename, SPI_TypeDef* spi, bool enable, uint3
 													spi_enable_tx_ioctl,
 													spi_open_ioctl,
 													spi_close_ioctl,
-													spi_ioctl);
+													spi_ioctl,
+													buffersize);
 
-	log_syslog(NULL, "install spi%d: %s", spih, spi_dev_ioctls[spih] ? "successful" : "failed");
+	log_debug(NULL, "install spi%d: %s", spih, spi_dev_ioctls[spih] ? "successful" : "failed");
 
 	if(spi_dev_ioctls[spih]) {
 		spi_init_interrupt(spih, SPI_INTERRUPT_PRIORITY, enable);
 	}
+
     assert_true(spi_dev_ioctls[spih]);
 
     return spih;
@@ -328,13 +372,15 @@ SPI_HANDLE_t spi_create_dev(char* filename, SPI_TypeDef* spi, bool enable, uint3
 
 int spi_enable_rx_ioctl(dev_ioctl_t* dev)
 {
-	spi_enable_rx_int(dev->device_handle);
+	spi_ioctl_t* spi_ioctl = get_spi_ioctl(dev->device_handle);
+	spi_enable_rx_int(spi_ioctl);
     return 0;
 }
 
 int spi_enable_tx_ioctl(dev_ioctl_t* dev)
 {
-	spi_enable_tx_int(dev->device_handle);
+	spi_ioctl_t* spi_ioctl = get_spi_ioctl(dev->device_handle);
+	spi_enable_tx_int(spi_ioctl);
     return 0;
 }
 
@@ -349,8 +395,8 @@ int spi_open_ioctl(dev_ioctl_t* dev)
 int spi_close_ioctl(dev_ioctl_t* dev)
 {
     spi_ioctl_t* spi_ioctl = get_spi_ioctl(dev->device_handle);
-	spi_disable_rx_int(dev->device_handle);
-	spi_disable_tx_int(dev->device_handle);
+	spi_disable_rx_int(spi_ioctl);
+	spi_disable_tx_int(spi_ioctl);
     spi_init_device(spi_ioctl->spi, false, spi_ioctl->baudrate, spi_ioctl->bit_order, spi_ioctl->clock_phase, spi_ioctl->clock_polarity, spi_ioctl->data_width);
     return 0;
 }
@@ -406,66 +452,56 @@ int spi_ioctl(dev_ioctl_t* dev)
   * @brief	function called by the SPI receive register not empty interrupt.
   * 		the SPI RX register contents are inserted into the RX FIFO.
   */
-inline bool _spi_rx_isr(SPI_HANDLE_t spih)
+inline void _spi_isr(SPI_HANDLE_t spih)
 {
 #if USE_FREERTOS
-	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	static BaseType_t xHigherPriorityTaskWokenRx = pdFALSE;
+	static BaseType_t xHigherPriorityTaskWokenTx = pdFALSE;
 #endif
 	spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
 	assert_true(spi_ioctl);
+	uint16_t word;
 
-	if(spi_rx_inwaiting(spih))
+	if(spi_rx_inwaiting(spi_ioctl))
 	{
+		word = spi_ioctl->spi->DR;
+
 #if USE_LIKEPOSIX
 		if(spi_dev_ioctls[spih]) {
-			xQueueSendFromISR(spi_dev_ioctls[spih]->pipe.read, (char*)&(spi_ioctl->spi->DR), &xHigherPriorityTaskWoken);
-			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-			return true;
+			xQueueSendFromISR(spi_dev_ioctls[spih]->pipe.read, (char*)&word, &xHigherPriorityTaskWokenRx);
+			portYIELD_FROM_ISR(xHigherPriorityTaskWokenRx);
 		}
+		else
 #endif
-		vfifo_put(spi_ioctl->rxfifo, (void*)&spi_ioctl->spi->DR);
+		{
+			vfifo_put(spi_ioctl->rxfifo, (void*)&word);
+
 #if USE_FREERTOS
-		if((spi_ioctl->rx_expect > 0) && (vfifo_used_slots(spi_ioctl->rxfifo) >= spi_ioctl->rx_expect || vfifo_full(spi_ioctl->rxfifo))) {
-			spi_ioctl->rx_expect = 0;
-			xSemaphoreGiveFromISR(spi_ioctl->rx_sem, &xHigherPriorityTaskWoken);
-			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-		}
-#endif
-		return true;
-	}
-	return false;
-}
-
-/**
-  * @brief	function called by the SPI transmit register empty interrupt.
-  * 		data is sent from SPI till no data is left in the tx fifo.
-  */
-inline bool _spi_tx_isr(SPI_HANDLE_t spih)
-{
-#if USE_LIKEPOSIX
-	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-#endif
-	spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
-	assert_true(spi_ioctl);
-
-	if(spi_tx_readytosend(spih))
-	{
-#if USE_LIKEPOSIX
-		if(spi_dev_ioctls[spih]) {
-			if(xQueueReceiveFromISR(spi_dev_ioctls[spih]->pipe.write, (char*)&spi_ioctl->spi->DR, &xHigherPriorityTaskWoken) == pdFALSE) {
-				spi_disable_tx_int(spih);
+			if(spi_ioctl->rx_expect && ((vfifo_used_slots(spi_ioctl->rxfifo) >= spi_ioctl->rx_expect) || vfifo_full(spi_ioctl->rxfifo))) {
+				xSemaphoreGiveFromISR(spi_ioctl->rx_sem, &xHigherPriorityTaskWokenRx);
+				portYIELD_FROM_ISR(xHigherPriorityTaskWokenRx);
 			}
-			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-			return true;
-		}
 #endif
-		if(!vfifo_get(spi_ioctl->txfifo, (void*)&spi_ioctl->spi->DR)) {
-			spi_ioctl->sending = false;
-			spi_disable_tx_int(spih);
 		}
-		return true;
 	}
-	return false;
+
+	if(spi_tx_readytosend(spi_ioctl))
+	{
+#if USE_LIKEPOSIX
+		if(spi_dev_ioctls[spih]) {
+			if(xQueueReceiveFromISR(spi_dev_ioctls[spih]->pipe.write, (char*)&spi_ioctl->spi->DR, &xHigherPriorityTaskWokenTx) == pdFALSE) {
+				spi_disable_tx_int(spi_ioctl);
+			}
+			portYIELD_FROM_ISR(xHigherPriorityTaskWokenTx);
+		}
+		else
+#endif
+		{
+			if(!vfifo_get(spi_ioctl->txfifo, (void*)&spi_ioctl->spi->DR)) {
+				spi_disable_tx_int(spi_ioctl);
+			}
+		}
+	}
 }
 
 

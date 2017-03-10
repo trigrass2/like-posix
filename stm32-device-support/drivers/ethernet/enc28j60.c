@@ -76,7 +76,7 @@ void enc28j60_init(uint8_t *macadr)
 
 	enc28j60_gpio_init();
 
-	enc_spi = spi_create_polled(ENC28J60_SPI_PERIPH, true, ENC28J60_SPI_BAUDRATE, SPI_FIRSTBIT_MSB, SPI_PHASE_1EDGE, SPI_POLARITY_LOW, SPI_DATASIZE_8BIT);
+	enc_spi = spi_create_polled(ENC28J60_SPI_PERIPH, true, SPI_FIRSTBIT_MSB, SPI_PHASE_1EDGE, SPI_POLARITY_LOW, SPI_DATASIZE_8BIT, ENC28J60_SPI_BAUDRATE);
 
 	enc28j60_release();
 	enc28j60_reset();

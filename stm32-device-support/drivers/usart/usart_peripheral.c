@@ -30,48 +30,6 @@
  *
  */
 
-/**
- * @defgroup usart STM32 USART Driver
- *
- * provides basic USART IO functions, as well as a high level dev IO driver that enables
- * USART access via system calls.
- *
- * - supports USARTS on STM32F1 and STM32F4 devices: USART1,2,3,6 and UART4,5
- *
- * relies upon a config file usart_config.h,
- *
- * Eg:
- *
-\code
-
-#ifndef USART_CONFIG_H_
-#define USART_CONFIG_H_
-
-#define USART_DEFAULT_BAUDRATE 115200
-
-#define CONSOLE_USART		USART3
-
-#define USART1_FULL_REMAP 1
-#define USART2_FULL_REMAP 1
-#define USART3_FULL_REMAP 1
-#define USART3_PARTIAL_REMAP 0
-
-#endif // USART_CONFIG_H_
-
-\endcode
- *
- *
- * Supports the like-posix device backend API. When compiled together with USE_LIKEPOSIX set to 1,
- * the following posix functions are available for USARTS:
- *
- * open, close, read, write, fstat, stat, isatty, tcgetattr, tcsetattr, cfgetispeed,
- * cfgetospeed, cfsetispeed, cfsetospeed, tcdrain, tcflow, tcflush
- *
- * baudrate and timeout settings are supported by tcgetattr/tcsetattr.
- *
- * @file usart.c
- * @{
- */
 
 #if USE_LIKEPOSIX
 #include <termios.h>
@@ -84,13 +42,13 @@
 #include "cutensils.h"
 #include "system.h"
 
-
+// for targets that have no USART_CR1_OVER8 bit, fake the value
 #ifndef USART_CR1_OVER8
 #define USART_CR1_OVER8 ((uint32_t)0x0000)
 #endif
 
 
-static usart_ioctl_t usart_ioctls[8];
+static volatile usart_ioctl_t usart_ioctls[8];
 
 USART_HANDLE_t usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate)
 {
@@ -402,47 +360,47 @@ void usart_init_interrupt(USART_HANDLE_t usarth, uint8_t priority, bool enable)
     	HAL_NVIC_DisableIRQ(irq);
 }
 
-inline bool usart_rx_inwaiting(USART_HANDLE_t usarth)
-{
-	USART_HandleTypeDef husart;
-	husart.Instance = get_usart_peripheral(usarth);
-	return __HAL_USART_GET_FLAG(&husart, USART_FLAG_RXNE);
-}
-
-inline bool usart_tx_readytosend(USART_HANDLE_t usarth)
-{
-	USART_HandleTypeDef husart;
-	husart.Instance = get_usart_peripheral(usarth);
-	return __HAL_USART_GET_FLAG(&husart, USART_FLAG_TXE);
-}
-
-inline void usart_enable_rx_int(USART_HANDLE_t usarth)
-{
-	USART_HandleTypeDef husart;
-	husart.Instance = get_usart_peripheral(usarth);
-	__HAL_USART_ENABLE_IT(&husart, USART_IT_RXNE);
-}
-
-inline void usart_enable_tx_int(USART_HANDLE_t usarth)
-{
-	USART_HandleTypeDef husart;
-	husart.Instance = get_usart_peripheral(usarth);
-	__HAL_USART_ENABLE_IT(&husart, USART_IT_TXE);
-}
-
-inline void usart_disable_rx_int(USART_HANDLE_t usarth)
-{
-	USART_HandleTypeDef husart;
-	husart.Instance = get_usart_peripheral(usarth);
-	__HAL_USART_DISABLE_IT(&husart, USART_IT_RXNE);
-}
-
-inline void usart_disable_tx_int(USART_HANDLE_t usarth)
-{
-	USART_HandleTypeDef husart;
-	husart.Instance = get_usart_peripheral(usarth);
-	__HAL_USART_DISABLE_IT(&husart, USART_IT_TXE);
-}
+//inline bool usart_rx_inwaiting(USART_HANDLE_t usarth)
+//{
+//	USART_TypeDef* usart = get_usart_peripheral(usarth);
+//
+//	return __HAL_USART_GET_FLAG(&husart, USART_FLAG_RXNE);
+//}
+//
+//inline bool usart_tx_readytosend(USART_HANDLE_t usarth)
+//{
+//	USART_HandleTypeDef husart;
+//	husart.Instance = get_usart_peripheral(usarth);
+//	return __HAL_USART_GET_FLAG(&husart, USART_FLAG_TXE);
+//}
+//
+//inline void usart_enable_rx_int(USART_HANDLE_t usarth)
+//{
+//	USART_HandleTypeDef husart;
+//	husart.Instance = get_usart_peripheral(usarth);
+//	__HAL_USART_ENABLE_IT(&husart, USART_IT_RXNE);
+//}
+//
+//inline void usart_enable_tx_int(USART_HANDLE_t usarth)
+//{
+//	USART_HandleTypeDef husart;
+//	husart.Instance = get_usart_peripheral(usarth);
+//	__HAL_USART_ENABLE_IT(&husart, USART_IT_TXE);
+//}
+//
+//inline void usart_disable_rx_int(USART_HANDLE_t usarth)
+//{
+//	USART_HandleTypeDef husart;
+//	husart.Instance = get_usart_peripheral(usarth);
+//	__HAL_USART_DISABLE_IT(&husart, USART_IT_RXNE);
+//}
+//
+//inline void usart_disable_tx_int(USART_HANDLE_t usarth)
+//{
+//	USART_HandleTypeDef husart;
+//	husart.Instance = get_usart_peripheral(usarth);
+//	__HAL_USART_DISABLE_IT(&husart, USART_IT_TXE);
+//}
 
 USART_HANDLE_t get_usart_handle(USART_TypeDef* usart)
 {
@@ -512,7 +470,7 @@ USART_TypeDef* get_usart_peripheral(USART_HANDLE_t usarth)
 
 usart_ioctl_t* get_usart_ioctl(USART_HANDLE_t usarth)
 {
-	return &usart_ioctls[usarth];
+	return (usart_ioctl_t*)&usart_ioctls[usarth];
 }
 
 /**
@@ -520,21 +478,19 @@ usart_ioctl_t* get_usart_ioctl(USART_HANDLE_t usarth)
  */
 void usart_tx(USART_HANDLE_t usarth, const uint8_t data)
 {
-	USART_HandleTypeDef husart;
 	if(usarth != USART_INVALID_HANDLE){
-		husart.Instance = get_usart_peripheral(usarth);
-		while(!__HAL_USART_GET_FLAG(&husart, USART_FLAG_TXE));
-		husart.Instance->DR =  data;
+		usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
+		while(!usart_tx_readytosend(usart_ioctl));
+		usart_ioctl->usart->DR =  data;
 	}
 }
 
 uint8_t usart_rx(USART_HANDLE_t usarth)
 {
-	USART_HandleTypeDef husart;
 	if(usarth != USART_INVALID_HANDLE){
-		husart.Instance = get_usart_peripheral(usarth);
-		while(!__HAL_USART_GET_FLAG(&husart, USART_FLAG_RXNE));
-		return husart.Instance->DR;
+		usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
+		while(!usart_rx_inwaiting(usart_ioctl));
+		return usart_ioctl->usart->DR;
 	}
 	return 0;
 }
@@ -577,8 +533,3 @@ uint32_t usart_get_baudrate(USART_HANDLE_t usarth)
     uint32_t div = (25 * (usart->BRR >> 4)) + ((25 * (usart->BRR & 0x000f))/16);
     return ((pclock * 25) / div) / 16;
 }
-
-/**
- * @}
- */
-

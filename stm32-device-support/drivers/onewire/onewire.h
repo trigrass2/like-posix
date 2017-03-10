@@ -36,7 +36,7 @@
 #include "board_config.h"
 #include "usart.h"
 
-#define ONEWIRE_POLLED 1 // use polled usart, instead of usart dev
+#define ONEWIRE_POLLED 0 // use polled usart, instead of usart async
 
 // ROM COMMANDS
 #define ONEWIRE_MATCH_ROM           0x55
@@ -51,17 +51,14 @@
 #define onewire_read_bit(fd) onewire_xfer_bit(fd, 0xff);
 #define onewire_write_bit(fd, bit) onewire_xfer_bit(fd, bit);
 
-#if ONEWIRE_POLLED
 USART_HANDLE_t onewire_create(USART_TypeDef* usart);
-#else
-USART_HANDLE_t onewire_create(USART_TypeDef* usart, char* filename);
-int onewire_open(const char* filename);
-void onewire_close(int fd);
-#endif
-unsigned char onewire_reset(int fd);
-unsigned char onewire_xfer_byte(int fd, unsigned char byte);
-unsigned char onewire_xfer_bit(int fd, unsigned char bit);
-void onewire_address_command(int fd, uint64_t devcode);
-void onewire_search_ids(int fd, uint64_t* buffer, int length);
+//USART_HANDLE_t onewire_create(USART_TypeDef* usart, char* filename);
+//int onewire_open(const char* filename);
+//void onewire_close(USART_HANDLE_t usarth);
+unsigned char onewire_reset(USART_HANDLE_t usarth);
+unsigned char onewire_xfer_byte(USART_HANDLE_t usarth, unsigned char byte);
+unsigned char onewire_xfer_bit(USART_HANDLE_t usarth, unsigned char bit);
+void onewire_address_command(USART_HANDLE_t usarth, uint64_t devcode);
+void onewire_search_ids(USART_HANDLE_t usarth, uint64_t* buffer, int length);
 
 #endif // ONEWIRE_H_

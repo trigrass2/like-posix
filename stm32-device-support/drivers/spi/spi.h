@@ -37,23 +37,30 @@
 #ifndef SPI_H_
 #define SPI_H_
 
-SPI_HANDLE_t spi_create_polled(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width);
+/**
+ * polled api
+ */
+SPI_HANDLE_t spi_create_polled(SPI_TypeDef* spi, bool enable, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t baudrate);
 uint8_t spi_transfer_polled(SPI_HANDLE_t spih, uint8_t data);
 
-SPI_HANDLE_t spi_create_async(SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t buffersize);
+/**
+ * async api
+ */
+SPI_HANDLE_t spi_create_async(SPI_TypeDef* spi, bool enable, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t baudrate, uint32_t buffersize);
 int32_t spi_put_async(SPI_HANDLE_t spih, const uint8_t* data, int32_t length);
 int32_t spi_get_async(SPI_HANDLE_t spih, uint8_t* data, int32_t length, uint32_t timeout);
 
 
-void spi_init_ss_gpio(SPI_HANDLE_t spi);
 void spi_clear_ss(SPI_HANDLE_t spi);
 void spi_set_ss(SPI_HANDLE_t spi);
 
+/**
+ * device file api (exposes SPI through opn, close, read, write, termios, etc)
+ */
 #if USE_LIKEPOSIX
-SPI_HANDLE_t spi_create_dev(char* filename, SPI_TypeDef* spi, bool enable, uint32_t baudrate, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width);
+SPI_HANDLE_t spi_create_dev(char* filename, SPI_TypeDef* spi, bool enable, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t baudrate, uint32_t buffersize);
 #endif
 
-inline bool _spi_tx_isr(SPI_HANDLE_t spih);
-inline bool _spi_rx_isr(SPI_HANDLE_t spih);
+inline void _spi_isr(SPI_HANDLE_t spih);
 
 #endif /* SPI_H_ */

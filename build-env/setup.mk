@@ -7,7 +7,7 @@ small: OPT = s
 small: all
 
 debug: CFLAGS += -g
-debug: OPT = 0
+debug: OPT ?= 0
 debug: all
 
 SHELL = /bin/bash

@@ -47,7 +47,6 @@ SPI_HANDLE_t spi_init_device(SPI_TypeDef* spi, bool enable, uint32_t baudrate, u
     SPI_HANDLE_t spih = get_spi_handle(spi);
     spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
 
-	log_syslog(NULL, "init spi%d", spih);
 	assert_true(spih != SPI_INVALID_HANDLE);
 
 	spi_ioctl->spi = spi;
@@ -59,6 +58,7 @@ SPI_HANDLE_t spi_init_device(SPI_TypeDef* spi, bool enable, uint32_t baudrate, u
 
 	// init SPI peripheral
 	hspi.Instance = spi_ioctl->spi;
+	hspi.State = HAL_SPI_STATE_RESET;
 	hspi.Init.FirstBit = spi_ioctl->bit_order; 			            // SPI_FirstBit_MSB or SPI_FirstBit_LSB
 	hspi.Init.CLKPhase = spi_ioctl->clock_phase; 					  // SPI_CPHA_1Edge or SPI_CPHA_2Edge
 	hspi.Init.CLKPolarity = spi_ioctl->clock_polarity; 				// SPI_CPOL_Low or SPI_CPOL_High
@@ -209,47 +209,47 @@ void spi_init_interrupt(SPI_HANDLE_t spih, uint8_t priority, bool enable)
         HAL_NVIC_DisableIRQ(irq);
 }
 
-inline bool spi_rx_inwaiting(SPI_HANDLE_t spih)
-{
-	SPI_HandleTypeDef hspi;
-	hspi.Instance = get_spi_peripheral(spih);
-	return __HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_RXNE);
-}
-
-inline bool spi_tx_readytosend(SPI_HANDLE_t spih)
-{
-	SPI_HandleTypeDef hspi;
-	hspi.Instance = get_spi_peripheral(spih);
-	return __HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_TXE);
-}
-
-inline void spi_enable_rx_int(SPI_HANDLE_t spih)
-{
-	SPI_HandleTypeDef hspi;
-	hspi.Instance = get_spi_peripheral(spih);
-	__HAL_SPI_ENABLE_IT(&hspi, SPI_IT_RXNE);
-}
-
-inline void spi_enable_tx_int(SPI_HANDLE_t spih)
-{
-	SPI_HandleTypeDef hspi;
-	hspi.Instance = get_spi_peripheral(spih);
-	__HAL_SPI_ENABLE_IT(&hspi, SPI_IT_TXE);
-}
-
-inline void spi_disable_rx_int(SPI_HANDLE_t spih)
-{
-	SPI_HandleTypeDef hspi;
-	hspi.Instance = get_spi_peripheral(spih);
-	__HAL_SPI_DISABLE_IT(&hspi, SPI_IT_RXNE);
-}
-
-inline void spi_disable_tx_int(SPI_HANDLE_t spih)
-{
-	SPI_HandleTypeDef hspi;
-	hspi.Instance = get_spi_peripheral(spih);
-	__HAL_SPI_DISABLE_IT(&hspi, SPI_IT_TXE);
-}
+//inline bool spi_rx_inwaiting(SPI_HANDLE_t spih)
+//{
+//	SPI_HandleTypeDef hspi;
+//	hspi.Instance = get_spi_peripheral(spih);
+//	return __HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_RXNE);
+//}
+//
+//inline bool spi_tx_readytosend(SPI_HANDLE_t spih)
+//{
+//	SPI_HandleTypeDef hspi;
+//	hspi.Instance = get_spi_peripheral(spih);
+//	return __HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_TXE);
+//}
+//
+//inline void spi_enable_rx_int(SPI_HANDLE_t spih)
+//{
+//	SPI_HandleTypeDef hspi;
+//	hspi.Instance = get_spi_peripheral(spih);
+//	__HAL_SPI_ENABLE_IT(&hspi, SPI_IT_RXNE);
+//}
+//
+//inline void spi_enable_tx_int(SPI_HANDLE_t spih)
+//{
+//	SPI_HandleTypeDef hspi;
+//	hspi.Instance = get_spi_peripheral(spih);
+//	__HAL_SPI_ENABLE_IT(&hspi, SPI_IT_TXE);
+//}
+//
+//inline void spi_disable_rx_int(SPI_HANDLE_t spih)
+//{
+//	SPI_HandleTypeDef hspi;
+//	hspi.Instance = get_spi_peripheral(spih);
+//	__HAL_SPI_DISABLE_IT(&hspi, SPI_IT_RXNE);
+//}
+//
+//inline void spi_disable_tx_int(SPI_HANDLE_t spih)
+//{
+//	SPI_HandleTypeDef hspi;
+//	hspi.Instance = get_spi_peripheral(spih);
+//	__HAL_SPI_DISABLE_IT(&hspi, SPI_IT_TXE);
+//}
 
 SPI_HANDLE_t get_spi_handle(SPI_TypeDef* spi)
 {
@@ -284,20 +284,16 @@ spi_ioctl_t* get_spi_ioctl(SPI_HANDLE_t spih)
 
 void spi_tx(SPI_HANDLE_t spih, const uint8_t data)
 {
-    SPI_HandleTypeDef hspi;
-    SPI_TypeDef* spi = get_spi_peripheral(spih);
-    hspi.Instance = spi;
-    while(!__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_TXE));
-    spi->DR = data;
+    spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
+    while(!spi_tx_readytosend(spi_ioctl));
+    spi_ioctl->spi->DR = data;
 }
 
 uint8_t spi_rx(SPI_HANDLE_t spih)
 {
-    SPI_HandleTypeDef hspi;
-    SPI_TypeDef* spi = get_spi_peripheral(spih);
-    hspi.Instance = spi;
-    while(!__HAL_SPI_GET_FLAG(&hspi, SPI_FLAG_RXNE));
-    return spi->DR;
+    spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
+    while(!spi_rx_inwaiting(spi_ioctl));
+    return spi_ioctl->spi->DR;
 }
 
 

@@ -50,14 +50,19 @@ typedef VFIFO_PRIMITIVE vfifo_primitive_t;
 /**
  * The VFIFO data type, defines one n-bit FIFO where n may be any multiple of 8.
  * Use @ref vfifo_init to create this object.
+ *
+ * have set volatile on the members...
+ * when compiled using gcc-arm-none-eabi-5_4-2016q3 and running on stm32f407v
+ * with -O2.
+ * a hardfault occurs when accessed from an ISR, even if the owning structure is volatile.
  */
 typedef struct {
-   int32_t head;			///< the FIFO head position indicator
-   int32_t tail;			///< the FIFO tail position indicator
-   vfifo_primitive_t* buf;	///< a pointer to the FIFO buffer data space
-   int32_t size;			///< the size in words of the FIFO
-   int32_t free;			///< the number of free spaces in the FIFO buffer
-   int32_t usage;			///< the number of filled spaces the FIFO buffer
+   volatile int32_t head;			///< the FIFO head position indicator
+   volatile int32_t tail;			///< the FIFO tail position indicator
+   volatile vfifo_primitive_t* buf;	///< a pointer to the FIFO buffer data space
+   volatile int32_t size;			///< the size in words of the FIFO
+   volatile int32_t free;			///< the number of free spaces in the FIFO buffer
+   volatile int32_t usage;			///< the number of filled spaces the FIFO buffer
 } vfifo_t;
 
 void vfifo_init(vfifo_t* fifo, void* buf, int32_t size);

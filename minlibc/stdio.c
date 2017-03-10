@@ -666,7 +666,7 @@ int setvbuf(FILE *stream, char *buf, int mode, size_t size)
 FILE* fopen(const char * filename, const char * mode)
 {
     int flags = __stream_mode(mode);
-    int fd = _open(filename, flags, MINLIBC_STDIO_BUFFER_SIZE);
+    int fd = _open(filename, flags, 0);
 
     FILE* file = __get_stream_descriptor(fd, flags);
 	if(!file)

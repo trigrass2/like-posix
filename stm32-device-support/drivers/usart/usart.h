@@ -30,13 +30,6 @@
  *
  */
 
-/**
- * @addtogroup usart
- * @{
- *
- * @file    usart.h
- */
-
 #include <stdint.h>
 #include <stdbool.h>
 #include "usart_peripheral.h"
@@ -44,23 +37,28 @@
 #ifndef USART_H_
 #define USART_H_
 
+/**
+ * polled api
+ */
 USART_HANDLE_t usart_create_polled(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate);
 void usart_set_stdio_usart(int usarth);
 void usart_stdio_tx(const char data);
 char usart_stdio_rx();
 
+/**
+ * async api
+ */
 USART_HANDLE_t usart_create_async(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize);
 int32_t usart_put_async(USART_HANDLE_t usarth, const uint8_t* data, int32_t length);
 int32_t usart_get_async(USART_HANDLE_t usarth, uint8_t* data, int32_t length, uint32_t timeout);
 
+/**
+ * device file api (exposes USART through opn, close, read, write, termios, etc)
+ */
 #if USE_LIKEPOSIX
 USART_HANDLE_t usart_create_dev(char* filename, USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize);
 #endif
 
-inline bool _usart_rx_isr(USART_HANDLE_t usarth);
-inline bool _usart_tx_isr(USART_HANDLE_t usarth);
-#endif // USART_H_
+inline void _usart_isr(USART_HANDLE_t usarth);
 
-/**
- * @}
- */
+#endif // USART_H_
