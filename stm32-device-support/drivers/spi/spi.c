@@ -455,8 +455,11 @@ int spi_ioctl(dev_ioctl_t* dev)
 inline void _spi_isr(SPI_HANDLE_t spih)
 {
 #if USE_FREERTOS
-	static BaseType_t xHigherPriorityTaskWokenRx = pdFALSE;
-	static BaseType_t xHigherPriorityTaskWokenTx = pdFALSE;
+	static BaseType_t waiting_receiving_task_has_woken = pdFALSE;
+#endif
+#if USE_LIKEPOSIX
+	static BaseType_t receiving_task_has_woken = pdFALSE;
+	static BaseType_t sending_task_has_woken = pdFALSE;
 #endif
 	spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
 	assert_true(spi_ioctl);
@@ -468,8 +471,8 @@ inline void _spi_isr(SPI_HANDLE_t spih)
 
 #if USE_LIKEPOSIX
 		if(spi_dev_ioctls[spih]) {
-			xQueueSendFromISR(spi_dev_ioctls[spih]->pipe.read, (char*)&word, &xHigherPriorityTaskWokenRx);
-			portYIELD_FROM_ISR(xHigherPriorityTaskWokenRx);
+			xQueueSendFromISR(spi_dev_ioctls[spih]->pipe.read, (char*)&word, &receiving_task_has_woken);
+			portYIELD_FROM_ISR(receiving_task_has_woken);
 		}
 		else
 #endif
@@ -478,8 +481,8 @@ inline void _spi_isr(SPI_HANDLE_t spih)
 
 #if USE_FREERTOS
 			if(spi_ioctl->rx_expect && ((vfifo_used_slots(spi_ioctl->rxfifo) >= spi_ioctl->rx_expect) || vfifo_full(spi_ioctl->rxfifo))) {
-				xSemaphoreGiveFromISR(spi_ioctl->rx_sem, &xHigherPriorityTaskWokenRx);
-				portYIELD_FROM_ISR(xHigherPriorityTaskWokenRx);
+				xSemaphoreGiveFromISR(spi_ioctl->rx_sem, &waiting_receiving_task_has_woken);
+				portYIELD_FROM_ISR(waiting_receiving_task_has_woken);
 			}
 #endif
 		}
@@ -489,10 +492,10 @@ inline void _spi_isr(SPI_HANDLE_t spih)
 	{
 #if USE_LIKEPOSIX
 		if(spi_dev_ioctls[spih]) {
-			if(xQueueReceiveFromISR(spi_dev_ioctls[spih]->pipe.write, (char*)&spi_ioctl->spi->DR, &xHigherPriorityTaskWokenTx) == pdFALSE) {
+			if(xQueueReceiveFromISR(spi_dev_ioctls[spih]->pipe.write, (char*)&spi_ioctl->spi->DR, &sending_task_has_woken) == pdFALSE) {
 				spi_disable_tx_int(spi_ioctl);
 			}
-			portYIELD_FROM_ISR(xHigherPriorityTaskWokenTx);
+			portYIELD_FROM_ISR(sending_task_has_woken);
 		}
 		else
 #endif

@@ -342,8 +342,11 @@ static int usart_ioctl(dev_ioctl_t* dev)
 inline void _usart_isr(USART_HANDLE_t usarth)
 {
 #if USE_FREERTOS
-	static BaseType_t xHigherPriorityTaskWokenRx = pdFALSE;
-	static BaseType_t xHigherPriorityTaskWokenTx = pdFALSE;
+	static BaseType_t waiting_receiving_task_has_woken = pdFALSE;
+#endif
+#if USE_LIKEPOSIX
+	static BaseType_t receiving_task_has_woken = pdFALSE;
+	static BaseType_t sending_task_has_woken = pdFALSE;
 #endif
 	usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
 	assert_true(usart_ioctl);
@@ -355,8 +358,8 @@ inline void _usart_isr(USART_HANDLE_t usarth)
 
 #if USE_LIKEPOSIX
 		if(usart_dev_ioctls[usarth]) {
-			xQueueSendFromISR(usart_dev_ioctls[usarth]->pipe.read, (char*)&byte, &xHigherPriorityTaskWokenRx);
-			portYIELD_FROM_ISR(xHigherPriorityTaskWokenRx);
+			xQueueSendFromISR(usart_dev_ioctls[usarth]->pipe.read, (char*)&byte, &receiving_task_has_woken);
+			portYIELD_FROM_ISR(receiving_task_has_woken);
 		}
 		else
 #endif
@@ -365,8 +368,8 @@ inline void _usart_isr(USART_HANDLE_t usarth)
 
 #if USE_FREERTOS
 			if(usart_ioctl->rx_expect && ((vfifo_used_slots(usart_ioctl->rxfifo) >= usart_ioctl->rx_expect) || vfifo_full(usart_ioctl->rxfifo))) {
-				xSemaphoreGiveFromISR(usart_ioctl->rx_sem, &xHigherPriorityTaskWokenRx);
-				portYIELD_FROM_ISR(xHigherPriorityTaskWokenRx);
+				xSemaphoreGiveFromISR(usart_ioctl->rx_sem, &waiting_receiving_task_has_woken);
+				portYIELD_FROM_ISR(waiting_receiving_task_has_woken);
 			}
 #endif
 		}
@@ -376,10 +379,10 @@ inline void _usart_isr(USART_HANDLE_t usarth)
 	{
 #if USE_LIKEPOSIX
 		if(usart_dev_ioctls[usarth]) {
-			if(xQueueReceiveFromISR(usart_dev_ioctls[usarth]->pipe.write, (char*)&usart_ioctl->usart->DR, &xHigherPriorityTaskWokenTx) == pdFALSE) {
+			if(xQueueReceiveFromISR(usart_dev_ioctls[usarth]->pipe.write, (char*)&usart_ioctl->usart->DR, &sending_task_has_woken) == pdFALSE) {
 				usart_disable_tx_int(usart_ioctl);
 			}
-			portYIELD_FROM_ISR(xHigherPriorityTaskWokenTx);
+			portYIELD_FROM_ISR(sending_task_has_woken);
 		}
 		else
 #endif

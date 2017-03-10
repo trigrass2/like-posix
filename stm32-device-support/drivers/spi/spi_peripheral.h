@@ -60,9 +60,9 @@ typedef struct {
 	uint32_t data_width;
 	vfifo_t* rxfifo;
 	vfifo_t* txfifo;
+	int32_t rx_expect;
 #if USE_FREERTOS
 	SemaphoreHandle_t rx_sem;
-	int32_t rx_expect;
 #endif
 } spi_ioctl_t;
 

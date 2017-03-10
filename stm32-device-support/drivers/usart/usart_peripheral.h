@@ -71,9 +71,9 @@ typedef struct {
 	usart_mode_t mode;
 	vfifo_t* rxfifo;
 	vfifo_t* txfifo;
+	int32_t rx_expect;
 #if USE_FREERTOS
 	SemaphoreHandle_t rx_sem;
-	int32_t rx_expect;
 #endif
 } usart_ioctl_t;
 
