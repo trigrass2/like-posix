@@ -225,17 +225,16 @@ int32_t usart_get_async(USART_HANDLE_t usarth, uint8_t* data, int32_t length, ui
  * @param usart is the USART peripheral to initialize.
  * @param filename is the device file name to install as Eg "/dev/ttyUSART0".
  *        if set to NULL, the device may be used in polled mode only.
- * @param enable - set to true when using in polled mode. when the device file is specified,
- *        set to false - the device is enabled automatically when the file is opened.
  * @param   mode is the mode to setup, select from usart_mode_t.
  * @param baudrate is the baudrate to set.
  */
-USART_HANDLE_t usart_create_dev(const char* filename, USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize)
+USART_HANDLE_t usart_create_dev(const char* filename, USART_TypeDef* usart, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize)
 {
     USART_HANDLE_t usarth = USART_INVALID_HANDLE;
 
-	usarth = usart_init_device(usart, enable, mode, baudrate);
+	usarth = usart_init_device(usart, true, mode, baudrate);
     usart_init_gpio(usarth);
+	usart_init_interrupt(usarth, USART_INTERRUPT_PRIORITY, true);
 
 	usart_dev_ioctls[usarth] = (void*)install_device(filename,
 													usarth,
@@ -247,10 +246,6 @@ USART_HANDLE_t usart_create_dev(const char* filename, USART_TypeDef* usart, bool
 													buffersize);
 
 	log_debug(NULL, "install usart%d: %s", usarth, usart_dev_ioctls[usarth] ? "successful" : "failed");
-
-	if(usart_dev_ioctls[usarth]) {
-		usart_init_interrupt(usarth, USART_INTERRUPT_PRIORITY, enable);
-	}
 
     assert_true(usart_dev_ioctls[usarth]);
 

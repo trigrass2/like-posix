@@ -56,7 +56,7 @@ int32_t usart_get_async(USART_HANDLE_t usarth, uint8_t* data, int32_t length, ui
  * device file api (exposes USART through opn, close, read, write, termios, etc)
  */
 #if USE_LIKEPOSIX
-USART_HANDLE_t usart_create_dev(const char* filename, USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize);
+USART_HANDLE_t usart_create_dev(const char* filename, USART_TypeDef* usart, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize);
 #endif
 
 inline void _usart_isr(USART_HANDLE_t usarth);

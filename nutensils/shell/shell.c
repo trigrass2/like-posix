@@ -242,6 +242,7 @@ int _system(const char* inputstr)
 void threaded_instance(shellserver_t* shell)
 {
     shell_instance(shell, NULL);
+    vTaskDelete(NULL);
 }
 
 /**
