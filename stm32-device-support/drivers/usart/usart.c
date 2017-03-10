@@ -230,7 +230,7 @@ int32_t usart_get_async(USART_HANDLE_t usarth, uint8_t* data, int32_t length, ui
  * @param   mode is the mode to setup, select from usart_mode_t.
  * @param baudrate is the baudrate to set.
  */
-USART_HANDLE_t usart_create_dev(char* filename, USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize)
+USART_HANDLE_t usart_create_dev(const char* filename, USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize)
 {
     USART_HANDLE_t usarth = USART_INVALID_HANDLE;
 

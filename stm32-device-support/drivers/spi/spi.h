@@ -58,7 +58,7 @@ void spi_set_ss(SPI_HANDLE_t spi);
  * device file api (exposes SPI through opn, close, read, write, termios, etc)
  */
 #if USE_LIKEPOSIX
-SPI_HANDLE_t spi_create_dev(char* filename, SPI_TypeDef* spi, bool enable, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t baudrate, uint32_t buffersize);
+SPI_HANDLE_t spi_create_dev(const char* filename, SPI_TypeDef* spi, bool enable, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t baudrate, uint32_t buffersize);
 #endif
 
 inline void _spi_isr(SPI_HANDLE_t spih);

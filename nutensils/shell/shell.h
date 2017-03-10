@@ -36,25 +36,38 @@
 #include "shell_command.h"
 #include "shell_defs.h"
 
+#ifndef SHELL_TASK_STACK_SIZE
 #define SHELL_TASK_STACK_SIZE 	256
+#endif
+
+#ifndef SHELL_TASK_PRIORITY
 #define SHELL_TASK_PRIORITY 	1
+#endif
+
+#ifndef SHELL_CMD_BUFFER_SIZE
+#define SHELL_CMD_BUFFER_SIZE       128 ///< the size of the shell command input buffer in bytes.
+#endif
+
+#ifndef SHELL_HISTORY_LENGTH
+#define SHELL_HISTORY_LENGTH        1	///< the number of lines of history to keep in ram
+#endif
+
+#ifndef SHELL_MAX_ARGS
+#define SHELL_MAX_ARGS              16	///< the maximum number of arguments supported on one line
+#endif
+
+#ifndef SHELL_CWD_LENGTH_MAX
+#define SHELL_CWD_LENGTH_MAX        256	///< the max length of the current working directory
+#endif
+
+
+#define DEFAULT_SHELL_CONFIG_PATH   "/etc/shell/shelld_config" ///< the default shell config file path, can be anything
 
 #define INCLUDE_REMOTE_SHELL_SUPPORT    USE_SOCK_UTILS && USE_THREADED_SERVER
-
-#define DEFAULT_SHELL_CONFIG_PATH   "/etc/shell/shelld_config"
 
 #if INCLUDE_REMOTE_SHELL_SUPPORT
 #include "threaded_server.h"
 #endif
-
-/**
- * CMD_BUFFER_SIZE is the size of the shell command input buffer in bytes.
- */
-#define SHELL_CMD_BUFFER_SIZE       128
-#define SHELL_HISTORY_LENGTH        1
-#define SHELL_MAX_ARGS              16
-
-#define SHELL_CWD_LENGTH_MAX        256
 
 typedef struct {
     shell_cmd_t* head_cmd;

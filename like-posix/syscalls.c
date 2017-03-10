@@ -477,7 +477,7 @@ inline int __determine_mode(const char *name)
  * @param	ioctl is an ioctl function that can set the hardware settings of a device.
  * @retval	returns a pointer to the created dev_ioctl_t structure, or NULL on error.
  */
-dev_ioctl_t* install_device(char* name,
+dev_ioctl_t* install_device(const char* name,
 					int device_handle,
 					dev_ioctl_fn_t read_enable,
 					dev_ioctl_fn_t write_enable,

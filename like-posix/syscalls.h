@@ -30,12 +30,7 @@
  *
  */
 
-/**
- * @addtogroup syscalls
- *
- * @file syscalls.h
- * @{
- */
+
 #ifndef LIKE_POSIX_SYSCALLS_H_
 #define LIKE_POSIX_SYSCALLS_H_
 
@@ -127,7 +122,7 @@
  };
 
 void init_likeposix();
-dev_ioctl_t* install_device(char* name,
+dev_ioctl_t* install_device(const char* name,
 							int device_handle,
 							dev_ioctl_fn_t read_enable,
 							dev_ioctl_fn_t write_enable,
@@ -145,7 +140,3 @@ int file_table_hwm();
 #endif
 
 #endif /* LIKE_POSIX_SYSCALLS_H_ */
-
- /**
-  * @}
-  */
