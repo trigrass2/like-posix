@@ -35,7 +35,7 @@
 #include <unistd.h>
 #include <time.h>
 #include "builtins.h"
-#include "system.h"
+#include "device.h"
 #include "cutensils.h"
 #include "netconf_path.h"
 

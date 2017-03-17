@@ -30,95 +30,22 @@
  *
  */
 
-/**
- * @addtogroup syscalls System Calls
- *
- * relies upon:
- * - FreeRTOS (optional)
- * - delay() must be defined somewhere in the device drivers.
-\code
-  void delay(unsigned long msecs);
-\endcode
- *
- * @file unistd.c
- * @{
- */
+#ifndef LIKEPOSIX_INIT_H_
+#define LIKEPOSIX_INIT_H_
 
-#include "minlibc/config.h"
-#include "minlibc/stdlib.h"
-#include "minlibc/unistd.h"
-#include "likeposix_init.h"
+#include <stdint.h>
 
-
-#ifndef USE_FREERTOS
-#define USE_FREERTOS 0
+#ifdef __cplusplus
+ extern "C" {
 #endif
 
-extern void delay(unsigned long msecs);
+#define SHEDULER_ENABLED   1
+extern uint32_t __likeposix_crt_flags;
 
-#if USE_FREERTOS
-#pragma message("building with thread aware sleep")
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#else
-#pragma message("building with polled sleep")
+
+ void LikePosix_Init();
+
+#ifdef __cplusplus
+ }
 #endif
-
-unsigned int sleep(unsigned int secs)
-{
-#if USE_FREERTOS
-	if(__likeposix_crt_flags & SHEDULER_ENABLED) {
-		vTaskDelay((secs*1000)/portTICK_RATE_MS);
-	}
-	else{
-		delay(secs*1000);
-	}
-#else
-    delay(secs*1000);
-#endif
-    return 0;
-}
-
-int usleep(useconds_t usecs)
-{
-#if USE_FREERTOS
-	if(__likeposix_crt_flags & SHEDULER_ENABLED) {
-		vTaskDelay((usecs/1000)/portTICK_RATE_MS);
-	}
-	else{
-		delay(usecs/1000);
-	}
-#else
-
-#endif
-    return 0;
-}
-
-int dup(int fdes)
-{
-	return _dup(fdes);
-}
-
-int dup2(int oldfd, int newfd)
-{
-	return _dup2(oldfd, newfd);
-}
-
-int fsync(int file)
-{
-    return _fsync(file);
-}
-
-int chdir(const char *path)
-{
-    return _chdir(path);
-}
-
-char* getcwd(char* buffer, size_t size)
-{
-	return _getcwd(buffer, size);
-}
-/**
- * @}
- */
+#endif // LIKEPOSIX_INIT_H_

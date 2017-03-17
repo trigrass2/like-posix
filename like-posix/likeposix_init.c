@@ -30,95 +30,87 @@
  *
  */
 
-/**
- * @addtogroup syscalls System Calls
- *
- * relies upon:
- * - FreeRTOS (optional)
- * - delay() must be defined somewhere in the device drivers.
-\code
-  void delay(unsigned long msecs);
-\endcode
- *
- * @file unistd.c
- * @{
- */
-
-#include "minlibc/config.h"
-#include "minlibc/stdlib.h"
-#include "minlibc/unistd.h"
-#include "likeposix_init.h"
-
-
-#ifndef USE_FREERTOS
-#define USE_FREERTOS 0
-#endif
-
-extern void delay(unsigned long msecs);
-
 #if USE_FREERTOS
-#pragma message("building with thread aware sleep")
+#if USE_PTHREADS
+#include <pthread.h>
+typedef void*(*threadfunc)(void*);
+#else
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
-#else
-#pragma message("building with polled sleep")
+typedef TaskHandle_t threadfunc;
+#endif
 #endif
 
-unsigned int sleep(unsigned int secs)
+#include "likeposix_init.h"
+
+#if USE_DRIVER_SYSTEM_TIMER
+#include "systime.h"
+#endif
+#if USE_DRIVER_LEDS
+#include "leds.h"
+#endif
+#if USE_DRIVER_USART
+#include "usart.h"
+#endif
+#if USE_LIKEPOSIX
+#include "syscalls.h"
+#endif
+#if USE_LOGGER
+#include <unistd.h>
+#include "cutensils.h"
+#endif
+#if USE_MINLIBC
+#include "minlibc/stdio.h"
+#endif
+
+uint32_t __likeposix_crt_flags;
+
+// also externed in startup.c
+extern int main();
+
+void LikePosix_Init()
 {
+	__likeposix_crt_flags = 0;
+
+#if USE_DRIVER_SYSTEM_TIMER
+    init_systime();
+#endif
+#if USE_LOGGER
+    logger_init();
+#endif
+#if USE_DRIVER_USART && USE_STDIO_USART
+    int usarth = (int)usart_create_polled(CONSOLE_USART, true, USART_FULLDUPLEX, USART_DEFAULT_BAUDRATE);
+    usart_set_stdio_usart(usarth);
+#if USE_LOGGER
+    log_add_handler(STDOUT_FILENO);
+#endif
+#endif
+#if USE_DRIVER_LEDS
+    init_leds();
+#endif
+#if USE_LIKEPOSIX
+    init_likeposix();
+#endif
+#if USE_MINLIBC
+    init_minlibc();
+#endif
+
 #if USE_FREERTOS
-	if(__likeposix_crt_flags & SHEDULER_ENABLED) {
-		vTaskDelay((secs*1000)/portTICK_RATE_MS);
-	}
-	else{
-		delay(secs*1000);
-	}
+    __likeposix_crt_flags |= SHEDULER_ENABLED;
+#if USE_PTHREADS
+	pthread_t main_thread;
+	pthread_attr_t main_attr;
+	pthread_attr_init(&main_attr);
+	pthread_attr_setstacksize(&main_attr, configMAIN_STACK_SIZE);
+	pthread_attr_setdetachstate(&main_attr, PTHREAD_CREATE_DETACHED);
+	pthread_create(&main_thread, &main_attr, (threadfunc)main, NULL);
+	pthread_attr_destroy(&main_attr);
 #else
-    delay(secs*1000);
+    xTaskCreate((threadfunc)main, "main", configMAIN_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
 #endif
-    return 0;
-}
-
-int usleep(useconds_t usecs)
-{
-#if USE_FREERTOS
-	if(__likeposix_crt_flags & SHEDULER_ENABLED) {
-		vTaskDelay((usecs/1000)/portTICK_RATE_MS);
-	}
-	else{
-		delay(usecs/1000);
-	}
-#else
-
+	vTaskStartScheduler();
 #endif
-    return 0;
 }
 
-int dup(int fdes)
-{
-	return _dup(fdes);
-}
 
-int dup2(int oldfd, int newfd)
-{
-	return _dup2(oldfd, newfd);
-}
-
-int fsync(int file)
-{
-    return _fsync(file);
-}
-
-int chdir(const char *path)
-{
-    return _chdir(path);
-}
-
-char* getcwd(char* buffer, size_t size)
-{
-	return _getcwd(buffer, size);
-}
-/**
- * @}
- */

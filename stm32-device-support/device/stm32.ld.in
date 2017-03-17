@@ -1,4 +1,7 @@
 /* Specify the memory areas */
+
+/* auto generated linker file for like-posix, last built on !DATE! for !DEVICE_STRING! */
+
 MEMORY
 {
   FLASH (rx)      : ORIGIN = !FLASH_BASE_ADDRESS!+!APP_ADDRESS_OFFSET!, LENGTH = !FLASH_LENGTH!-!APP_ADDRESS_OFFSET!

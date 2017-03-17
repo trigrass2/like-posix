@@ -31,7 +31,7 @@
  */
 
 #include "board_config.h"
-#include "system.h"
+#include "device.h"
 
 static void SystemClock_Config(void);
 

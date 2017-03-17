@@ -28,6 +28,8 @@ endif
 SYSCALLS = $(LIKEPOSIX_DIR)/syscalls.c
 SYSCALLS += $(LIKEPOSIX_DIR)/stdlib_impl.c
 endif
+SYSCALLS += $(LIKEPOSIX_DIR)/asserts.c
+SYSCALLS += $(LIKEPOSIX_DIR)/likeposix_init.c
 
 CFLAGS += -I$(LIKEPOSIX_DIR)
 

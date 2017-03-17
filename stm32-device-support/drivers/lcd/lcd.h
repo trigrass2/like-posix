@@ -51,7 +51,7 @@
 #include "semphr.h"
 
 #include "ili932x.h"
-#include "system.h"
+#include "device.h"
 
 
 #ifndef LCD_H_

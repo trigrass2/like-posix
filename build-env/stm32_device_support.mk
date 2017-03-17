@@ -9,23 +9,6 @@ CFLAGS += -I$(DEVICE_SUPPORT_DIR)
 include $(DEVICE_SUPPORT_DIR)/board/boards.mk
 include $(DEVICE_SUPPORT_DIR)/device/device.mk
 
-###############################################################
-# 
-###############################################################
-SYSTEMDIR = $(DEVICE_SUPPORT_DIR)/system
-
-CFLAGS += -I$(SYSTEMDIR)
-CFLAGS += -DDEBUG_PRINTF_EXCEPTIONS=$(DEBUG_PRINTF_EXCEPTIONS)
-
-SOURCE += $(SYSTEMDIR)/system.c
-SOURCE += $(SYSTEMDIR)/asserts.c
-SOURCE += $(SYSTEMDIR)/hardware_exception.c
-SOURCE += $(SYSTEMDIR)/services.c
-SOURCE += $(SYSTEMDIR)/msp_funnel.c
-SOURCE += $(SYSTEMDIR)/systick.c
-ifeq ($(USE_FREERTOS), 1)
-SOURCE += $(SYSTEMDIR)/stackoverflow.c
-endif
 
 ###############################################################
 # Drivers defined here must build for all targets

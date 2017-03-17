@@ -35,7 +35,7 @@
 #include "task.h"
 #include "semphr.h"
 #include "lcd.h"
-#include "system.h"
+#include "device.h"
 
 #ifndef GRAPHICS_H_
 #define GRAPHICS_H_

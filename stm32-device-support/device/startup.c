@@ -37,29 +37,15 @@
 */
 
 #include "board_config.h"
-#include "services.h"
-#include "system.h"
-
-#if USE_FREERTOS
-#if USE_PTHREADS
-#include <pthread.h>
-typedef void*(*threadfunc)(void*);
-#else
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-typedef TaskHandle_t threadfunc;
-#endif
-#endif
-
-
+#include "likeposix_init.h"
+#include "device.h"
 
 #define WEAK        __attribute__ ((weak))
 #define BSS_FILL    0
 #define STACK_FILL  0xA5A5A5A5
 
-#ifndef CLEVER_DEFAULT_INTERRUPT_HANDLER
-#define CLEVER_DEFAULT_INTERRUPT_HANDLER 0
+#ifndef EXTENDED_DEFAULT_INTERRUPT_HANDLER
+#define EXTENDED_DEFAULT_INTERRUPT_HANDLER 0
 #endif
 
 extern unsigned long _etext;
@@ -82,7 +68,7 @@ extern unsigned long _sstack;
 void Reset_Handler() __attribute__((__interrupt__));
 void __Init_Data();
 
-#if CLEVER_DEFAULT_INTERRUPT_HANDLER
+#if EXTENDED_DEFAULT_INTERRUPT_HANDLER
 #include<stdio.h>
 void Default_Handler(const char* file, const char* function, const int line);
 #define MESSAGE() Default_Handler(__FILE__, __FUNCTION__, __LINE__);
@@ -90,6 +76,8 @@ void Default_Handler(const char* file, const char* function, const int line);
 void Default_Handler();
 #endif
 
+// also externed in likeposix_init.c
+extern int main();
 extern int main();                /* Application's main function */
 #ifdef __cplusplus
 extern void __libc_init_array();  /* calls CTORS of static objects */
@@ -117,26 +105,10 @@ void Reset_Handler()
 	// target is initialized in boardname.bsp/board_config.c -> HAL_MspInit()
 	HAL_Init();
 
-    // call init_services (in services.c)
-    init_services();
-
+    // initialize the crt and likeposix services
+    LikePosix_Init();
 	/* Call the application's entry point.*/
-#if USE_FREERTOS
-#if USE_PTHREADS
-	pthread_t main_thread;
-	pthread_attr_t main_attr;
-	pthread_attr_init(&main_attr);
-	pthread_attr_setstacksize(&main_attr, configMAIN_STACK_SIZE);
-	pthread_attr_setdetachstate(&main_attr, PTHREAD_CREATE_DETACHED);
-	pthread_create(&main_thread, &main_attr, (threadfunc)main, NULL);
-	pthread_attr_destroy(&main_attr);
-#else
-    xTaskCreate((threadfunc)main, "main", configMAIN_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
-#endif
-	vTaskStartScheduler();
-#else
 	main();
-#endif
 
 	while(1);
 }
@@ -171,7 +143,7 @@ void __Init_Data()
 /**
  * @brief  unexpected interrupt handler
 */
-#if CLEVER_DEFAULT_INTERRUPT_HANDLER
+#if EXTENDED_DEFAULT_INTERRUPT_HANDLER
 void Default_Handler(const char* file, const char* function, const int line)
 {
     while(1)
@@ -180,11 +152,11 @@ void Default_Handler(const char* file, const char* function, const int line)
         delay(2000);
     }
 }
-#else // CLEVER_DEFAULT_INTERRUPT_HANDLER
+#else // EXTENDED_DEFAULT_INTERRUPT_HANDLER
 void Default_Handler()
 {
     while(1);
 }
-#endif // CLEVER_DEFAULT_INTERRUPT_HANDLER
+#endif // EXTENDED_DEFAULT_INTERRUPT_HANDLER
 
 /******************* (C) COPYRIGHT 2009 STMicroelectronics *****END OF FILE****/
