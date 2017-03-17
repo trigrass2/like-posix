@@ -773,8 +773,9 @@ int _write(int file, char *buffer, int count)
 
 	if(file == STDOUT_FILENO || file == STDERR_FILENO)
 	{
-		for(n = 0; n < (int)count; n++)
+		for(n = 0; n < (int)count; n++) {
 			usart_stdio_tx(*buffer++);
+		}
 	}
 	else
 	{
@@ -849,7 +850,6 @@ int _write(int file, char *buffer, int count)
  */
 int _read(int file, char *buffer, int count)
 {
-    unsigned int timeout;
 	int n = EOF;
 
 	if(count == 0)
@@ -857,8 +857,9 @@ int _read(int file, char *buffer, int count)
 
 	if(file == STDIN_FILENO)
 	{
-		for(n = 0; n < count; n++)
+		for(n = 0; n < count; n++) {
 			*buffer++ = usart_stdio_rx();
+		}
 	}
 	else
 	{
@@ -875,11 +876,9 @@ int _read(int file, char *buffer, int count)
 				}
 				else if((fte->mode == S_IFIFO) && fte->device)
 				{
-					timeout = fte->device->timeout;
-
 					for(n = 0; n < count; n++)
 					{
-						if(xQueueReceive(fte->device->pipe.read, buffer++, timeout) != pdTRUE)
+						if(xQueueReceive(fte->device->pipe.read, buffer++, fte->device->timeout) != pdTRUE)
 							break;
 					}
 				}

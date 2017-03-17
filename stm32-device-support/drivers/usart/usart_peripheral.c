@@ -40,7 +40,7 @@
 #include "base_usart.h"
 #include "asserts.h"
 #include "cutensils.h"
-#include "system.h"
+#include "device.h"
 
 // for targets that have no USART_CR1_OVER8 bit, fake the value
 #ifndef USART_CR1_OVER8
@@ -360,47 +360,54 @@ void usart_init_interrupt(USART_HANDLE_t usarth, uint8_t priority, bool enable)
     	HAL_NVIC_DisableIRQ(irq);
 }
 
-//inline bool usart_rx_inwaiting(USART_HANDLE_t usarth)
-//{
-//	USART_TypeDef* usart = get_usart_peripheral(usarth);
-//
-//	return __HAL_USART_GET_FLAG(&husart, USART_FLAG_RXNE);
-//}
-//
-//inline bool usart_tx_readytosend(USART_HANDLE_t usarth)
-//{
-//	USART_HandleTypeDef husart;
-//	husart.Instance = get_usart_peripheral(usarth);
-//	return __HAL_USART_GET_FLAG(&husart, USART_FLAG_TXE);
-//}
-//
-//inline void usart_enable_rx_int(USART_HANDLE_t usarth)
-//{
-//	USART_HandleTypeDef husart;
-//	husart.Instance = get_usart_peripheral(usarth);
-//	__HAL_USART_ENABLE_IT(&husart, USART_IT_RXNE);
-//}
-//
-//inline void usart_enable_tx_int(USART_HANDLE_t usarth)
-//{
-//	USART_HandleTypeDef husart;
-//	husart.Instance = get_usart_peripheral(usarth);
-//	__HAL_USART_ENABLE_IT(&husart, USART_IT_TXE);
-//}
-//
-//inline void usart_disable_rx_int(USART_HANDLE_t usarth)
-//{
-//	USART_HandleTypeDef husart;
-//	husart.Instance = get_usart_peripheral(usarth);
-//	__HAL_USART_DISABLE_IT(&husart, USART_IT_RXNE);
-//}
-//
-//inline void usart_disable_tx_int(USART_HANDLE_t usarth)
-//{
-//	USART_HandleTypeDef husart;
-//	husart.Instance = get_usart_peripheral(usarth);
-//	__HAL_USART_DISABLE_IT(&husart, USART_IT_TXE);
-//}
+inline bool usart_rx_inwaiting(usart_ioctl_t* usart_ioctl)
+{
+	USART_HandleTypeDef husart;
+	husart.Instance = usart_ioctl->usart;
+	return __HAL_USART_GET_FLAG(&husart, USART_FLAG_RXNE);
+}
+
+inline bool usart_rx_overrun(usart_ioctl_t* usart_ioctl)
+{
+	USART_HandleTypeDef husart;
+	husart.Instance = usart_ioctl->usart;
+	return __HAL_USART_GET_FLAG(&husart, USART_FLAG_ORE);
+}
+
+inline bool usart_tx_readytosend(usart_ioctl_t* usart_ioctl)
+{
+	USART_HandleTypeDef husart;
+	husart.Instance = usart_ioctl->usart;
+	return __HAL_USART_GET_FLAG(&husart, USART_FLAG_TXE);
+}
+
+inline void usart_enable_rx_int(usart_ioctl_t* usart_ioctl)
+{
+	USART_HandleTypeDef husart;
+	husart.Instance = usart_ioctl->usart;
+	__HAL_USART_ENABLE_IT(&husart, USART_IT_RXNE);
+}
+
+inline void usart_enable_tx_int(usart_ioctl_t* usart_ioctl)
+{
+	USART_HandleTypeDef husart;
+	husart.Instance = usart_ioctl->usart;
+	__HAL_USART_ENABLE_IT(&husart, USART_IT_TXE);
+}
+
+inline void usart_disable_rx_int(usart_ioctl_t* usart_ioctl)
+{
+	USART_HandleTypeDef husart;
+	husart.Instance = usart_ioctl->usart;
+	__HAL_USART_DISABLE_IT(&husart, USART_IT_RXNE);
+}
+
+inline void usart_disable_tx_int(usart_ioctl_t* usart_ioctl)
+{
+	USART_HandleTypeDef husart;
+	husart.Instance = usart_ioctl->usart;
+	__HAL_USART_DISABLE_IT(&husart, USART_IT_TXE);
+}
 
 USART_HANDLE_t get_usart_handle(USART_TypeDef* usart)
 {
@@ -473,6 +480,7 @@ usart_ioctl_t* get_usart_ioctl(USART_HANDLE_t usarth)
 	return (usart_ioctl_t*)&usart_ioctls[usarth];
 }
 
+#include <unistd.h>
 /**
  * write a character to the console usart.
  */
@@ -480,7 +488,9 @@ void usart_tx(USART_HANDLE_t usarth, const uint8_t data)
 {
 	if(usarth != USART_INVALID_HANDLE){
 		usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
-		while(!usart_tx_readytosend(usart_ioctl));
+		while(!usart_tx_readytosend(usart_ioctl)) {
+			usleep(1000);
+		}
 		usart_ioctl->usart->DR =  data;
 	}
 }
@@ -489,7 +499,9 @@ uint8_t usart_rx(USART_HANDLE_t usarth)
 {
 	if(usarth != USART_INVALID_HANDLE){
 		usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
-		while(!usart_rx_inwaiting(usart_ioctl));
+		while(!usart_rx_inwaiting(usart_ioctl)) {
+			usleep(1000);
+		}
 		return usart_ioctl->usart->DR;
 	}
 	return 0;

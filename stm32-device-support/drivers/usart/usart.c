@@ -62,7 +62,7 @@
 #include "base_usart.h"
 #include "asserts.h"
 #include "cutensils.h"
-#include "system.h"
+#include "device.h"
 
 #if USE_LIKEPOSIX
 
@@ -336,55 +336,138 @@ static int usart_ioctl(dev_ioctl_t* dev)
   */
 inline void _usart_isr(USART_HANDLE_t usarth)
 {
-#if USE_FREERTOS
-	static BaseType_t waiting_receiving_task_has_woken = pdFALSE;
-#endif
-#if USE_LIKEPOSIX
 	static BaseType_t receiving_task_has_woken = pdFALSE;
 	static BaseType_t sending_task_has_woken = pdFALSE;
-#endif
+	USART_HandleTypeDef husart;
 	usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
-	assert_true(usart_ioctl);
-	uint8_t byte;
+	husart.Instance = usart_ioctl->usart;
 
-	if(usart_rx_inwaiting(usart_ioctl) || usart_rx_overrun(usart_ioctl))
-	{
-		byte = usart_ioctl->usart->DR;
+	uint32_t tmp1 = 0, tmp2 = 0;
 
-#if USE_LIKEPOSIX
-		if(usart_dev_ioctls[usarth]) {
-			xQueueSendFromISR(usart_dev_ioctls[usarth]->pipe.read, (char*)&byte, &receiving_task_has_woken);
-			portYIELD_FROM_ISR(receiving_task_has_woken);
-		}
-		else
-#endif
-		{
-			vfifo_put(usart_ioctl->rxfifo, (void*)&byte);
+	  tmp1 = __HAL_USART_GET_FLAG(&husart, USART_FLAG_PE);
+	  tmp2 = __HAL_USART_GET_IT_SOURCE(&husart, USART_IT_PE);
+	  /* USART parity error interrupt occurred -----------------------------------*/
+	  if((tmp1 != RESET) && (tmp2 != RESET))
+	  {
+	    __HAL_USART_CLEAR_PEFLAG(&husart);
+	    husart.ErrorCode |= HAL_USART_ERROR_PE;
+	  }
 
-#if USE_FREERTOS
-			if(usart_ioctl->rx_expect && ((vfifo_used_slots(usart_ioctl->rxfifo) >= usart_ioctl->rx_expect) || vfifo_full(usart_ioctl->rxfifo))) {
-				xSemaphoreGiveFromISR(usart_ioctl->rx_sem, &waiting_receiving_task_has_woken);
-				portYIELD_FROM_ISR(waiting_receiving_task_has_woken);
+	  tmp1 = __HAL_USART_GET_FLAG(&husart, USART_FLAG_FE);
+	  tmp2 = __HAL_USART_GET_IT_SOURCE(&husart, USART_IT_ERR);
+	  /* USART frame error interrupt occurred ------------------------------------*/
+	  if((tmp1 != RESET) && (tmp2 != RESET))
+	  {
+	    __HAL_USART_CLEAR_FEFLAG(&husart);
+	    husart.ErrorCode |= HAL_USART_ERROR_FE;
+	  }
+
+	  tmp1 = __HAL_USART_GET_FLAG(&husart, USART_FLAG_NE);
+	  tmp2 = __HAL_USART_GET_IT_SOURCE(&husart, USART_IT_ERR);
+	  /* USART noise error interrupt occurred ------------------------------------*/
+	  if((tmp1 != RESET) && (tmp2 != RESET))
+	  {
+	    __HAL_USART_CLEAR_NEFLAG(&husart);
+	    husart.ErrorCode |= HAL_USART_ERROR_NE;
+	  }
+
+	  tmp1 = __HAL_USART_GET_FLAG(&husart, USART_FLAG_ORE);
+	  tmp2 = __HAL_USART_GET_IT_SOURCE(&husart, USART_IT_ERR);
+	  /* USART Over-Run interrupt occurred ---------------------------------------*/
+	  if((tmp1 != RESET) && (tmp2 != RESET))
+	  {
+	    __HAL_USART_CLEAR_OREFLAG(&husart);
+	    husart.ErrorCode |= HAL_USART_ERROR_ORE;
+	  }
+
+	  if(husart.ErrorCode != HAL_USART_ERROR_NONE)
+	  {
+	    /* Set the USART state ready to be able to start again the process */
+	    husart.State = HAL_USART_STATE_READY;
+
+	    HAL_USART_ErrorCallback(&husart);
+	  }
+
+	  tmp1 = __HAL_USART_GET_FLAG(&husart, USART_FLAG_RXNE);
+	  tmp2 = __HAL_USART_GET_IT_SOURCE(&husart, USART_IT_RXNE);
+	  /* USART in mode Receiver --------------------------------------------------*/
+	  if((tmp1 != RESET) && (tmp2 != RESET))
+	  {
+			if(usart_dev_ioctls[usarth]) {
+				xQueueSendFromISR(usart_dev_ioctls[usarth]->pipe.read, (char*)&usart_ioctl->usart->DR, &receiving_task_has_woken);
+				portYIELD_FROM_ISR(receiving_task_has_woken);
 			}
-#endif
-		}
-	}
+	  }
 
-	if(usart_tx_readytosend(usart_ioctl))
-	{
-#if USE_LIKEPOSIX
-		if(usart_dev_ioctls[usarth]) {
+	  tmp1 = __HAL_USART_GET_FLAG(&husart, USART_FLAG_TXE);
+	  tmp2 = __HAL_USART_GET_IT_SOURCE(&husart, USART_IT_TXE);
+	  /* USART in mode Transmitter -----------------------------------------------*/
+	  if((tmp1 != RESET) && (tmp2 != RESET))
+	  {
 			if(xQueueReceiveFromISR(usart_dev_ioctls[usarth]->pipe.write, (char*)&usart_ioctl->usart->DR, &sending_task_has_woken) == pdFALSE) {
-				usart_disable_tx_int(usart_ioctl);
+			      __HAL_USART_DISABLE_IT(&husart, USART_IT_TXE);
 			}
 			portYIELD_FROM_ISR(sending_task_has_woken);
-		}
-		else
-#endif
-		{
-			if(!vfifo_get(usart_ioctl->txfifo, (void*)&usart_ioctl->usart->DR)) {
-				usart_disable_tx_int(usart_ioctl);
-			}
-		}
-	}
+	  }
+
+//	  tmp1 = __HAL_USART_GET_FLAG(&husart, USART_FLAG_TC);
+//	  tmp2 = __HAL_USART_GET_IT_SOURCE(husart, USART_IT_TC);
+//	  /* USART in mode Transmitter (transmission end) ----------------------------*/
+//	  if((tmp1 != RESET) && (tmp2 != RESET))
+//	  {
+//	    USART_EndTransmit_IT(husart);
+//	  }
+
+
+//#if USE_FREERTOS
+//	static BaseType_t waiting_receiving_task_has_woken = pdFALSE;
+//#endif
+//#if USE_LIKEPOSIX
+//	static BaseType_t receiving_task_has_woken = pdFALSE;
+//	static BaseType_t sending_task_has_woken = pdFALSE;
+//#endif
+//	usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
+//	assert_true(usart_ioctl);
+//	uint8_t byte;
+//
+//	if(usart_rx_inwaiting(usart_ioctl) || usart_rx_overrun(usart_ioctl))
+//	{
+//		byte = usart_ioctl->usart->DR;
+//
+//#if USE_LIKEPOSIX
+//		if(usart_dev_ioctls[usarth]) {
+//			xQueueSendFromISR(usart_dev_ioctls[usarth]->pipe.read, (char*)&byte, &receiving_task_has_woken);
+//			portYIELD_FROM_ISR(receiving_task_has_woken);
+//		}
+//		else
+//#endif
+//		{
+//			vfifo_put(usart_ioctl->rxfifo, (void*)&byte);
+//
+//#if USE_FREERTOS
+//			if(usart_ioctl->rx_expect && ((vfifo_used_slots(usart_ioctl->rxfifo) >= usart_ioctl->rx_expect) || vfifo_full(usart_ioctl->rxfifo))) {
+//				xSemaphoreGiveFromISR(usart_ioctl->rx_sem, &waiting_receiving_task_has_woken);
+//				portYIELD_FROM_ISR(waiting_receiving_task_has_woken);
+//			}
+//#endif
+//		}
+//	}
+//
+//	if(usart_tx_readytosend(usart_ioctl))
+//	{
+//#if USE_LIKEPOSIX
+//		if(usart_dev_ioctls[usarth]) {
+//			if(xQueueReceiveFromISR(usart_dev_ioctls[usarth]->pipe.write, (char*)&usart_ioctl->usart->DR, &sending_task_has_woken) == pdFALSE) {
+//				usart_disable_tx_int(usart_ioctl);
+//			}
+//			portYIELD_FROM_ISR(sending_task_has_woken);
+//		}
+//		else
+//#endif
+//		{
+//			if(!vfifo_get(usart_ioctl->txfifo, (void*)&usart_ioctl->usart->DR)) {
+//				usart_disable_tx_int(usart_ioctl);
+//			}
+//		}
+//	}
 }
