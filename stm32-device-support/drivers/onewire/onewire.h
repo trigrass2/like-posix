@@ -36,7 +36,9 @@
 #include "board_config.h"
 #include "usart.h"
 
-#define ONEWIRE_POLLED 0 // use polled usart, instead of usart async
+#define ONEWIRE_POLLED 1 // use polled usart
+#define ONEWIRE_ASYNC 0 // use async usart
+#define ONEWIRE_DEVD 0 // use usart dev
 
 // ROM COMMANDS
 #define ONEWIRE_MATCH_ROM           0x55
@@ -52,9 +54,9 @@
 #define onewire_write_bit(fd, bit) onewire_xfer_bit(fd, bit);
 
 USART_HANDLE_t onewire_create(USART_TypeDef* usart);
-//USART_HANDLE_t onewire_create(USART_TypeDef* usart, char* filename);
-//int onewire_open(const char* filename);
-//void onewire_close(USART_HANDLE_t usarth);
+USART_HANDLE_t onewire_create_dev(USART_TypeDef* usart, char* filename);
+int onewire_open_dev(const char* filename);
+void onewire_close_dev(USART_HANDLE_t usarth);
 unsigned char onewire_reset(USART_HANDLE_t usarth);
 unsigned char onewire_xfer_byte(USART_HANDLE_t usarth, unsigned char byte);
 unsigned char onewire_xfer_bit(USART_HANDLE_t usarth, unsigned char bit);

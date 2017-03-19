@@ -68,35 +68,39 @@ USART_HANDLE_t onewire_create(USART_TypeDef* usart)
 {
 #if ONEWIRE_POLLED
     return usart_create_polled(usart, true, USART_ONEWIRE, 9600);
-#else
-    return usart_create_async(usart, true, USART_ONEWIRE, 9600, 16);
+#elif ONEWIRE_ASYNC
+    return usart_create_async(usart, true, USART_ONEWIRE, 9600, 128);
 #endif
 }
-///**
-// * initializes a USART peripheral for use as a 1 wire master.
-// *
-// * @param usart - the usart device to use.
-// * @param filename - the filename to assign to the usart device, typically "/dev/onewire0".
-// */
-//USART_HANDLE_t onewire_create(USART_TypeDef* usart, char* filename)
-//{
-//    return usart_create_dev(filename, usart, true, USART_ONEWIRE, 9600, 128);
-//}
-//
-//int onewire_open(const char* filename)
-//{
-//    USART_HANDLE_t usarth = open(filename, O_RDWR);
-//    //  struct termios t;
-//    //  tcgetattr(usarth, &t);
-//    //  t.c_cc[VTIME] = 10; // 100ms timeout
-//    //  tcsetattr(usarth, TCSANOW, &t);
-//    return usarth;
-//}
-//
-//void onewire_close(USART_HANDLE_t usarth)
-//{
-//	close(usarth);
-//}
+
+#if ONEWIRE_DEV
+/**
+ * initializes a USART peripheral for use as a 1 wire master.
+ *
+ * @param usart - the usart device to use.
+ * @param filename - the filename to assign to the usart device, typically "/dev/onewire0".
+ */
+USART_HANDLE_t onewire_create_dev(USART_TypeDef* usart, char* filename)
+{
+	return usart_create_dev(filename, usart, USART_ONEWIRE, 9600, 128);
+}
+
+
+int onewire_open(const char* filename)
+{
+    USART_HANDLE_t usarth = open(filename, O_RDWR);
+	struct termios t;
+	tcgetattr(usarth, &t);
+	t.c_cc[VTIME] = 10; // 100ms timeout
+	tcsetattr(usarth, TCSANOW, &t);
+    return usarth;
+}
+
+void onewire_close(USART_HANDLE_t usarth)
+{
+	close(usarth);
+}
+#endif
 
 /**
  * sends the 1 wire bus reset, reads the response.
@@ -109,27 +113,30 @@ unsigned char onewire_reset(USART_HANDLE_t usarth)
 	unsigned char c = 0xf0;
 #if ONEWIRE_POLLED
     usart_set_baudrate(usarth, 9600);
+    usleep(5000);
     usart_tx(usarth, c);
     c = usart_rx(usarth);
     usart_set_baudrate(usarth, 115200);
-#else
+    usleep(5000);
+#elif ONEWIRE_DEV
+	struct termios t;
+	tcgetattr(usarth, &t);
+	cfsetispeed(&t, 9600);
+	tcsetattr(usarth, TCSADRAIN, &t);
+	write(usarth, &c, 1);
+	read(usarth, &c, 1);
+	tcgetattr(usarth, &t);
+	cfsetispeed(&t, 115200);
+	tcsetattr(usarth, TCSADRAIN, &t);
+#elif ONEWIRE_ASYNC
     usart_set_baudrate(usarth, 9600);
     usleep(5000);
     usart_put_async(usarth, (const uint8_t*)&c, 1);
     usart_get_async(usarth, &c, 1, 1000);
     usart_set_baudrate(usarth, 115200);
     usleep(5000);
-//    struct termios t;
-//    tcgetattr(usarth, &t);
-//    cfsetispeed(&t, 9600);
-//    tcsetattr(usarth, TCSADRAIN, &t);
-//    write(usarth, &c, 1);
-//    read(usarth, &c, 1);
-//    tcgetattr(usarth, &t);
-//    cfsetispeed(&t, 115200);
-//    tcsetattr(usarth, TCSADRAIN, &t);
 #endif
-    printf("found: %s (code=%d)\n", c > 0x10 && c < 0x90 ? "devices": "nothing", c);
+    printf("got: %d\n", c);
     return c > 0x10 && c < 0x90;
 }
 
@@ -158,16 +165,16 @@ unsigned char onewire_xfer_byte(USART_HANDLE_t usarth, unsigned char byte)
 		usart_tx(usarth, bits[i]);
 		bits[i] = usart_rx(usarth);
     }
-#else
+#elif ONEWIRE_DEV
+	write(usarth, bits, 8);
+	read(usarth, bits, 8);
+#elif ONEWIRE_ASYNC
     usart_put_async(usarth, (const uint8_t*)bits, sizeof(bits));
     usart_get_async(usarth, bits, sizeof(bits), 1000);
-//    write(usarth, bits, 8);
-//    read(usarth, bits, 8);
 #endif
 
     for(i = 0; i < sizeof(bits); i++) {
         c |= bits[i] == 0xff ? (1<<i) : 0;
-        printf("%d,", bits[i]);
     }
 
     return c;
@@ -191,11 +198,12 @@ unsigned char onewire_xfer_bit(USART_HANDLE_t usarth, unsigned char bit)
 #if ONEWIRE_POLLED
 	usart_tx(usarth, bit);
 	bit = usart_rx(usarth);
-#else
+#elif ONEWIRE_DEV
+	write(usarth, &bit, 1);
+	read(usarth, &bit, 1);
+#elif ONEWIRE_ASYNC
 	usart_put_async(usarth, (const uint8_t*)&bit, 1);
 	usart_get_async(usarth, &bit, 1, 1000);
-//    write(usarth, &bit, 1);
-//    read(usarth, &bit, 1);
 #endif
 
     return bit == 0xff ? 1 : 0;
@@ -236,8 +244,6 @@ void onewire_search_ids(USART_HANDLE_t usarth, uint64_t* buffer, int length)
 {
     int i;
 
-    // find ALL devices
-
     if(length == 1)
     {
         if(onewire_reset(usarth))
@@ -246,23 +252,15 @@ void onewire_search_ids(USART_HANDLE_t usarth, uint64_t* buffer, int length)
             onewire_write_byte(usarth, ONEWIRE_READ_ROM);
             for(i = 0; i < 8; i++, byte++) {
                 *byte = onewire_read_byte(usarth);
-//                printf("%d,", *byte);
             }
-//            printf("\n");
         }
     }
     else if(length > 1)
     {
         onewire_search_t search;
-        int cnt = 0;
         int rslt = onewire_first(usarth, &search);
         while(length && rslt)
         {
-           // print device found
-           for (i = 7; i >= 0; i--)
-              printf("%02X", search.ROM_NO[i]);
-           printf("  %d\n",++cnt);
-
            memcpy(buffer, search.ROM_NO, 8);
            buffer++;
            rslt = onewire_next(usarth, &search);
