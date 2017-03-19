@@ -342,13 +342,14 @@ int32_t spi_get_async(SPI_HANDLE_t spih, uint8_t* data, int32_t length, uint32_t
  * @param clock_polarity Eg SPI_POLARITY_LOW
  * @param data_width Eg SPI_DATASIZE_8BIT
  */
-SPI_HANDLE_t spi_create_dev(const char* filename, SPI_TypeDef* spi, bool enable, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t baudrate, uint32_t buffersize)
+SPI_HANDLE_t spi_create_dev(const char* filename, SPI_TypeDef* spi, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t baudrate, uint32_t buffersize)
 {
     SPI_HANDLE_t spih = SPI_INVALID_HANDLE;
 
-	spih = spi_init_device(spi, enable, baudrate, bit_order, clock_phase, clock_polarity, data_width);
+	spih = spi_init_device(spi, true, baudrate, bit_order, clock_phase, clock_polarity, data_width);
     spi_init_gpio(spih);
     spi_init_ss_gpio(spih);
+	spi_init_interrupt(spih, SPI_INTERRUPT_PRIORITY, true);
 
 	spi_dev_ioctls[spih] = (void*)install_device(filename,
 													spih,
@@ -360,10 +361,6 @@ SPI_HANDLE_t spi_create_dev(const char* filename, SPI_TypeDef* spi, bool enable,
 													buffersize);
 
 	log_debug(NULL, "install spi%d: %s", spih, spi_dev_ioctls[spih] ? "successful" : "failed");
-
-	if(spi_dev_ioctls[spih]) {
-		spi_init_interrupt(spih, SPI_INTERRUPT_PRIORITY, enable);
-	}
 
     assert_true(spi_dev_ioctls[spih]);
 
