@@ -67,23 +67,23 @@ typedef enum {
 
 typedef struct {
 	USART_TypeDef* usart;
-	uint32_t baudrate;
-	usart_mode_t mode;
+	volatile uint32_t baudrate;
+	volatile usart_mode_t mode;
 	vfifo_t* rxfifo;
 	vfifo_t* txfifo;
-	int32_t rx_expect;
+	volatile int32_t rx_expect;
 #if USE_FREERTOS
-	SemaphoreHandle_t rx_sem;
+	volatile SemaphoreHandle_t rx_sem;
 #endif
 } usart_ioctl_t;
 
-//#define usart_rx_inwaiting(usart_ioctl)		(usart_ioctl->usart->SR & USART_SR_RXNE)
-//#define usart_rx_overrun(usart_ioctl)		(usart_ioctl->usart->SR & USART_SR_ORE)
-//#define usart_tx_readytosend(usart_ioctl)	(usart_ioctl->usart->SR & USART_SR_TXE)
-//#define usart_enable_rx_int(usart_ioctl)	(usart_ioctl->usart->CR1 |= USART_CR1_RXNEIE)
-//#define usart_enable_tx_int(usart_ioctl)	(usart_ioctl->usart->CR1 |= USART_CR1_TXEIE)
-//#define usart_disable_rx_int(usart_ioctl)	(usart_ioctl->usart->CR1 &= ~USART_CR1_RXNEIE)
-//#define usart_disable_tx_int(usart_ioctl)	(usart_ioctl->usart->CR1 &= ~USART_CR1_TXEIE)
+#define usart_rx_inwaiting(usart_ioctl)		(usart_ioctl->usart->SR & USART_SR_RXNE)
+#define usart_rx_overrun(usart_ioctl)		(usart_ioctl->usart->SR & USART_SR_ORE)
+#define usart_tx_readytosend(usart_ioctl)	(usart_ioctl->usart->SR & USART_SR_TXE)
+#define usart_enable_rx_int(usart_ioctl)	(usart_ioctl->usart->CR1 |= USART_CR1_RXNEIE)
+#define usart_enable_tx_int(usart_ioctl)	(usart_ioctl->usart->CR1 |= USART_CR1_TXEIE)
+#define usart_disable_rx_int(usart_ioctl)	(usart_ioctl->usart->CR1 &= ~USART_CR1_RXNEIE)
+#define usart_disable_tx_int(usart_ioctl)	(usart_ioctl->usart->CR1 &= ~USART_CR1_TXEIE)
 
 USART_HANDLE_t usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate);
 void usart_init_gpio(USART_HANDLE_t usarth);
@@ -95,16 +95,6 @@ void usart_tx(USART_HANDLE_t usarth, const uint8_t data);
 uint8_t usart_rx(USART_HANDLE_t usarth);
 void usart_set_baudrate(USART_HANDLE_t usarth, uint32_t baudrate);
 uint32_t usart_get_baudrate(USART_HANDLE_t usarth);
-
-bool usart_rx_inwaiting(usart_ioctl_t* usart_ioctl);
-bool usart_rx_overrun(usart_ioctl_t* usart_ioctl);
-bool usart_tx_readytosend(usart_ioctl_t* usart_ioctl);
-void usart_enable_rx_int(usart_ioctl_t* usart_ioctl);
-void usart_enable_tx_int(usart_ioctl_t* usart_ioctl);
-void usart_disable_rx_int(usart_ioctl_t* usart_ioctl);
-void usart_disable_tx_int(usart_ioctl_t* usart_ioctl);
-
-
 
 #endif // USART_PERIPHERAL_H_
 

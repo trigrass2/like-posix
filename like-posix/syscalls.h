@@ -93,7 +93,7 @@
 #if !USE_FREERTOS || !USE_LIKEPOSIX
 
  struct _dev_ioctl_t{
-     int device_handle;
+	 volatile int device_handle;
  };
 
 #else
@@ -109,7 +109,7 @@
   * device interface definition, used for device driver interfacing.
   */
  struct _dev_ioctl_t{
-	int device_handle;				///< the "handle" of some data that has meaning to the driver itself, typically this will be an index into some device driver descriptor table.
+	 volatile int device_handle;				///< the "handle" of some data that has meaning to the driver itself, typically this will be an index into some device driver descriptor table.
     unsigned int timeout;           ///< io timeout in milliseconds
  	dev_ioctl_fn_t read_enable;		///< pointer to enable device read function
  	dev_ioctl_fn_t write_enable;	///< pointer to enable device write function
@@ -118,7 +118,7 @@
  	dev_ioctl_fn_t close;			///< pointer to close device function
     struct termios* termios;        ///< a termios structure to define device settings via termios interface.
     unsigned int buffersize;		///< the length in bytes of the buffer.
- 	queue_pair_t pipe;
+    volatile queue_pair_t pipe;
  };
 
 void init_likeposix();

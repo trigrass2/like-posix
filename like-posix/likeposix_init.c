@@ -72,7 +72,12 @@ extern int main();
 void LikePosix_Init()
 {
 	__likeposix_crt_flags = 0;
-
+#if USE_MINLIBC
+    init_minlibc();
+#endif
+#if USE_LIKEPOSIX
+    init_likeposix();
+#endif
 #if USE_DRIVER_SYSTEM_TIMER
     init_systime();
 #endif
@@ -88,12 +93,6 @@ void LikePosix_Init()
 #endif
 #if USE_DRIVER_LEDS
     init_leds();
-#endif
-#if USE_LIKEPOSIX
-    init_likeposix();
-#endif
-#if USE_MINLIBC
-    init_minlibc();
 #endif
 
 #if USE_FREERTOS

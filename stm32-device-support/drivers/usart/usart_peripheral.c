@@ -36,6 +36,7 @@
 #include "syscalls.h"
 #endif
 
+
 #include "usart.h"
 #include "base_usart.h"
 #include "asserts.h"
@@ -52,8 +53,6 @@ static volatile usart_ioctl_t usart_ioctls[8];
 
 USART_HANDLE_t usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate)
 {
-    USART_HandleTypeDef husart;
-
 	USART_HANDLE_t usarth = get_usart_handle(usart);
     usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
 
@@ -100,30 +99,13 @@ USART_HANDLE_t usart_init_device(USART_TypeDef* usart, bool enable, usart_mode_t
         }
 #endif
 
-        husart.Instance = usart_ioctl->usart;
-        husart.State = HAL_USART_STATE_RESET;
-        husart.Init.BaudRate = usart_ioctl->baudrate;
-        husart.Init.CLKLastBit = USART_LASTBIT_DISABLE;
-        husart.Init.CLKPhase = USART_PHASE_1EDGE;
-        husart.Init.CLKPolarity = USART_POLARITY_LOW;
-        husart.Init.Parity = USART_PARITY_NONE;
-        husart.Init.StopBits = USART_STOPBITS_1;
-        husart.Init.WordLength = USART_WORDLENGTH_8B;
-
-        switch(mode)
-        {
-            case USART_FULLDUPLEX:
-            case USART_ONEWIRE:
-                husart.Init.Mode = USART_MODE_TX_RX;
-            break;
-            default:
-                assert_true(0);
-            break;
-        }
-
-        HAL_USART_Init(&husart);
-
-//        usart_set_baudrate(usarth, USART_DEFAULT_BAUDRATE);
+		usart_ioctl->usart->CR3 = 0;
+        usart_ioctl->usart->CR1 = USART_CR1_UE;
+        usart_ioctl->usart->CR1 |= USART_CR1_RE|USART_CR1_TE;
+        usart_ioctl->usart->CR1 |= USART_CR1_OVER8;
+		usart_ioctl->usart->CR2 = 0;
+		usart_set_baudrate(usarth, baudrate);
+		usart_ioctl->usart->GTPR = 0;
     }
     else
     {
@@ -182,7 +164,11 @@ void usart_init_gpio(USART_HANDLE_t usarth)
 	switch(usart_ioctl->mode)
 	{
 		case USART_ONEWIRE:
+#if FAMILY==STM32F1
+			gpio_input_init.Mode = GPIO_MODE_INPUT;
+#elif FAMILY==STM32F4
 			gpio_input_init.Mode = GPIO_MODE_AF_OD;
+#endif
 			gpio_input_init.Pull = GPIO_PULLUP;
 			gpio_input_init.Speed = GPIO_SPEED_MEDIUM;
 			gpio_output_init.Mode = GPIO_MODE_AF_OD;
@@ -191,13 +177,20 @@ void usart_init_gpio(USART_HANDLE_t usarth)
 		break;
 
 		case USART_FULLDUPLEX:
-		default:
-			gpio_input_init.Mode = GPIO_MODE_AF_PP;
+#if FAMILY==STM32F1
+			gpio_input_init.Mode = GPIO_MODE_INPUT;
+#elif FAMILY==STM32F4
+			gpio_input_init.Mode = GPIO_MODE_AF_OD;
+#endif
 			gpio_input_init.Pull = GPIO_PULLUP;
 			gpio_input_init.Speed = GPIO_SPEED_MEDIUM;
 			gpio_output_init.Mode = GPIO_MODE_AF_PP;
 			gpio_output_init.Pull = GPIO_NOPULL;
 			gpio_output_init.Speed = GPIO_SPEED_MEDIUM;
+		break;
+
+		default:
+			assert_true(0);
 		break;
 	}
 
@@ -314,13 +307,10 @@ void usart_init_gpio(USART_HANDLE_t usarth)
 void usart_init_interrupt(USART_HANDLE_t usarth, uint8_t priority, bool enable)
 {
 	uint8_t irq = 0;
+	usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
 
-	USART_HandleTypeDef husart;
-	husart.Instance = get_usart_peripheral(usarth);
-
-	__HAL_USART_DISABLE_IT(&husart, USART_IT_RXNE);
-	__HAL_USART_DISABLE_IT(&husart, USART_IT_TXE);
-	__HAL_USART_DISABLE_IT(&husart, USART_IT_ERR);
+	usart_disable_tx_int(usart_ioctl);
+	usart_disable_rx_int(usart_ioctl);
 
 	if(usarth == USART1_HANDLE)
 		irq = USART1_IRQn;
@@ -351,62 +341,13 @@ void usart_init_interrupt(USART_HANDLE_t usarth, uint8_t priority, bool enable)
 	else
 		assert_true(0);
 
-    if(enable)
-    {
+    if(enable) {
     	HAL_NVIC_SetPriority(irq, priority, 0);
     	HAL_NVIC_EnableIRQ(irq);
     }
-    else
+    else {
     	HAL_NVIC_DisableIRQ(irq);
-}
-
-inline bool usart_rx_inwaiting(usart_ioctl_t* usart_ioctl)
-{
-	USART_HandleTypeDef husart;
-	husart.Instance = usart_ioctl->usart;
-	return __HAL_USART_GET_FLAG(&husart, USART_FLAG_RXNE);
-}
-
-inline bool usart_rx_overrun(usart_ioctl_t* usart_ioctl)
-{
-	USART_HandleTypeDef husart;
-	husart.Instance = usart_ioctl->usart;
-	return __HAL_USART_GET_FLAG(&husart, USART_FLAG_ORE);
-}
-
-inline bool usart_tx_readytosend(usart_ioctl_t* usart_ioctl)
-{
-	USART_HandleTypeDef husart;
-	husart.Instance = usart_ioctl->usart;
-	return __HAL_USART_GET_FLAG(&husart, USART_FLAG_TXE);
-}
-
-inline void usart_enable_rx_int(usart_ioctl_t* usart_ioctl)
-{
-	USART_HandleTypeDef husart;
-	husart.Instance = usart_ioctl->usart;
-	__HAL_USART_ENABLE_IT(&husart, USART_IT_RXNE);
-}
-
-inline void usart_enable_tx_int(usart_ioctl_t* usart_ioctl)
-{
-	USART_HandleTypeDef husart;
-	husart.Instance = usart_ioctl->usart;
-	__HAL_USART_ENABLE_IT(&husart, USART_IT_TXE);
-}
-
-inline void usart_disable_rx_int(usart_ioctl_t* usart_ioctl)
-{
-	USART_HandleTypeDef husart;
-	husart.Instance = usart_ioctl->usart;
-	__HAL_USART_DISABLE_IT(&husart, USART_IT_RXNE);
-}
-
-inline void usart_disable_tx_int(usart_ioctl_t* usart_ioctl)
-{
-	USART_HandleTypeDef husart;
-	husart.Instance = usart_ioctl->usart;
-	__HAL_USART_DISABLE_IT(&husart, USART_IT_TXE);
+    }
 }
 
 USART_HANDLE_t get_usart_handle(USART_TypeDef* usart)
@@ -488,9 +429,7 @@ void usart_tx(USART_HANDLE_t usarth, const uint8_t data)
 {
 	if(usarth != USART_INVALID_HANDLE){
 		usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
-		while(!usart_tx_readytosend(usart_ioctl)) {
-			usleep(1000);
-		}
+		while(!usart_tx_readytosend(usart_ioctl));
 		usart_ioctl->usart->DR =  data;
 	}
 }
@@ -499,9 +438,7 @@ uint8_t usart_rx(USART_HANDLE_t usarth)
 {
 	if(usarth != USART_INVALID_HANDLE){
 		usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
-		while(!usart_rx_inwaiting(usart_ioctl)) {
-			usleep(1000);
-		}
+		while(!usart_rx_inwaiting(usart_ioctl));
 		return usart_ioctl->usart->DR;
 	}
 	return 0;
