@@ -58,7 +58,7 @@ typedef TaskHandle_t threadfunc;
 #endif
 #if USE_LOGGER
 #include <unistd.h>
-#include "cutensils.h"
+#include "logger.h"
 #endif
 #if USE_MINLIBC
 #include "minlibc/stdio.h"

@@ -16,7 +16,7 @@ DATE := $(shell date +"%F_%T")
 BUILDNO := $(shell date +"%m.%d.%H.%M.%S")
 
 
-# STM32DEVSUPPORTDIR
+# LIKEPOSIX_DIR
 # relative path to applesed root directory WRT the project root directory, the default works with:
 # projectdir -|
 # 			  |- main.c
@@ -26,7 +26,7 @@ BUILDNO := $(shell date +"%m.%d.%H.%M.%S")
 # 			  				|- build-env
 # 			  				|- etc...
 #
-STM32DEVSUPPORTDIR ?= like-posix
+LIKEPOSIX_DIR ?= like-posix
 
 ## Supported boards:
 # HY-STM32_100P
@@ -161,36 +161,6 @@ USE_DRIVER_PWM ?= 0
 USE_DRIVER_1WIRE ?= 0
 
 
-
-## specify location of the build-env
-BUILD_ENV_DIR ?= $(STM32DEVSUPPORTDIR)/build-env
-## specify location of stm32-device-support
-DEVICE_SUPPORT_DIR ?= $(STM32DEVSUPPORTDIR)/stm32-device-support
-## specify location of autensils
-AUTENSILS_DIR ?= $(STM32DEVSUPPORTDIR)/autensils
-## specify location of cutensils
-CUTENSILS_DIR ?= $(STM32DEVSUPPORTDIR)/cutensils
-## specify location of nutensils
-NUTENSILS_DIR ?= $(STM32DEVSUPPORTDIR)/nutensils
-## specify location of FatFs
-FATFS_DIR ?= $(STM32DEVSUPPORTDIR)/FatFs
-## specify location of like-posix
-LIKEPOSIX_DIR ?= $(STM32DEVSUPPORTDIR)/like-posix
-## specify location of freertos
-FREERTOS_DIR ?= $(STM32DEVSUPPORTDIR)/freertos
-## specify location of LwIP
-LWIP_DIR ?= $(STM32DEVSUPPORTDIR)/LwIP
-## specify location of minstdlibs
-MINLIBCDIR ?= $(STM32DEVSUPPORTDIR)/minlibc
-## specify location of graphics
-GRAPHICSDIR ?= $(STM32DEVSUPPORTDIR)/graphics
-## specify location of jsmn
-JSMNDIR ?= $(STM32DEVSUPPORTDIR)/jsmn
-## specify location of jsmn_extensions
-JSMN_EXTENSIONS_DIR ?= $(STM32DEVSUPPORTDIR)/jsmn_extensions
-## specify location of pthreads
-PTHREADS_DIR ?= $(STM32DEVSUPPORTDIR)/pthreads
-
 ## relocate application
 # set appropriately if there is a bootloader in the low flash pages
 APP_ADDRESS_OFFSET ?= 0x0000
@@ -204,4 +174,4 @@ _FS_TINY ?= 0
 _FS_READONLY ?= 0
 
 # include the makefile that collects all modules together
-include $(BUILD_ENV_DIR)/collect.mk
+include $(LIKEPOSIX_DIR)/build-env/_collect.mk
