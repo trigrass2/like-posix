@@ -177,7 +177,7 @@ int sh_cd(int fdes, const char** args, unsigned char nargs)
     if(!nargs)
         path = diskdrive_mountpoint();
     else
-        path = arg_by_index(0, args, nargs);
+        path = arg_by_index(1, args, nargs);
 
     if(diskdrive_chdrive(path) != 0)
     {
@@ -193,7 +193,7 @@ int sh_cd(int fdes, const char** args, unsigned char nargs)
 
 int sh_rm(int fdes, const char** args, unsigned char nargs)
 {
-    unsigned char arg = 0;
+    unsigned char arg = 1;
 
     if(!nargs)
     {
@@ -226,7 +226,7 @@ int sh_cat(int fdes, const char** args, unsigned char nargs)
 	(void)nargs;
 	char buffer[64];
 	int len;
-	int ffd = open(args[0], O_RDONLY);
+	int ffd = open(args[1], O_RDONLY);
 
 	if(ffd != -1)
 	{
@@ -244,8 +244,8 @@ int sh_cat(int fdes, const char** args, unsigned char nargs)
 
 int sh_mv(int fdes, const char** args, unsigned char nargs)
 {
-    const char* path = arg_by_index(0, args, nargs);
-    const char* newpath = arg_by_index(1, args, nargs);
+    const char* path = arg_by_index(1, args, nargs);
+    const char* newpath = arg_by_index(2, args, nargs);
 
     if(path && newpath)
     {
@@ -262,8 +262,8 @@ int sh_cp(int fdes, const char** args, unsigned char nargs)
 {
     FILE* f1;
     FILE* f2;
-    const char* path = arg_by_index(0, args, nargs);
-    const char* newpath = arg_by_index(1, args, nargs);
+    const char* path = arg_by_index(1, args, nargs);
+    const char* newpath = arg_by_index(2, args, nargs);
     char buffer[64];
     int length;
 
@@ -299,9 +299,9 @@ int sh_cp(int fdes, const char** args, unsigned char nargs)
 #if USE_CONFPARSE
 int sh_config(int fdes, const char** args, unsigned char nargs)
 {
-    const char* file = arg_by_index(0, args, nargs);
-    const char* key = arg_by_index(1, args, nargs);
-    const char* value = arg_by_index(2, args, nargs);
+    const char* file = arg_by_index(1, args, nargs);
+    const char* key = arg_by_index(2, args, nargs);
+    const char* value = arg_by_index(3, args, nargs);
     uint8_t* buffer;
     bool success = true;
     int length;

@@ -68,7 +68,7 @@ int sh_wget(int fdes, const char** args, unsigned char nargs)
 {
     logger_t log;
     char* buffer = malloc(128);
-    char* url = (char*)arg_by_index(0, args, nargs);
+    char* url = (char*)arg_by_index(1, args, nargs);
     char* file;
     http_response_t resp;
     int status;

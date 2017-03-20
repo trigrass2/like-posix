@@ -161,7 +161,7 @@ int sh_reboot(int fdes, const char** args, unsigned char nargs)
 
 int sh_echo(int fdes, const char** args, unsigned char nargs)
 {
-    const char* echo = arg_by_index(0, args, nargs);
+    const char* echo = arg_by_index(1, args, nargs);
     const char* escape;
     char special;
 

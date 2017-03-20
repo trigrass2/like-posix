@@ -172,6 +172,15 @@ static bool open_input_file(shell_instance_t* shell_inst);
 static char close_input_file(shell_instance_t* shell_inst, char input_char);
 static void make_prompt();
 
+static void shell_backspace(shell_instance_t* shell_inst);
+static void shell_delete(shell_instance_t* shell_inst, char code);
+static void shell_up(shell_instance_t* shell_inst);
+static void shell_down(shell_instance_t* shell_inst);
+static void shell_left(shell_instance_t* shell_inst, char code);
+static void shell_right(shell_instance_t* shell_inst, char code);
+static void shell_home(shell_instance_t* shell_inst, char code);
+static void shell_end(shell_instance_t* shell_inst, char code);
+
 /**
  * starts a shell server, or single shell instance.
  *
@@ -392,13 +401,16 @@ void prompt(shell_instance_t* shell_inst, const char* inputstr)
 
 			inject = close_input_file(shell_inst, input_char);
 
+
+//			printf("*%d*", input_char);
+
 			// process special input characters UP, DOWN, LEFT_RIGHT, HOME,
 			// END, DELETE, NEWLINE, BACKSPACE and finally any normal characters
-			if(input_char == 0x1B) // ESC
+			if(input_char == 0x1B || input_char == 195) // ESC or
 			{
 				input_char = 0;
 				read(shell_inst->rdfd, &input_char, 1);
-				if(input_char == 0x5B)	// ANSI escaped sequences, ascii '['
+				if(input_char == 0x5B || input_char == 160)	// ANSI escaped sequences, ascii '['
 				{
 					input_char = 0;
 					read(shell_inst->rdfd, &input_char, 1);
@@ -407,84 +419,53 @@ void prompt(shell_instance_t* shell_inst, const char* inputstr)
 					{
 						input_char = 0;
 						read(shell_inst->rdfd, &input_char, 1);
+
 						if(input_char == 0x7E) // DELETE, ascii '~'
 						{
-							if(shell_inst->cursor_index < shell_inst->input_index)
-							{
-								// wipe last character
-								shell_inst->input_index--;
-								for(i = shell_inst->cursor_index; i < shell_inst->input_index; i++)
-									shell_inst->input_buffer[i] = shell_inst->input_buffer[i+1];
-
-								shell_inst->input_buffer[shell_inst->input_index] = ' ';
-								shell_inst->input_buffer[shell_inst->input_index+1] = '\0';
-								put_prompt(shell_inst, shell_inst->input_buffer, false);
-								// re print prompt
-								shell_inst->input_buffer[shell_inst->input_index] = '\0';
-								put_prompt(shell_inst, shell_inst->input_buffer, false);
-
-								// put cursor back where it should be
-								for(i = shell_inst->input_index; i > shell_inst->cursor_index; i--)
-								{
-									write(shell_inst->wrfd, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
-								}
-							}
+							shell_delete(shell_inst, input_char);
 						}
 					}
-					else if(input_char == 0x41) // UP
+					else if(input_char == 0x41 || input_char == 0x48) // UP
 					{
-						shell_inst->history_index--;
-						if(shell_inst->history_index < 0)
-						{
-							shell_inst->history_index = SHELL_HISTORY_LENGTH-1;
-						}
-						historic_prompt(shell_inst);
+						shell_up(shell_inst);
 					}
-					else if(input_char == 0x42) // DOWN
+					else if(input_char == 0x42 || input_char == 0x50) // DOWN
 					{
-						shell_inst->history_index = -1;
-						historic_prompt(shell_inst);
+						shell_down(shell_inst);
 					}
-					else if(input_char == 0x44) // LEFT
+					else if(input_char == 0x44 || input_char == 0x4B) // LEFT
 					{
-						if(shell_inst->cursor_index > 0)
-						{
-							shell_inst->cursor_index--;
-							write(shell_inst->wrfd, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
-						}
+						shell_left(shell_inst, input_char);
 					}
-					else if(input_char == 0x43) // RIGHT
+					else if(input_char == 0x43 || input_char == 0x4D) // RIGHT
 					{
-						if(shell_inst->cursor_index < shell_inst->input_index)
-						{
-							shell_inst->cursor_index++;
-							write(shell_inst->wrfd, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1);
-						}
+						shell_right(shell_inst, input_char);
+					}
+					else if(input_char == 0x47)
+					{
+						shell_home(shell_inst, input_char);
+					}
+					else if(input_char == 0x4F)
+					{
+						shell_end(shell_inst, input_char);
 					}
 				}
 				else if(input_char == 0x4F)	// HOME, END
 				{
 					input_char = 0;
 					read(shell_inst->rdfd, &input_char, 1);
+
 					if(input_char == 0x48) // HOME
 					{
-						while(shell_inst->cursor_index > 0)
-						{
-							write(shell_inst->wrfd, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
-							shell_inst->cursor_index--;
-						}
+						shell_home(shell_inst, input_char);
 					}
 					else if(input_char == 0x46) // END
 					{
-						while(shell_inst->cursor_index < shell_inst->input_index)
-						{
-							write(shell_inst->wrfd, SHELL_RIGHTARROW, sizeof(SHELL_RIGHTARROW)-1);
-							shell_inst->cursor_index++;
-						}
+						shell_end(shell_inst, input_char);
 					}
 				}
 			}
-			else if(input_char == '\n') // NEWLINE
+			else if(input_char == '\n' || input_char == '\r') // NEWLINE
 			{
 				shell_inst->input_buffer[shell_inst->input_index] = '\0';
 
@@ -496,7 +477,7 @@ void prompt(shell_instance_t* shell_inst, const char* inputstr)
 				{
 					// run the command, passing the arguments to it
 					// use args[1] as args[0] points to the command
-					code = shell_cmd_exec(shell_inst->input_cmd.cmd, shell_inst->wrfd, shell_inst->input_cmd.args + 1, shell_inst->input_cmd.nargs);
+					code = shell_cmd_exec(shell_inst->input_cmd.cmd, shell_inst->wrfd, shell_inst->input_cmd.args, shell_inst->input_cmd.nargs);
 					return_code_catcher(shell_inst, code);
 
 					close_output_file(shell_inst);
@@ -507,29 +488,9 @@ void prompt(shell_instance_t* shell_inst, const char* inputstr)
 				shell_inst->cursor_index = 0;
 				put_prompt(shell_inst, NULL, true);
 			}
-			else if(input_char == 0x7F) // BACKSPACE
+			else if(input_char == 0x7F || input_char == 0x08) // BACKSPACE, Control-? / Control-H
 			{
-				if(shell_inst->cursor_index > 0)
-				{
-					// wipe last character
-					shell_inst->input_index--;
-					shell_inst->cursor_index--;
-					for(i = shell_inst->cursor_index; i < shell_inst->input_index; i++)
-						shell_inst->input_buffer[i] = shell_inst->input_buffer[i+1];
-
-					shell_inst->input_buffer[shell_inst->input_index] = ' ';
-					shell_inst->input_buffer[shell_inst->input_index+1] = '\0';
-					put_prompt(shell_inst, shell_inst->input_buffer, false);
-					// re print prompt
-					shell_inst->input_buffer[shell_inst->input_index] = '\0';
-					put_prompt(shell_inst, shell_inst->input_buffer, false);
-
-					// put cursor back where it should be
-					for(i = shell_inst->input_index; i > shell_inst->cursor_index; i--)
-					{
-						write(shell_inst->wrfd, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
-					}
-				}
+				shell_backspace(shell_inst);
 			}
 			else // all others
 			{
@@ -572,6 +533,114 @@ void prompt(shell_instance_t* shell_inst, const char* inputstr)
 				}
 			}
 		}
+	}
+}
+
+void shell_backspace(shell_instance_t* shell_inst)
+{
+	uint16_t i;
+	if(shell_inst->cursor_index > 0)
+	{
+		// wipe last character
+		shell_inst->input_index--;
+		shell_inst->cursor_index--;
+		for(i = shell_inst->cursor_index; i < shell_inst->input_index; i++)
+			shell_inst->input_buffer[i] = shell_inst->input_buffer[i+1];
+
+		shell_inst->input_buffer[shell_inst->input_index] = ' ';
+		shell_inst->input_buffer[shell_inst->input_index+1] = '\0';
+		put_prompt(shell_inst, shell_inst->input_buffer, false);
+		// re print prompt
+		shell_inst->input_buffer[shell_inst->input_index] = '\0';
+		put_prompt(shell_inst, shell_inst->input_buffer, false);
+
+		// put cursor back where it should be
+		for(i = shell_inst->input_index; i > shell_inst->cursor_index; i--)
+		{
+			write(shell_inst->wrfd, SHELL_LEFTARROW, sizeof(SHELL_LEFTARROW)-1);
+		}
+	}
+}
+
+void shell_delete(shell_instance_t* shell_inst, char code)
+{
+	char* arrow = code == 0x48 ? SHELL_LEFTARROW : SHELL_LEFTARROW_ALT; // 0x47
+	uint16_t i;
+	if(shell_inst->cursor_index < shell_inst->input_index)
+	{
+		// wipe last character
+		shell_inst->input_index--;
+		for(i = shell_inst->cursor_index; i < shell_inst->input_index; i++)
+			shell_inst->input_buffer[i] = shell_inst->input_buffer[i+1];
+
+		shell_inst->input_buffer[shell_inst->input_index] = ' ';
+		shell_inst->input_buffer[shell_inst->input_index+1] = '\0';
+		put_prompt(shell_inst, shell_inst->input_buffer, false);
+		// re print prompt
+		shell_inst->input_buffer[shell_inst->input_index] = '\0';
+		put_prompt(shell_inst, shell_inst->input_buffer, false);
+
+		// put cursor back where it should be
+		for(i = shell_inst->input_index; i > shell_inst->cursor_index; i--)
+		{
+			write(shell_inst->wrfd, arrow, strlen(arrow));
+		}
+	}
+}
+
+void shell_up(shell_instance_t* shell_inst)
+{
+	shell_inst->history_index--;
+	if(shell_inst->history_index < 0)
+	{
+		shell_inst->history_index = SHELL_HISTORY_LENGTH-1;
+	}
+	historic_prompt(shell_inst);
+}
+
+void shell_down(shell_instance_t* shell_inst)
+{
+	shell_inst->history_index = -1;
+	historic_prompt(shell_inst);
+}
+
+void shell_left(shell_instance_t* shell_inst, char code)
+{
+	char* arrow = code == 0x44 ? SHELL_LEFTARROW : SHELL_LEFTARROW_ALT; // 0x4b
+	if(shell_inst->cursor_index > 0)
+	{
+		shell_inst->cursor_index--;
+		write(shell_inst->wrfd, arrow, strlen(arrow));
+	}
+}
+
+void shell_right(shell_instance_t* shell_inst, char code)
+{
+	char* arrow = code == 0x43 ? SHELL_RIGHTARROW : SHELL_RIGHTARROW_ALT; // 0x4d
+	if(shell_inst->cursor_index < shell_inst->input_index)
+	{
+		shell_inst->cursor_index++;
+		write(shell_inst->wrfd, arrow, strlen(arrow));
+	}
+}
+
+void shell_home(shell_instance_t* shell_inst, char code)
+{
+	char* arrow = code == 0x48 ? SHELL_LEFTARROW : SHELL_LEFTARROW_ALT; // 0x47
+	while(shell_inst->cursor_index > 0)
+	{
+		write(shell_inst->wrfd, arrow, strlen(arrow));
+		shell_inst->cursor_index--;
+	}
+}
+
+void shell_end(shell_instance_t* shell_inst, char code)
+{
+	char* arrow = code == 0x46 ? SHELL_RIGHTARROW : SHELL_RIGHTARROW_ALT; // 0x4f
+	while(shell_inst->cursor_index < shell_inst->input_index)
+	{
+		write(shell_inst->wrfd, arrow, strlen(arrow));
+		shell_inst->cursor_index++;
 	}
 }
 
@@ -741,8 +810,6 @@ void parse_input_line(shell_instance_t* shell_inst)
 			// find special characters
 			open_output_file(shell_inst);
 
-			// reduce number of arguments by one as first arg is just the command
-			shell_inst->input_cmd.nargs--;
 			shell_inst->input_cmd.cmd = head;
 		}
 		// attempt to process an input file

@@ -120,11 +120,11 @@ const char* arg_by_index(unsigned char index, const char** args, unsigned char n
 }
 
 /**
- * @brief	returns the last arg in the list, or NULL if no arg exists.
+ * @brief	returns the last arg in the list, or NULL if no arg exists. ignores the command.
  */
 const char* final_arg(const char** args, unsigned char nargs)
 {
-	if(nargs)
+	if(nargs > 1)
 		return *(args+nargs-1);
 	else
 		return NULL;

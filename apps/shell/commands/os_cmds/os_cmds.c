@@ -165,7 +165,7 @@ int sh_sleep(int fdes, const char** args, unsigned char nargs)
 {
 	(void)fdes;
 	float time;
-	const char* arg = arg_by_index(0, args, nargs);
+	const char* arg = arg_by_index(1, args, nargs);
 	if(arg)
 	{
 		time = atof(arg);

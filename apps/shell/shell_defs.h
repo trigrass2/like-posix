@@ -45,6 +45,8 @@
 #define SHELL_DOWNARROW			"\x1B\x5B\x42"
 #define SHELL_LEFTARROW			"\x1B\x5B\x44"
 #define SHELL_RIGHTARROW		"\x1B\x5B\x43"
+#define SHELL_LEFTARROW_ALT		"\xC3\xA0\x4B"
+#define SHELL_RIGHTARROW_ALT	"\xC3\xA0\x4D"
 #define SHELL_PREVIOUS_LINE		"\x1B[1F"
 #define ANSII_CLEAR_LINE        "\x1B[2K"
 #define ANSII_CLEAR_LINE_FROM   "\x1B[0K"
