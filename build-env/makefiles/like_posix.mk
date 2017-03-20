@@ -29,8 +29,12 @@ endif
 # override minimal syscalls with full implementation
 SYSCALLS = $(LIKEPOSIX_CORE_DIR)/syscalls.c
 SYSCALLS += $(LIKEPOSIX_CORE_DIR)/stdlib_impl.c
+endif
+
+ifeq ($(USE_FREERTOS), 1) 
 SOURCE += $(LIKEPOSIX_CORE_DIR)/stackoverflow.c
 endif
+
 SYSCALLS += $(LIKEPOSIX_CORE_DIR)/asserts.c
 SYSCALLS += $(LIKEPOSIX_CORE_DIR)/likeposix_init.c
 

@@ -57,6 +57,7 @@ static TIM_HandleTypeDef systime_htim = {
 
 void init_systime()
 {
+	SYSTIME_CLOCK_ENABLE();
     system_seconds = 0;
     systime_htim.Init.Prescaler = SYSTIMER_PRESCALER;
     HAL_TIM_Base_Init(&systime_htim);

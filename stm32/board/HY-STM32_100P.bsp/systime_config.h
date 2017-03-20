@@ -33,6 +33,7 @@
 #ifndef SYSTIME_CONFIG_H_
 #define SYSTIME_CONFIG_H_
 
+#define SYSTIME_CLOCK_ENABLE()		__TIM2_CLK_ENABLE()
 #define SYSTIMER_PERIPH             TIM2
 #define SYSTIMER_IRQ                TIM2_IRQn
 #define SYSTIMER_INT_PRIORITY       2
