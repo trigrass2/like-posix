@@ -131,27 +131,26 @@ SPI_HANDLE_t spi_create_polled(SPI_TypeDef* spi, bool enable, uint32_t bit_order
  */
 SPI_HANDLE_t spi_create_async(SPI_TypeDef* spi, bool enable, uint32_t bit_order, uint32_t clock_phase, uint32_t clock_polarity, uint32_t data_width, uint32_t baudrate, uint32_t buffersize)
 {
-    SPI_HANDLE_t spih = SPI_INVALID_HANDLE;
-    uint8_t* fifomem = malloc((2 * sizeof(vfifo_t)) + (2 * buffersize * sizeof(vfifo_primitive_t)));
-    if(fifomem) {
-    	spih = spi_init_device(spi, enable, baudrate, bit_order, clock_phase, clock_polarity, data_width);
-        spi_init_gpio(spih);
-        spi_init_ss_gpio(spih);
+    SPI_HANDLE_t spih = spi_init_device(spi, enable, baudrate, bit_order, clock_phase, clock_polarity, data_width);
 
-    	spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
-		spi_ioctl->rxfifo = (vfifo_t*)fifomem;
-		spi_ioctl->txfifo = (vfifo_t*)(fifomem + sizeof(vfifo_t) + (buffersize * sizeof(vfifo_primitive_t)));
-		vfifo_init(spi_ioctl->rxfifo, spi_ioctl->rxfifo + sizeof(vfifo_t), buffersize);
-		vfifo_init(spi_ioctl->txfifo, spi_ioctl->txfifo + sizeof(vfifo_t), buffersize);
+	spi_init_gpio(spih);
+	spi_init_ss_gpio(spih);
 
-		spi_async_wait_rx_sem_create(spi_ioctl);
+	spi_ioctl_t* spi_ioctl = get_spi_ioctl(spih);
 
-		spi_init_interrupt(spih, SPI_INTERRUPT_PRIORITY, enable);
+	spi_ioctl->rxfifo = vfifo_create(buffersize);
+	spi_ioctl->txfifo = vfifo_create(buffersize);
+	assert_true(spi_ioctl->rxfifo);
+	assert_true(spi_ioctl->txfifo);
 
-		if(enable) {
-			spi_enable_rx_int(spi_ioctl);
-		}
-    }
+	spi_async_wait_rx_sem_create(spi_ioctl);
+
+	spi_init_interrupt(spih, SPI_INTERRUPT_PRIORITY, enable);
+
+	if(enable) {
+		spi_enable_rx_int(spi_ioctl);
+	}
+
 	return spih;
 }
 

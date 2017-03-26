@@ -65,7 +65,10 @@ typedef struct {
    volatile int32_t usage;			///< the number of filled spaces the FIFO buffer
 } vfifo_t;
 
-void vfifo_init(vfifo_t* fifo, void* buf, int32_t size);
+void vfifo_init(vfifo_t* fifo, void* buf, int32_t size); ///< use this with a predefined memory block.
+vfifo_t* vfifo_create(int32_t size); ///< use this to get a vfifo initialized on the heap.
+void vfifo_delete(vfifo_t* fifo); ///< deletes a fifo created with vfifo_create().
+
 bool vfifo_put(vfifo_t* fifo, const void* data);
 bool vfifo_get(vfifo_t* fifo, void* data);
 int32_t vfifo_put_block(vfifo_t* fifo, const void* data, int32_t size);
@@ -74,6 +77,7 @@ int32_t vfifo_used_slots(vfifo_t* fifo);
 int32_t	vfifo_free_slots(vfifo_t* fifo);
 int32_t	vfifo_number_of_slots(vfifo_t* fifo);
 bool vfifo_full(vfifo_t* fifo);
+bool vfifo_empty(vfifo_t* fifo);
 void	vfifo_reset(vfifo_t* fifo);
 
 #endif /* VFIFO_H_ */

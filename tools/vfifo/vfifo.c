@@ -33,7 +33,9 @@
 #include "vfifo.h"
 
 /**
-  * @brief 	creates a void pointer fifo.
+  * @brief 	initializes an existing fifo and memory.
+  * 		note that one slot in the supplied memory is always inaccessible.
+  * 		Eg: with slots=100, we can use only 99.
   * @param	fifo is a pointer to a fifo structure.
   * @param  buf is a pointer to the buffer memory.
   * @param  size is the number of slots of type vfifo_primitive_t in the data space.
@@ -49,6 +51,30 @@ void vfifo_init(vfifo_t* fifo, void* buf, int32_t slots)
     	fifo->size = !buf ? 0 : slots;
     	fifo->free = slots > 0 ? slots-1 : 0;
     }
+}
+
+/**
+  * @brief 	creates a new fifo and memory.
+  * 		note that this function allocates one extra slot, so that the number
+  * 		of available slots equals that specified.
+  * @param  size is the number of slots of type vfifo_primitive_t in the data space.
+  * @return returns a pointer to a fifo memory structure.
+  */
+vfifo_t* vfifo_create(int32_t size)
+{
+	vfifo_t* vm = malloc(sizeof(vfifo_t) + ((size + 1) * sizeof(vfifo_primitive_t)));
+	if(vm) {
+		vfifo_init(vm, vm + 1, size+1);
+	}
+	return vm;
+}
+
+/**
+ * deletes a fifo previously created with vfifo_create().
+ */
+void vfifo_delete(vfifo_t* fifo)
+{
+	free(fifo);
 }
 
 /**
@@ -168,13 +194,23 @@ int32_t	vfifo_number_of_slots(vfifo_t* fifo)
 }
 
 /**
-  * @brief	returns the total number of locations in the fifo data space that are in free.
+  * @brief	determines if the fifo is full, or not.
   * @param	fifo is a pointer to a fifo structure.
   * @retval	returns true if the fifo is full.
   */
 bool vfifo_full(vfifo_t* fifo)
 {
 	return fifo->free == 0;
+}
+
+/**
+  * @brief	determines if the fifo is empty, or not.
+  * @param	fifo is a pointer to a fifo structure.
+  * @retval	returns true if the fifo is empty.
+  */
+bool vfifo_empty(vfifo_t* fifo)
+{
+	return fifo->usage == 0;
 }
 
 /**

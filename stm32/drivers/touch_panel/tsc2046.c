@@ -36,7 +36,7 @@
 #include "lcd.h"
 #include "spi.h"
 
-#define TSC2046_TRANSEFR_BYTES 8
+#define TSC2046_TRANSEFR_BYTES 6
 #define TSC2046_START  0x80
 #define TSC2046_CH_X   0x50
 #define TSC2046_CH_Y   0x10

@@ -145,26 +145,34 @@ char usart_stdio_rx()
  */
 USART_HANDLE_t usart_create_async(USART_TypeDef* usart, bool enable, usart_mode_t mode, uint32_t baudrate, uint32_t buffersize)
 {
-	USART_HANDLE_t usarth = USART_INVALID_HANDLE;
-	uint8_t* fifomem = malloc(2 * (sizeof(vfifo_t) + (buffersize * sizeof(vfifo_primitive_t))));
-	if(fifomem) {
-		usarth = usart_init_device(usart, enable, mode, baudrate);
-		usart_init_gpio(usarth);
+	USART_HANDLE_t usarth = usart_init_device(usart, enable, mode, baudrate);
+	usart_init_gpio(usarth);
 
-		usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
-		usart_ioctl->rxfifo = (vfifo_t*)fifomem;
-		usart_ioctl->txfifo = (vfifo_t*)(fifomem + sizeof(vfifo_t) + (buffersize * sizeof(vfifo_primitive_t)));
-		vfifo_init(usart_ioctl->rxfifo, usart_ioctl->rxfifo + sizeof(vfifo_t), buffersize);
-		vfifo_init(usart_ioctl->txfifo, usart_ioctl->txfifo + sizeof(vfifo_t), buffersize);
+	usart_ioctl_t* usart_ioctl = get_usart_ioctl(usarth);
 
-		usart_async_wait_rx_sem_create(usart_ioctl);
+	switch(mode)
+	{
+		case USART_FULLDUPLEX:
+		case USART_ONEWIRE:
+			usart_ioctl->rxfifo = vfifo_create(buffersize);
+			usart_ioctl->txfifo = vfifo_create(buffersize);
+			assert_true(usart_ioctl->rxfifo);
+			assert_true(usart_ioctl->txfifo);
+		break;
 
-		usart_init_interrupt(usarth, USART_INTERRUPT_PRIORITY, enable);
-
-		if(enable) {
-			usart_enable_rx_int(usart_ioctl);
-		}
+		default:
+			assert_true(0);
+		break;
 	}
+
+	usart_async_wait_rx_sem_create(usart_ioctl);
+
+	usart_init_interrupt(usarth, USART_INTERRUPT_PRIORITY, enable);
+
+	if(enable) {
+		usart_enable_rx_int(usart_ioctl);
+	}
+
     return usarth;
 }
 
