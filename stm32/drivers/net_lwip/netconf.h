@@ -59,20 +59,10 @@ typedef struct {
 	logger_t log;
 	struct netif netif;
 	net_resolv_prot_t resolv;
-	SemaphoreHandle_t address_ok;
 	SemaphoreHandle_t rxpkt;
 	bool net_task_enabled;
-#ifdef LWIP_DHCP
-	uint32_t dhcp_fine_timer;
-	uint32_t dhcp_coarse_timer;
-	dhcp_state_t dhcp_state;
-#endif
 	uint8_t hostname[MAX_HOSTNAME_LENGTH];
 	struct ip_addr addr_cache[5]; // ip, netmask,gw,dns1,dns2
-#if NO_SYS
-	uint32_t tcp_timer;
-	uint32_t arp_timer;
-#endif
 }netconf_t;
 
 void net_config(netconf_t* netconf, const char* resolv, const char* interface);

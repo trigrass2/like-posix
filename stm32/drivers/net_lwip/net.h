@@ -38,7 +38,6 @@
 
 void net_init(netconf_t* netconf);
 void net_deinit(netconf_t* netconf);
-bool wait_for_address(netconf_t* netconf);
 
 bool net_is_up();
 

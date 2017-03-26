@@ -75,14 +75,10 @@
 #endif
 
 
-#if LWIP_DHCP
-static void dhcp_begin(netconf_t* netconf);
-static void dhcp_process(netconf_t* netconf);
-#endif
-static void net_task(void *pvParameters);
+static void net_task(netconf_t* netconf);
 static void link_callback(struct netif *netif);
 static void status_callback(struct netif *netif);
-static void tcpip_init_done(void *arg);
+static void tcpip_init_done(netconf_t* netconf);
 
 netconf_t* netconf_default;
 
@@ -94,53 +90,16 @@ void net_init(netconf_t* netconf)
 
 #if NO_SYS
 	lwip_init();
+	tcpip_init_done(netconf);
 #else
-	tcpip_init(tcpip_init_done, (void*)&netconf->netif);
+	tcpip_init((tcpip_init_done_fn)tcpip_init_done, netconf);
 #endif
-
-	netif_add(&netconf->netif, &netconf->addr_cache[0], &netconf->addr_cache[1], &netconf->addr_cache[2], NULL, &ethernetif_init, &ethernet_input);
-	netif_set_link_callback(&netconf->netif, link_callback);
-	netif_set_status_callback(&netconf->netif, status_callback);
-	netif_set_default(&netconf->netif);
-
-    netconf->address_ok = xSemaphoreCreateBinary();
-    assert_true(netconf->address_ok != NULL);
-    netconf->rxpkt = xSemaphoreCreateBinary();
-    assert_true(netconf->rxpkt != NULL);
-
-#if LWIP_DHCP
-    if(netconf->resolv == NET_RESOLV_DHCP)
-    {
-        dhcp_start(&netconf->netif);
-        netconf->dhcp_state = DHCP_STATE_INIT;
-        log_info(&netconf->log, "DHCP started");
-    }
-    else
-    {
-    	netif_set_up(&netconf->netif);
-    	dns_setserver(0, &netconf->addr_cache[3]);
-    	dns_setserver(1, &netconf->addr_cache[4]);
-        xSemaphoreGive(netconf->address_ok);
-    }
-#endif
-
-	xTaskCreate(net_task,
-				"lwIP",
-				configMINIMAL_STACK_SIZE+NET_TASK_STACK,
-				netconf,
-				tskIDLE_PRIORITY+NET_TASK_PRIORITY,
-				NULL);
 }
 
 void net_deinit(netconf_t* netconf)
 {
 	netif_set_down(&netconf->netif);
 	netconf->net_task_enabled = false;
-}
-
-bool wait_for_address(netconf_t* netconf)
-{
-    return xSemaphoreTake(netconf->address_ok, 10000/portTICK_RATE_MS) == pdTRUE;
 }
 
 #if USE_DRIVER_MII_RMII_PHY
@@ -152,10 +111,8 @@ void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef *heth)
 
 #endif
 
-void net_task(void *pvParameters)
+void net_task(netconf_t* netconf)
 {
-	netconf_t* netconf = (netconf_t*)pvParameters;
-
     while(netconf->net_task_enabled)
     {
     	if(wait_for_rx_ready()){
@@ -210,16 +167,33 @@ void status_callback(struct netif *netif)
 	}
 }
 
-void tcpip_init_done(void *arg)
+void tcpip_init_done(netconf_t* netconf)
 {
-	logger_t tcp_cb_log;
-	log_init(&tcp_cb_log, "tcpip_init_done");
-#if USE_LOGGER
-	struct netif* netif = (struct netif*)arg;
-	log_info(&tcp_cb_log, "hostname: %s", netif->hostname);
-#else
-	(void)arg;
+	netif_add(&netconf->netif, &netconf->addr_cache[0], &netconf->addr_cache[1], &netconf->addr_cache[2], NULL, &ethernetif_init, &ethernet_input);
+	netif_set_link_callback(&netconf->netif, link_callback);
+	netif_set_status_callback(&netconf->netif, status_callback);
+	netif_set_default(&netconf->netif);
+
+	netconf->rxpkt = xSemaphoreCreateBinary();
+	assert_true(netconf->rxpkt != NULL);
+
+	netif_set_down(&netconf->netif);
+
+#if LWIP_DHCP
+	if(netconf->resolv == NET_RESOLV_DHCP)
+	{
+		dhcp_start(&netconf->netif);
+		log_info(&netconf->log, "DHCP started");
+	}
+	else
+	{
+		netif_set_up(&netconf->netif);
+		dns_setserver(0, &netconf->addr_cache[3]);
+		dns_setserver(1, &netconf->addr_cache[4]);
+	}
 #endif
+
+	xTaskCreate((TaskFunction_t)net_task, "lwIP", configMINIMAL_STACK_SIZE+NET_TASK_STACK, netconf, tskIDLE_PRIORITY+NET_TASK_PRIORITY, NULL);
 }
 
 bool net_is_up()
