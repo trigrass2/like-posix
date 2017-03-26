@@ -42,6 +42,7 @@
 #ifndef ENC28J60_H_
 #define ENC28J60_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "net_config.h"
 #include "board_config.h"
@@ -49,6 +50,7 @@
 // Init ENC28J60
 void enc28j60_init(uint8_t *macadr);
 uint8_t enc28j60_revision(void);
+bool enc28j6_nint();
 
 // Snd/Rcv packets
 void enc28j60_send_packet(uint8_t *data, uint16_t len);
@@ -59,24 +61,10 @@ uint16_t enc28j60_recv_packet(uint8_t *buf, uint16_t buflen);
 uint8_t enc28j60_check_incoming();
 uint16_t enc28j60_recv_packet_start(uint16_t maxlen);
 void enc28j60_recv_packet_end();
-
-// R/W control registers
-uint8_t enc28j60_rcr(uint8_t adr);
-void enc28j60_wcr(uint8_t adr, uint8_t arg);
-uint16_t enc28j60_rcr16(uint8_t adr);
-void enc28j60_wcr16(uint8_t adr, uint16_t arg);
-void enc28j60_bfc(uint8_t adr, uint8_t mask); // Clr bits (reg &= ~mask)
-void enc28j60_bfs(uint8_t adr, uint8_t mask); // Set bits (reg |= mask)
-
 // R/W Rx/Tx buffer
 void enc28j60_read_buffer(uint8_t *buf, uint16_t len);
 void enc28j60_write_buffer(uint8_t *buf, uint16_t len);
 
-// R/W PHY reg
-uint16_t enc28j60_read_phy(uint8_t adr);
-void enc28j60_write_phy(uint8_t adr, uint16_t data);
-
-// void enc28j6_nint();
 
 #ifndef ETH_MAX_ETH_PAYLOAD
 #pragma message ( "Note: using default ETH_MAX_ETH_PAYLOAD = 1500" )
@@ -109,6 +97,22 @@ void enc28j60_write_phy(uint8_t adr, uint16_t data);
 
 #define ENC28J60_ADDR_MASK	0x1F
 #define ENC28J60_COMMON_CR	0x1B
+
+
+
+
+/**
+ * registers addresses are arranged in 4 banks, with a range of 0x00 to 0x1F (5 bits wide)
+ *
+ * we add extra info in the upper 3 bits to identify the bank: ADDR|0x00 = bank1, addr|0x20 = bank2, addr|0x40 = bank3, addr|0x60 = bank4
+ * decode bank with: bank = (addr >> 5) & 0x03
+ *
+ * we add extra info in the upper 3 bits to identify MII and MAC registers: ADDR|0x00 = non MII/MAC, ADDR|0x80 = MII/MAC register
+ * MAC and MII registers are read with a 3 byte sequence: {opcode | address, dummy, data}
+ * all other registers are read with a 2 byte sequence: {opcode | address, data}
+ *
+ * addresses must be masked with ENC28J60_ADDR_MASK to get rid of the upper 3 bits before sending to the device.
+ */
 
 /*
  * Main registers
