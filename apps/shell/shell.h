@@ -35,6 +35,7 @@
 
 #include "shell_command.h"
 #include "shell_defs.h"
+#include "shell_config.h"
 
 #ifndef SHELL_TASK_STACK_SIZE
 #define SHELL_TASK_STACK_SIZE 	256

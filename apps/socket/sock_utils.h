@@ -67,6 +67,8 @@ typedef struct _sock_server_t {
 	sock_service_fptr_t service;
 	int stacksize;
 	int prio;
+	int port;
+	int conns;
 }sock_server_t;
 
 int sock_connect(const char *host, int port, int type, struct sockaddr* servaddr);

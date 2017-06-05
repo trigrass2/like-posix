@@ -181,6 +181,7 @@ static void shell_right(shell_instance_t* shell_inst, char code);
 static void shell_home(shell_instance_t* shell_inst, char code);
 static void shell_end(shell_instance_t* shell_inst, char code);
 
+
 /**
  * starts a shell server, or single shell instance.
  *
@@ -192,37 +193,42 @@ static void shell_end(shell_instance_t* shell_inst, char code);
  * 			if specified, a threaded server is started.
  * @param   threaded enables threaded server or threaded instance operation when set to true.
  * 				when set to false, runs a blocking shell (blocks till exit).
+ * 			threaded instance operation is enabled by specifying rdfd and wrfd != -1.
  * @param   exit_on_eof causes the shell to exit when the read system call returns 0 (on EOF).
- * @param   rdfd - is a file descriptor for reading. ignored when starting a threaded server.
- * @param   wrfd - is a file descriptor for writing. ignored when starting a threaded server.
+ * @param   rdfd - is a file descriptor for reading.
+ * @param   wrfd - is a file descriptor for writing.
  * @retval  returns -1 on error. when running threaded server, returns the server file descriptor.
  * 				when running a threaded instance, returns the task handle.
  */
 int start_shell(shellserver_t* shell, shell_cmd_t* commandset, const char* configfile, bool threaded, bool exit_on_eof, int rdfd, int wrfd)
 {
-    if(commandset)
+    if(commandset) {
     	shell->head_cmd = commandset;
+    }
 
     shell->rdfd = rdfd;
     shell->wrfd = wrfd;
     shell->exit_on_eof = exit_on_eof;
+    shell->server.conns = 0;
+    shell->server.port = 0;
+    shell->server.stacksize = SHELL_TASK_STACK_SIZE;
+    shell->server.prio = SHELL_TASK_PRIORITY;
+    shell->server.name = "shell";
 
-    if(configfile && threaded)
-    {
+    get_server_configuration(configfile, &shell->server);
+
+    if(threaded) {
+    	if(rdfd == -1 && wrfd == -1) {
 #if INCLUDE_REMOTE_SHELL_SUPPORT
-    	return start_threaded_server(&shell->server, configfile, shell_server_thread, shell, SHELL_TASK_STACK_SIZE, SHELL_TASK_PRIORITY);
-#else
-    	log_error(NULL, "configfile and threaded operation are requested but INCLUDE_REMOTE_SHELL_SUPPORT is set to 0.");
+			return start_threaded_server(&shell->server, shell_server_thread, shell);
 #endif
-    }
-    else if(threaded)
-    {
-    	TaskHandle_t th;
-        if(xTaskCreate((TaskFunction_t)threaded_instance, "shell", configMINIMAL_STACK_SIZE + SHELL_TASK_STACK_SIZE,
-        				shell, tskIDLE_PRIORITY + SHELL_TASK_PRIORITY, &th) != pdPASS) {
-
-        }
-    	return (int)th;
+		}
+		else {
+			if(xTaskCreate((TaskFunction_t)threaded_instance, shell->server.name, shell->server.stacksize, shell, shell->server.prio, NULL) != pdPASS) {
+				log_error(&shell->server.log, "failed to start shell thread");
+			}
+			log_error(&shell->server.log, "%s %d %d \n", shell->server.name, shell->server.stacksize, shell->server.prio);
+		}
     }
     else
     {

@@ -91,7 +91,14 @@ int init_http_server(httpserver_t* httpserver, char* configfile, const http_api_
 
 	log_debug(&httpserver->log, "fsroot: %s", httpserver->fsroot);
 
-	return start_threaded_server(&httpserver->server, configfile, http_server_connection, httpserver, HTTP_SERVER_STACK_SIZE, HTTP_SERVER_TASK_PRIO);
+	httpserver->server.conns = 0;
+	httpserver->server.port = 0;
+	httpserver->server.stacksize = HTTP_SERVER_STACK_SIZE;
+	httpserver->server.prio = HTTP_SERVER_TASK_PRIO;
+	httpserver->server.name = "httpd";
+
+	get_server_configuration(configfile, &httpserver->server);
+	return start_threaded_server(&httpserver->server, http_server_connection, httpserver);
 }
 
 /**

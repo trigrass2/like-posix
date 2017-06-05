@@ -2,3 +2,5 @@ port 80
 conns 5
 fsroot /var/lib/httpd
 name httpd
+taskprio 1
+stacksize 325
