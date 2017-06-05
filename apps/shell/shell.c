@@ -227,7 +227,6 @@ int start_shell(shellserver_t* shell, shell_cmd_t* commandset, const char* confi
 			if(xTaskCreate((TaskFunction_t)threaded_instance, shell->server.name, shell->server.stacksize, shell, shell->server.prio, NULL) != pdPASS) {
 				log_error(&shell->server.log, "failed to start shell thread");
 			}
-			log_error(&shell->server.log, "%s %d %d \n", shell->server.name, shell->server.stacksize, shell->server.prio);
 		}
     }
     else
