@@ -36,7 +36,7 @@
 
 #define SYSTIMER_TICK_RATE          10000
 #define SYSTIMER_TV_TICK_RATE       1000000
-#define SYSTIMER_PRESCALER          ((SYSTIMER_BUS_CLOCK / SYSTIMER_TICK_RATE) - 1)
+#define SYSTIMER_PRESCALER(freq)    ((freq / SYSTIMER_TICK_RATE) - 1)
 #define SYSTIMER_OVERFLOW           (SYSTIMER_TICK_RATE - 1)
 
 static volatile unsigned long system_seconds;
@@ -59,7 +59,14 @@ void init_systime()
 {
 	SYSTIME_CLOCK_ENABLE();
     system_seconds = 0;
-    systime_htim.Init.Prescaler = SYSTIMER_PRESCALER;
+    unsigned long pclock;
+    if((systime_htim.Instance == TIM1) || (systime_htim.Instance == TIM8)) {
+       	pclock = HAL_RCC_GetPCLK2Freq();
+    }
+    else {
+       	pclock = HAL_RCC_GetPCLK1Freq();
+    }
+    systime_htim.Init.Prescaler = SYSTIMER_PRESCALER(pclock);
     HAL_TIM_Base_Init(&systime_htim);
     HAL_TIM_Base_Start_IT(&systime_htim);
     HAL_NVIC_SetPriority(SYSTIMER_IRQ, SYSTIMER_INT_PRIORITY, 0);
@@ -71,6 +78,8 @@ void SYSTIMER_INTERRUPT_HANDLER()
     __HAL_TIM_CLEAR_IT(&systime_htim, TIM_IT_UPDATE);
     system_seconds++;
 }
+
+
 
 void get_hw_time(unsigned long* secs, unsigned long* usecs)
 {

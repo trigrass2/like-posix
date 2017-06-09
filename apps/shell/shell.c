@@ -224,9 +224,10 @@ int start_shell(shellserver_t* shell, shell_cmd_t* commandset, const char* confi
 #endif
 		}
 		else {
-			if(xTaskCreate((TaskFunction_t)threaded_instance, shell->server.name, shell->server.stacksize, shell, shell->server.prio, NULL) != pdPASS) {
-				log_error(&shell->server.log, "failed to start shell thread");
+			if(xTaskCreate((TaskFunction_t)threaded_instance, shell->server.name, shell->server.stacksize, shell, shell->server.prio, NULL) == pdPASS) {
+				return 0;
 			}
+			log_error(&shell->server.log, "failed to start shell thread");
 		}
     }
     else
