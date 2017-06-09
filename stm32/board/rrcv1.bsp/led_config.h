@@ -43,6 +43,9 @@
 #define BOOT_LED        LED1
 #define ACTIVITY_LED    LED1
 
+
+#define NUMBER_OF_LEDS 1
+
 #define LED_PORT_MAP	{ \
 	{GPIOC, GPIO_PIN_8}, \
 }

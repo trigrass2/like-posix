@@ -41,6 +41,8 @@
 #define LED3 	2
 #define LED4 	3
 
+#define NUMBER_OF_LEDS 4
+
 #define DISK_ACTIVITY_LED LED2
 #define ERROR_LED LED3
 #define BOOT_LED LED4
