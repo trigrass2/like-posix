@@ -41,6 +41,14 @@ extern "C" {
 #define MINLIBC_BUILD_FOR_TEST 0
 #endif
 
+#ifndef MINLIBC_ENV_SIZE
+#define MINLIBC_ENV_SIZE 1
+#endif
+
+#ifndef MINLIBC_ENV_INIT
+#define MINLIBC_ENV_INIT {{"HOME", "/home"}}
+#endif
+
 #ifdef __cplusplus
 }
 #endif

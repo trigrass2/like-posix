@@ -43,6 +43,7 @@
 #include <stddef.h>
 #include <math.h>
 #include <ctype.h>
+#include <minlibc/config.h>
 #include <minlibc/stdlib.h>
 #include <string.h>
 
@@ -166,9 +167,16 @@ float strtof(const char *string, char **tailptr)
     return result;
 }
 
+const char* __MINLIBC_ENV[MINLIBC_ENV_SIZE][2] = MINLIBC_ENV_INIT;
+
 char* getenv(const char* name)
 {
-    (void)name;
+	int i;
+	for (i = 0; i < MINLIBC_ENV_SIZE; i++) {
+		if(strcmp(__MINLIBC_ENV[i][0], name) == 0) {
+			return (char*)__MINLIBC_ENV[i][1];
+		}
+	}
     return NULL;
 }
 

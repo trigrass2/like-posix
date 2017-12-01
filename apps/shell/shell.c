@@ -197,10 +197,11 @@ static void shell_end(shell_instance_t* shell_inst, char code);
  * @param   exit_on_eof causes the shell to exit when the read system call returns 0 (on EOF).
  * @param   rdfd - is a file descriptor for reading.
  * @param   wrfd - is a file descriptor for writing.
+ * @param   stack_size - the size of the shell task stack in words. set to 0 to use the default SHELL_TASK_STACK_SIZE.
  * @retval  returns -1 on error. when running threaded server, returns the server file descriptor.
  * 				when running a threaded instance, returns the task handle.
  */
-int start_shell(shellserver_t* shell, shell_cmd_t* commandset, const char* configfile, bool threaded, bool exit_on_eof, int rdfd, int wrfd)
+int start_shell(shellserver_t* shell, shell_cmd_t* commandset, const char* configfile, bool threaded, bool exit_on_eof, int rdfd, int wrfd, int stack_size)
 {
     if(commandset) {
     	shell->head_cmd = commandset;
@@ -211,7 +212,7 @@ int start_shell(shellserver_t* shell, shell_cmd_t* commandset, const char* confi
     shell->exit_on_eof = exit_on_eof;
     shell->server.conns = 0;
     shell->server.port = 0;
-    shell->server.stacksize = SHELL_TASK_STACK_SIZE;
+    shell->server.stacksize = stack_size ? stack_size : SHELL_TASK_STACK_SIZE;
     shell->server.prio = SHELL_TASK_PRIORITY;
     shell->server.name = "shell";
 
