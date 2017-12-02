@@ -218,18 +218,15 @@ void draw_rectangle(point_t location, point_t size, uint16_t radius, colour_t fi
 		}
 	}
 
-	if(border_colour != fill_colour)
-	{
-		draw_line_h(location.x + radius, location.y, size.x - (2 * radius), border_colour);
-		draw_line_h(location.x + radius, location.y + size.y - 1, size.x - (2 * radius), border_colour);
-		draw_line_v(location.x, location.y + radius, size.y - (2 * radius), border_colour);
-		draw_line_v(location.x + size.x - 1, location.y + radius, size.y - (2 * radius), border_colour);
+	draw_line_h(location.x + radius, location.y, size.x - (2 * radius), border_colour);
+	draw_line_h(location.x + radius, location.y + size.y - 1, size.x - (2 * radius), border_colour);
+	draw_line_v(location.x, location.y + radius, size.y - (2 * radius), border_colour);
+	draw_line_v(location.x + size.x - 1, location.y + radius, size.y - (2 * radius), border_colour);
 
-	    draw_circle_quadrant(location.x, location.y, radius, CIRCLE_QUAD_2, fill_colour, border_colour, 0, false);
-	    draw_circle_quadrant(location.x+size.x-(2 * radius)-1, location.y, radius, CIRCLE_QUAD_1, fill_colour, border_colour, 0, false);
-	    draw_circle_quadrant(location.x+size.x-(2 * radius)-1, location.y+size.y-(2 * radius)-1, radius, CIRCLE_QUAD_4, fill_colour, border_colour, 0, false);
-	    draw_circle_quadrant(location.x, location.y+size.y-(2 * radius)-1, radius, CIRCLE_QUAD_3, fill_colour, border_colour, 0, false);
-	}
+	draw_circle_quadrant(location.x, location.y, radius, CIRCLE_QUAD_2, fill_colour, border_colour, 0, false);
+	draw_circle_quadrant(location.x+size.x-(2 * radius)-1, location.y, radius, CIRCLE_QUAD_1, fill_colour, border_colour, 0, false);
+	draw_circle_quadrant(location.x+size.x-(2 * radius)-1, location.y+size.y-(2 * radius)-1, radius, CIRCLE_QUAD_4, fill_colour, border_colour, 0, false);
+	draw_circle_quadrant(location.x, location.y+size.y-(2 * radius)-1, radius, CIRCLE_QUAD_3, fill_colour, border_colour, 0, false);
 }
 
 void draw_circle_quadrant(int16_t x, int16_t y, uint16_t radius, uint8_t quadrant, colour_t fill_colour, colour_t border_colour, uint16_t delta, bool fill)
@@ -271,25 +268,22 @@ void draw_circle_quadrant(int16_t x, int16_t y, uint16_t radius, uint8_t quadran
 	        }
 	    }
 
-        if(border_colour != fill_colour)
-	    {
-	        if (quadrant & 0x4) {
-	            draw_pixel(x + x_offset, y + y_offset, border_colour);
-	            draw_pixel(x + y_offset, y + x_offset, border_colour);
-	        }
-	        if (quadrant & 0x2) {
-	            draw_pixel(x + x_offset, y - y_offset, border_colour);
-	            draw_pixel(x + y_offset, y - x_offset, border_colour);
-	        }
-	        if (quadrant & 0x8) {
-	            draw_pixel(x - y_offset, y + x_offset, border_colour);
-	            draw_pixel(x - x_offset, y + y_offset, border_colour);
-	        }
-	        if (quadrant & 0x1) {
-	            draw_pixel(x - y_offset, y - x_offset, border_colour);
-	            draw_pixel(x - x_offset, y - y_offset, border_colour);
-	        }
-	    }
+		if (quadrant & 0x4) {
+			draw_pixel(x + x_offset, y + y_offset, border_colour);
+			draw_pixel(x + y_offset, y + x_offset, border_colour);
+		}
+		if (quadrant & 0x2) {
+			draw_pixel(x + x_offset, y - y_offset, border_colour);
+			draw_pixel(x + y_offset, y - x_offset, border_colour);
+		}
+		if (quadrant & 0x8) {
+			draw_pixel(x - y_offset, y + x_offset, border_colour);
+			draw_pixel(x - x_offset, y + y_offset, border_colour);
+		}
+		if (quadrant & 0x1) {
+			draw_pixel(x - y_offset, y - x_offset, border_colour);
+			draw_pixel(x - x_offset, y - y_offset, border_colour);
+		}
     }
 }
 
@@ -305,16 +299,14 @@ void draw_circle(point_t location, uint16_t radius, colour_t fill_colour, colour
     location.x += radius;
     location.y += radius;
 
-    if(fill)
+    if(fill) {
 		draw_line_v(location.x, location.y - radius, 2 * radius + 1, fill_colour);
+    }
 
-	if(border_colour != fill_colour)
-	{
-		draw_pixel(location.x, location.y + radius, border_colour);
-	    draw_pixel(location.x, location.y - radius, border_colour);
-	    draw_pixel(location.x + radius, location.y, border_colour);
-	    draw_pixel(location.x - radius, location.y, border_colour);
-	}
+	draw_pixel(location.x, location.y + radius, border_colour);
+	draw_pixel(location.x, location.y - radius, border_colour);
+	draw_pixel(location.x + radius, location.y, border_colour);
+	draw_pixel(location.x - radius, location.y, border_colour);
 
     while (x<y)
     {
@@ -338,17 +330,14 @@ void draw_circle(point_t location, uint16_t radius, colour_t fill_colour, colour
             draw_line_v(location.x-y, location.y-x, 2*x+1, fill_colour);
         }
 
-        if(border_colour != fill_colour)
-        {
-			draw_pixel(location.x + x, location.y + y, border_colour);
-	        draw_pixel(location.x - x, location.y + y, border_colour);
-	        draw_pixel(location.x + x, location.y - y, border_colour);
-	        draw_pixel(location.x - x, location.y - y, border_colour);
+		draw_pixel(location.x + x, location.y + y, border_colour);
+		draw_pixel(location.x - x, location.y + y, border_colour);
+		draw_pixel(location.x + x, location.y - y, border_colour);
+		draw_pixel(location.x - x, location.y - y, border_colour);
 
-	        draw_pixel(location.x + y, location.y + x, border_colour);
-	        draw_pixel(location.x - y, location.y + x, border_colour);
-	        draw_pixel(location.x + y, location.y - x, border_colour);
-	        draw_pixel(location.x - y, location.y - x, border_colour);
-        }
+		draw_pixel(location.x + y, location.y + x, border_colour);
+		draw_pixel(location.x - y, location.y + x, border_colour);
+		draw_pixel(location.x + y, location.y - x, border_colour);
+		draw_pixel(location.x - y, location.y - x, border_colour);
     }
 }
