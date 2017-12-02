@@ -657,7 +657,7 @@ int _close(int file)
 				xSemaphoreTake(fte->read_lock, DEFAULT_FILE_LOCK_TIMEOUT/portTICK_RATE_MS);
 
 			// disable device IO first
-			if((fte->mode == S_IFIFO) && fte->device && fte->device->close)
+			if((fte->dupcount == 0) && (fte->mode == S_IFIFO) && fte->device && fte->device->close)
 			{
 				// call device close
 				fte->device->close(fte->device);
