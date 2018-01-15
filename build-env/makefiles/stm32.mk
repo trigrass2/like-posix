@@ -157,7 +157,11 @@ ifeq ($(USE_DRIVER_DAC_STREAM),1)
 SOURCE += $(DRIVERSDIR)/stream/stream_common.c
 CFLAGS += -I$(DRIVERSDIR)/stream
 else
-ifeq ($(USE_DRIVER_ADC_STREAM),1)
+ifeq ($(USE_DRIVER_ADC_INTERRUPT_STREAM),1)
+SOURCE += $(DRIVERSDIR)/stream/stream_common.c
+CFLAGS += -I$(DRIVERSDIR)/stream
+endif
+ifeq ($(USE_DRIVER_ADC_DMA_STREAM),1)
 SOURCE += $(DRIVERSDIR)/stream/stream_common.c
 CFLAGS += -I$(DRIVERSDIR)/stream
 endif
@@ -165,9 +169,16 @@ endif
 endif
 
 ## ADC streaming driver
-CFLAGS += -DUSE_DRIVER_ADC_STREAM=$(USE_DRIVER_ADC_STREAM)
-ifeq ($(USE_DRIVER_ADC_STREAM), 1)
-SOURCE += $(DRIVERSDIR)/stream/adc/adc_stream.c
+CFLAGS += -DUSE_DRIVER_ADC_DMA_STREAM=$(USE_DRIVER_ADC_DMA_STREAM)
+ifeq ($(USE_DRIVER_ADC_DMA_STREAM), 1)
+SOURCE += $(DRIVERSDIR)/stream/adc/adc_stream_dma.c
+CFLAGS += -I$(DRIVERSDIR)/stream/adc
+endif
+
+## ADC streaming driver
+CFLAGS += -DUSE_DRIVER_ADC_INTERRUPT_STREAM=$(USE_DRIVER_ADC_INTERRUPT_STREAM)
+ifeq ($(USE_DRIVER_ADC_INTERRUPT_STREAM), 1)
+SOURCE += $(DRIVERSDIR)/stream/adc/adc_stream_interrupt.c
 CFLAGS += -I$(DRIVERSDIR)/stream/adc
 endif
 
