@@ -49,67 +49,56 @@
 #include "stream_common.h"
 
 
-#if FAMILY == STM32F1
-#define ADC_SR_TIMER_PRESCALER             36
-#elif FAMILY == STM32F4
-#define ADC_SR_TIMER_PRESCALER             84
-#endif
-
+#define ADC_SR_TIMER_PRESCALER             (SystemCoreClock/2000000)
 #define ADC_SR_TIMER_CLOCK_RATE            ((SystemCoreClock/2)/ADC_SR_TIMER_PRESCALER)
 
 #if ADC_STREAM_SR_TIMER_UNIT == 2
 #define ADC_STREAM_SR_TIMER                TIM2
-#define ADC_STREAM_SR_TIMER_CLOCK          RCC_APB1Periph_TIM2
+#define ADC_STREAM_SR_TIMER_CLOCK          __TIM2_CLK_ENABLE
 #if FAMILY == STM32F1
-#define ADC_STREAM_SR_TIMER_TRIGGER_OUT    TIM_TRGOSource_OC2Ref
+#define ADC_STREAM_SR_TIMER_TRIGGER_OUT    TIM_TRGO_OC2REF
+#define ADC_STREAM_SR_TIMER_OC_CHANNEL    	TIM_CHANNEL_2
 #elif FAMILY == STM32F4
-#define ADC_STREAM_SR_TIMER_TRIGGER_OUT    TIM_TRGOSource_Update
+#define ADC_STREAM_SR_TIMER_TRIGGER_OUT    TIM_TRGO_UPDATE
 #endif
 
 #elif ADC_STREAM_SR_TIMER_UNIT == 3
 #define ADC_STREAM_SR_TIMER                TIM3
-#define ADC_STREAM_SR_TIMER_CLOCK          RCC_APB1Periph_TIM3
-#define ADC_STREAM_SR_TIMER_TRIGGER_OUT    TIM_TRGOSource_Update
+#define ADC_STREAM_SR_TIMER_CLOCK          __TIM3_CLK_ENABLE
+#define ADC_STREAM_SR_TIMER_TRIGGER_OUT    TIM_TRGO_UPDATE
 
 #elif ADC_STREAM_SR_TIMER_UNIT == 4
 
 #define ADC_STREAM_SR_TIMER                TIM4
-#define ADC_STREAM_SR_TIMER_CLOCK          RCC_APB1Periph_TIM4
-#define ADC_STREAM_SR_TIMER_TRIGGER_OUT    TIM_TRGOSource_OC4Ref
+#define ADC_STREAM_SR_TIMER_CLOCK          __TIM4_CLK_ENABLE
+#define ADC_STREAM_SR_TIMER_TRIGGER_OUT    TIM_TRGO_OC4REF
+#define ADC_STREAM_SR_TIMER_OC_CHANNEL    	TIM_CHANNEL_4
 
 #endif
 
 #if FAMILY == STM32F1
-#define ADC_STREAM_DMA_CLOCK               RCC_AHBPeriph_DMA1
-#define ADC_STREAM_DMA_CHANNEL             DMA1_Channel1
+#define ADC_STREAM_DMA_CLOCK_ENABLE			__HAL_RCC_DMA1_CLK_ENABLE
+#define ADC_STREAM_DMA_INST             	DMA1_Channel1
 #define ADC_STREAM_DMA_IRQ_CHANNEL         DMA1_Channel1_IRQn
-#define ADC_STREAM_DMA_TC                  DMA1_IT_TC1
-#define ADC_STREAM_DMA_HT                  DMA1_IT_HT1
-#define ADC_STREAM_DMA_TE                  DMA1_IT_TE1
-#define ADC_STREAM_INTERRUPT_HANDLER       DMA1_Channel1_IRQHandler
 #elif FAMILY == STM32F4
-#define ADC_STREAM_DMA_CLOCK               RCC_AHB1Periph_DMA2
-#define ADC_STREAM_DMA_STREAM              DMA2_Stream0
-#define ADC_STREAM_DMA_CHANNEL             DMA_Channel_0
+#define ADC_STREAM_DMA_CLOCK_ENABLE			__HAL_RCC_DMA2_CLK_ENABLE
+#define ADC_STREAM_DMA_INST              	DMA2_Stream0
+#define ADC_STREAM_DMA_STREAM_CHANNEL      DMA_CHANNEL_0
 #define ADC_STREAM_DMA_IRQ_CHANNEL         DMA2_Stream0_IRQn
-#define ADC_STREAM_DMA_TC                  DMA_IT_TCIF0
-#define ADC_STREAM_DMA_HT                  DMA_IT_HTIF0
-#define ADC_STREAM_DMA_TE                  DMA_IT_TEIF0
-#define ADC_STREAM_INTERRUPT_HANDLER       DMA2_Stream0_IRQHandler
 #endif
 
 /**
  * ADC clock is 12MHz @ 72MHzAPB2 clock / 6
  */
-#define ADC_STREAM_ADC_CLOCK_DIV           RCC_PCLK2_Div6
+#define ADC_STREAM_ADC_CLOCK_DIV           ADC_CLOCK_SYNC_PCLK_DIV6
 
 /**
  * ADC sample rate setting: max would be 12M/28.5=421.052kHz
  */
 #if FAMILY == STM32F1
-#define ADC_STREAM_ADC_CONVERSION_CYCLES   ADC_SampleTime_28Cycles5
+#define ADC_STREAM_ADC_CONVERSION_CYCLES   ADC_SAMPLETIME_28CYCLES
 #elif FAMILY == STM32F4
-#define ADC_STREAM_ADC_CONVERSION_CYCLES   ADC_SampleTime_28Cycles
+#define ADC_STREAM_ADC_CONVERSION_CYCLES   ADC_SAMPLETIME_28CYCLES
 #endif
 /**
  * ADC_STREAM_TRIGGER_SOURCE must be set up to match @ref ADC_STREAM_SR_TIMER selection.
@@ -117,23 +106,19 @@
  */
 #if ADC_STREAM_SR_TIMER_UNIT == 2
 #if FAMILY == STM32F1
-#define ADC_STREAM_TRIGGER_SOURCE          ADC_ExternalTrigConv_T2_CC2
+#define ADC_STREAM_TRIGGER_SOURCE          ADC_EXTERNALTRIGCONV_T2_CC2
 #elif FAMILY == STM32F4
-#define ADC_STREAM_TRIGGER_SOURCE          ADC_ExternalTrigConv_T2_TRGO
+#define ADC_STREAM_TRIGGER_SOURCE          ADC_EXTERNALTRIGCONV_T2_TRGO
 #endif
 #elif ADC_STREAM_SR_TIMER_UNIT == 3
-#define ADC_STREAM_TRIGGER_SOURCE          ADC_ExternalTrigConv_T3_TRGO
+#define ADC_STREAM_TRIGGER_SOURCE          ADC_EXTERNALTRIGCONV_T3_TRGO
 #elif ADC_STREAM_SR_TIMER_UNIT == 4
-#define ADC_STREAM_TRIGGER_SOURCE          ADC_ExternalTrigConv_T4_CC4
+#define ADC_STREAM_TRIGGER_SOURCE          ADC_EXTERNALTRIGCONV_T4_CC4
 #endif
 
 #define ADC_STREAM_MASTER_ADC              ADC1
 #define ADC_STREAM_SLAVE_ADC               ADC2
 #define ADC_STREAM_UNIQUE_ADCS             2
-#define ADC_STREAM_UNIQUE_ADC_CLOCKS       {RCC_APB2Periph_ADC1, RCC_APB2Periph_ADC2}
-
-/* ADC CDR register base address */
-#define ADC_STREAM_CDR_ADDRESS               ((uint32_t)0x40012308)
 
 
 #include "stream_defs.h"

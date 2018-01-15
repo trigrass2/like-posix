@@ -114,174 +114,224 @@ void start()
 static uint16_t adc_stream_buffer[ADC_STREAM_CHANNEL_COUNT * ADC_STREAM_BUFFER_LENGTH];
 static stream_connection_t* adc_stream_connections[ADC_STREAM_MAX_CONNECTIONS];
 
+static void adc_stream_hc_handler(DMA_HandleTypeDef* hdma);
+static void adc_stream_tc_handler(DMA_HandleTypeDef* hdma);
+static void adc_stream_m1_handler(DMA_HandleTypeDef* hdma);
+static void adc_stream_err_handler(DMA_HandleTypeDef* hdma);
+
 stream_t adc_stream;
+
+DMA_HandleTypeDef hadcdma = {
+	.Instance = ADC_STREAM_DMA_INST,
+	.Init = {
+		.Channel = ADC_STREAM_DMA_STREAM_CHANNEL,
+		.Direction = DMA_PERIPH_TO_MEMORY,
+		.PeriphInc = DMA_PINC_DISABLE,
+		.MemInc = DMA_MINC_ENABLE,
+		.PeriphDataAlignment = DMA_PDATAALIGN_WORD,
+		.MemDataAlignment = DMA_MDATAALIGN_WORD,
+		.Mode = DMA_CIRCULAR,
+		.Priority = DMA_PRIORITY_HIGH,
+		.FIFOMode = DMA_FIFOMODE_DISABLE,
+		.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL,
+		.MemBurst = DMA_MBURST_SINGLE,
+		.PeriphBurst = DMA_PBURST_SINGLE,
+	},
+	.Lock = HAL_UNLOCKED,
+	.State = HAL_ADC_STATE_RESET,
+	.Parent = NULL,
+	.XferCpltCallback = adc_stream_tc_handler,
+	.XferHalfCpltCallback = adc_stream_hc_handler,
+	.XferM1CpltCallback = adc_stream_m1_handler,
+	.XferErrorCallback = adc_stream_err_handler,
+	.ErrorCode = HAL_DMA_ERROR_NONE,
+	.StreamBaseAddress = 0,
+	.StreamIndex = 0,
+};
+
+ADC_HandleTypeDef hadc[ADC_STREAM_UNIQUE_ADCS] = {
+	{
+		.Instance = ADC_STREAM_MASTER_ADC,
+		.Init = {
+			.ClockPrescaler = ADC_STREAM_ADC_CLOCK_DIV,
+			.Resolution = ADC_RESOLUTION_12B,
+			.DataAlign = ADC_STREAM_ALIGNMENT,
+			.ScanConvMode = DISABLE,
+			.EOCSelection = ADC_EOC_SINGLE_CONV,
+			.ContinuousConvMode = DISABLE,
+			.DMAContinuousRequests = ENABLE,
+			.NbrOfConversion = ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS,//adc_stream.channels/ADC_STREAM_UNIQUE_ADCS
+			.DiscontinuousConvMode = DISABLE,
+			.NbrOfDiscConversion = 1,
+			.ExternalTrigConv = ADC_STREAM_TRIGGER_SOURCE,
+			.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING,
+		},
+		.NbrOfCurrentConversionRank = 0,
+		.DMA_Handle = &hadcdma,
+		.Lock = HAL_UNLOCKED,
+		.State = HAL_ADC_STATE_RESET,
+		.ErrorCode = HAL_ADC_ERROR_NONE,
+	},
+	{
+		.Instance = ADC_STREAM_SLAVE_ADC,
+		.Init = {
+			.ClockPrescaler = ADC_STREAM_ADC_CLOCK_DIV,
+			.Resolution = ADC_RESOLUTION_12B,
+			.DataAlign = ADC_STREAM_ALIGNMENT,
+			.ScanConvMode = DISABLE,
+			.EOCSelection = ADC_EOC_SINGLE_CONV,
+			.ContinuousConvMode = DISABLE,
+			.DMAContinuousRequests = ENABLE,
+			.NbrOfConversion = ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS,//adc_stream.channels/ADC_STREAM_UNIQUE_ADCS
+			.DiscontinuousConvMode = DISABLE,
+			.NbrOfDiscConversion = 1,
+			.ExternalTrigConv = ADC_SOFTWARE_START, // NONE
+			.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING,
+		},
+		.NbrOfCurrentConversionRank = 0,
+		.DMA_Handle = NULL,
+		.Lock = HAL_UNLOCKED,
+		.State = HAL_ADC_STATE_RESET,
+		.ErrorCode = HAL_ADC_ERROR_NONE,
+	}
+};
+
+static TIM_HandleTypeDef adc_htim = {
+    .Instance = ADC_STREAM_SR_TIMER,
+    .Init = {
+        .Prescaler = 0,
+        .CounterMode = TIM_COUNTERMODE_UP,
+        .Period = 0,
+        .ClockDivision = TIM_CLOCKDIVISION_DIV1,
+        .RepetitionCounter = 0
+    },
+    .Channel = HAL_TIM_ACTIVE_CHANNEL_1,
+    .Lock = HAL_UNLOCKED,
+    .State = HAL_TIM_STATE_RESET,
+};
 
 void adc_stream_init()
 {
-    uint32_t resolution = ADC_STREAM_ALIGNMENT == ADC_DataAlign_Left ? 65536 : 4096;
+    uint32_t resolution = ADC_STREAM_ALIGNMENT == ADC_DATAALIGN_LEFT ? 65536 : 4096;
 
     init_stream(&adc_stream, "adc_stream", ADC_STREAM_DEFAULT_SAMPLERATE,
             ADC_STREAM_MAX_CONNECTIONS, adc_stream_buffer, adc_stream_connections,
             ADC_STREAM_BUFFER_LENGTH, ADC_STREAM_CHANNEL_COUNT, ADC_STREAM_THREAD_PRIO, ADC_STREAM_THREAD_STACK_SIZE, ADC_FULL_SCALE_AMPLITUDE_MV, resolution);
 
-    init_local_adc_io();
+
+    adc_htim.Init.Prescaler = ADC_SR_TIMER_PRESCALER-1,
+    adc_htim.Init.Period = (ADC_SR_TIMER_CLOCK_RATE / ADC_STREAM_DEFAULT_SAMPLERATE) - 1,
+
+	init_local_adc_io();
     init_local_adc();
     init_adc_samplerate_timer();
-
-    // enable dma interrupt
-    NVIC_InitTypeDef dma_nvic =
-    {
-        .NVIC_IRQChannel = ADC_STREAM_DMA_IRQ_CHANNEL,
-        .NVIC_IRQChannelPreemptionPriority = ADC_STREAM_DMA_IRQ_PRIORITY,
-        .NVIC_IRQChannelSubPriority = 0,
-        .NVIC_IRQChannelCmd = ENABLE
-    };
-    NVIC_Init(&dma_nvic);
 }
+
+
+void init_local_adc_dma()
+{
+	ADC_STREAM_DMA_CLOCK_ENABLE();
+	HAL_StatusTypeDef ret = HAL_DMA_DeInit(&hadcdma);
+	assert_true(ret == HAL_OK);
+	ret = HAL_DMA_Init(&hadcdma);
+    assert_true(ret == HAL_OK);
+    __HAL_LINKDMA(&hadc[0], DMA_Handle, hadcdma);
+    log_debug(&adc_stream.log, "DMA initialised");
+}
+
 
 stream_t* get_adc_stream()
 {
 	return &adc_stream;
 }
 
-#if FAMILY == STM32F1
+void adc_stream_m1_handler(DMA_HandleTypeDef* hdma)
+{
+	assert_true(0);
+}
 
-void ADC_STREAM_INTERRUPT_HANDLER()
+void adc_stream_err_handler(DMA_HandleTypeDef* hdma)
+{
+	assert_true(0);
+}
+
+void adc_stream_hc_handler(DMA_HandleTypeDef* hdma)
 {
     static BaseType_t xHigherPriorityTaskWoken;
     xHigherPriorityTaskWoken = pdFALSE;
-
-    if(DMA_GetITStatus(ADC_STREAM_DMA_TC) == SET)
-    {
-        // transfer complete
-        adc_stream.buffer = adc_stream._buffer + ((adc_stream.length / 2) * adc_stream.channels);
-        xSemaphoreGiveFromISR(adc_stream.ready, &xHigherPriorityTaskWoken);
-        DMA_ClearITPendingBit(ADC_STREAM_DMA_TC);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    }
-    if(DMA_GetITStatus(ADC_STREAM_DMA_HT) == SET)
-    {
-        // half transfer complete
-        adc_stream.buffer = adc_stream._buffer;
-        xSemaphoreGiveFromISR(adc_stream.ready, &xHigherPriorityTaskWoken);
-        DMA_ClearITPendingBit(ADC_STREAM_DMA_HT);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    }
+	// half transfer complete
+	adc_stream.buffer = adc_stream._buffer;
+	xSemaphoreGiveFromISR(adc_stream.ready, &xHigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
-#elif FAMILY == STM32F4
-
-void ADC_STREAM_INTERRUPT_HANDLER()
+void adc_stream_tc_handler(DMA_HandleTypeDef* hdma)
 {
     static BaseType_t xHigherPriorityTaskWoken;
     xHigherPriorityTaskWoken = pdFALSE;
-
-    if(DMA_GetITStatus(ADC_STREAM_DMA_STREAM, ADC_STREAM_DMA_TC) == SET)
-    {
-        // transfer complete
-        adc_stream.buffer = adc_stream._buffer + ((adc_stream.length / 2) * adc_stream.channels);
-        xSemaphoreGiveFromISR(adc_stream.ready, &xHigherPriorityTaskWoken);
-        DMA_ClearITPendingBit(ADC_STREAM_DMA_STREAM, ADC_STREAM_DMA_TC);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    }
-    if(DMA_GetITStatus(ADC_STREAM_DMA_STREAM, ADC_STREAM_DMA_HT) == SET)
-    {
-        // half transfer complete
-        adc_stream.buffer = adc_stream._buffer;
-        xSemaphoreGiveFromISR(adc_stream.ready, &xHigherPriorityTaskWoken);
-        DMA_ClearITPendingBit(ADC_STREAM_DMA_STREAM, ADC_STREAM_DMA_HT);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    }
+	// transfer complete
+	adc_stream.buffer = adc_stream._buffer + ((adc_stream.length / 2) * adc_stream.channels);
+	xSemaphoreGiveFromISR(adc_stream.ready, &xHigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
-#endif
 
 void init_adc_samplerate_timer()
 {
-    // Audio sample rate, select trigger
-    RCC_APB1PeriphClockCmd(ADC_STREAM_SR_TIMER_CLOCK, ENABLE);
+    ADC_STREAM_SR_TIMER_CLOCK();
 
-#if FAMILY == STM32F1
-    TIM_TimeBaseInitTypeDef input_timer_init =
-    {
-            .TIM_Period = (ADC_SR_TIMER_CLOCK_RATE / ADC_STREAM_DEFAULT_SAMPLERATE) - 1,
-            .TIM_Prescaler = ADC_SR_TIMER_PRESCALER-1,
-            .TIM_CounterMode = TIM_CounterMode_Up,             // counter mode
-            .TIM_ClockDivision = TIM_CKD_DIV1,                   // clock divider value (1, 2 or 4) (has no effect on OC/PWM)
-    };
-    TIM_TimeBaseInit(ADC_STREAM_SR_TIMER, &input_timer_init);
-
-#if ADC_STREAM_SR_TIMER_UNIT == 4 || ADC_STREAM_SR_TIMER_UNIT == 2
-    TIM_OCInitTypeDef input_timer =
-    {
-            TIM_OCMode_PWM1,            //
-            TIM_OutputState_Enable,     // output state
-            TIM_OutputState_Enable,     // complementary output state
-            0,                          // capture compare pulse value
-            TIM_OCPolarity_High,        // output polarity
-            TIM_OCPolarity_High,        // complementary output polarity
-            TIM_OCIdleState_Set,        // idle state
-            TIM_OCIdleState_Set,        // complementary idle state
-    };
+#ifdef ADC_STREAM_SR_TIMER_OC_CHANNEL
+    HAL_StatusTypeDef ret = HAL_TIM_OC_Init(&adc_htim);
+	assert_true(ret == HAL_OK);
+	TIM_OC_InitTypeDef sConfig;
+    sConfig.OCMode = TIM_OCMODE_ACTIVE;
+    sConfig.Pulse = 0;
+    sConfig.OCPolarity = TIM_OCPOLARITY_HIGH;
+    sConfig.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+    sConfig.OCFastMode = TIM_OCFAST_ENABLE;
+    sConfig.OCIdleState = TIM_OCIDLESTATE_SET;
+    sConfig.OCNIdleState = TIM_OCNIDLESTATE_SET;
+    ret = HAL_TIM_OC_ConfigChannel(&adc_htim, &sConfig, ADC_STREAM_SR_TIMER_OC_CHANNEL);
+	assert_true(ret == HAL_OK);
+#else
+	HAL_StatusTypeDef ret = HAL_TIM_Base_Init(&adc_htim);
+	assert_true(ret == HAL_OK);
 #endif
 
-#if ADC_STREAM_SR_TIMER_UNIT == 4
-        TIM_OC4Init(ADC_STREAM_SR_TIMER, &input_timer);
-        TIM_OC4PreloadConfig(ADC_STREAM_SR_TIMER, TIM_OCPreload_Enable);
-        TIM_SetCompare4(ADC_STREAM_SR_TIMER, 1);
-#elif ADC_STREAM_SR_TIMER_UNIT == 2
-        TIM_OC2Init(ADC_STREAM_SR_TIMER, &input_timer);
-        TIM_OC2PreloadConfig(ADC_STREAM_SR_TIMER, TIM_OCPreload_Enable);
-        TIM_SetCompare2(ADC_STREAM_SR_TIMER, 1);
-#endif
-
-    TIM_ARRPreloadConfig(ADC_STREAM_SR_TIMER, ENABLE);
-
-#elif FAMILY == STM32F4
-
-    TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-
-    /* Time base configuration */
-    TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
-    TIM_TimeBaseStructure.TIM_Period = (ADC_SR_TIMER_CLOCK_RATE / ADC_STREAM_DEFAULT_SAMPLERATE) - 1;
-    TIM_TimeBaseStructure.TIM_Prescaler = ADC_SR_TIMER_PRESCALER-1;
-    TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-    TIM_TimeBaseInit(ADC_STREAM_SR_TIMER, &TIM_TimeBaseStructure);
-#endif
-
-
-    TIM_SelectOutputTrigger(ADC_STREAM_SR_TIMER, ADC_STREAM_SR_TIMER_TRIGGER_OUT);
+    TIM_MasterConfigTypeDef sMasterConfig;
+    sMasterConfig.MasterOutputTrigger = ADC_STREAM_SR_TIMER_TRIGGER_OUT;
+    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_ENABLE;
+    ret = HAL_TIMEx_MasterConfigSynchronization(&adc_htim, &sMasterConfig);
+	assert_true(ret == HAL_OK);
 
     adc_stream_set_samplerate(ADC_STREAM_DEFAULT_SAMPLERATE);
 }
 
+
 void init_local_adc_io()
 {
+
     uint8_t i;
     GPIO_TypeDef* stream_input_ports[ADC_STREAM_CHANNEL_COUNT] = ADC_STREAM_CHANNEL_PORTS;
     uint16_t stream_input_pins[ADC_STREAM_CHANNEL_COUNT] = ADC_STREAM_CHANNEL_PINS;
-#if FAMILY == STM32F1
-    GPIO_InitTypeDef gpioi = {
-            .GPIO_Speed = GPIO_Speed_2MHz,
-            .GPIO_Mode = GPIO_Mode_AIN
-    };
-#elif FAMILY == STM32F4
-    GPIO_InitTypeDef gpioi = {
-            .GPIO_Speed = GPIO_Speed_2MHz,
-            .GPIO_Mode = GPIO_Mode_AN,
-            .GPIO_OType = GPIO_OType_OD,
-            .GPIO_PuPd = GPIO_PuPd_NOPULL
-    };
+
+
+	GPIO_InitTypeDef gpio_input_init;
+
+	gpio_input_init.Mode = GPIO_MODE_ANALOG;
+	gpio_input_init.Pull = GPIO_NOPULL;
+	gpio_input_init.Speed = GPIO_SPEED_LOW;
+
+#if FAMILY == STM32F4
+//	gpio_input_init.Alternate = GPIO_AFn_xxx;
 #endif
+
     // ADC IO pins
     for(i = 0; i < ADC_STREAM_CHANNEL_COUNT; i++)
     {
-        gpioi.GPIO_Pin = stream_input_pins[i];
-        GPIO_Init(stream_input_ports[i], &gpioi);
+    	gpio_input_init.Pin = stream_input_pins[i];
+    	HAL_GPIO_Init(stream_input_ports[i], &gpio_input_init);
     }
 }
-
-#if FAMILY == STM32F1
 
 /**
  * @brief   initialises the on ADC IO pins, and the ADC's themselves.
@@ -289,203 +339,49 @@ void init_local_adc_io()
  */
 void init_local_adc()
 {
-    uint8_t i;
+	uint32_t adc_master_channels[] = ADC_STREAM_MASTER_ADC_CHANNELS;
+	uint32_t adc_slave_channels[] = ADC_STREAM_SLAVE_ADC_CHANNELS;
+	uint32_t i;
+	__HAL_RCC_ADC1_CLK_ENABLE();
+	__HAL_RCC_ADC2_CLK_ENABLE();
 
-    uint32_t stream_adc_clocks[ADC_STREAM_UNIQUE_ADCS] = ADC_STREAM_UNIQUE_ADC_CLOCKS;
-    uint8_t adc_master_channels[ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS] = ADC_STREAM_MASTER_ADC_CHANNELS;
-    uint8_t adc_slave_channels[ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS] = ADC_STREAM_SLAVE_ADC_CHANNELS;
+	// dont support single ADC operation at this time
+	assert_true(ADC_STREAM_UNIQUE_ADCS == 2);
 
-    // Audio ADC init
-    // clock init
-    for(i = 0; i < ADC_STREAM_UNIQUE_ADCS; i++)
-        RCC_APB2PeriphClockCmd(stream_adc_clocks[i], ENABLE);
+	HAL_ADC_DeInit(&hadc[0]);
+	HAL_ADC_DeInit(&hadc[1]);
 
-    RCC_ADCCLKConfig(ADC_STREAM_ADC_CLOCK_DIV);
+	ADC_MultiModeTypeDef mm_config;
+	mm_config.DMAAccessMode = ADC_DMAACCESSMODE_2;
+	mm_config.Mode = ADC_DUALMODE_REGSIMULT;
+	mm_config.TwoSamplingDelay = ADC_TWOSAMPLINGDELAY_5CYCLES;
+	HAL_StatusTypeDef ret = HAL_ADCEx_MultiModeConfigChannel(&hadc[0], &mm_config);
+	assert_true(ret == HAL_OK);
 
-    // we dont support single ADC operation at this time
-    assert_true(ADC_STREAM_UNIQUE_ADCS == 2);
+	HAL_ADC_Init(&hadc[0]);
+	HAL_ADC_Init(&hadc[1]);
+	//ADC_ExternalTrigConvCmd(ADC_STREAM_SLAVE_ADC, en)
 
-    ADC_DeInit(ADC_STREAM_MASTER_ADC);
-    ADC_DeInit(ADC_STREAM_SLAVE_ADC);
-
-    ADC_InitTypeDef adc_init =
-    {
-            .ADC_Mode = ADC_Mode_RegSimult,
-            .ADC_ScanConvMode = ENABLE,
-            .ADC_ContinuousConvMode = DISABLE,
-            .ADC_ExternalTrigConv = ADC_STREAM_TRIGGER_SOURCE,
-            .ADC_DataAlign = ADC_STREAM_ALIGNMENT,
-            .ADC_NbrOfChannel = ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS
-    };
-
-    // init master
-    ADC_Init(ADC_STREAM_MASTER_ADC, &adc_init);
-    // init slave, is triggered by master ADC start conversion event
-    adc_init.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
-    ADC_Init(ADC_STREAM_SLAVE_ADC, &adc_init);
-    ADC_ExternalTrigConvCmd(ADC_STREAM_SLAVE_ADC, ENABLE);
+	ADC_ChannelConfTypeDef channel_config;
+    channel_config.SamplingTime = ADC_STREAM_ADC_CONVERSION_CYCLES;
 
     // init ADC adc_stream.channels
     for(i=0; i < (ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS); i++)
     {
-        ADC_RegularChannelConfig(ADC_STREAM_MASTER_ADC, adc_master_channels[i], i+1, ADC_STREAM_ADC_CONVERSION_CYCLES);
-        ADC_RegularChannelConfig(ADC_STREAM_SLAVE_ADC, adc_slave_channels[i], i+1, ADC_STREAM_ADC_CONVERSION_CYCLES);
+    	channel_config.Rank = i+1;
+    	channel_config.Channel = adc_master_channels[i];
+    	ret = HAL_ADC_ConfigChannel(&hadc[0], &channel_config);
+    	channel_config.Channel = adc_slave_channels[i];
+    	assert_true(ret == HAL_OK);
+    	ret = HAL_ADC_ConfigChannel(&hadc[1], &channel_config);
+    	assert_true(ret == HAL_OK);
     }
 
-    // Enable Audio Channel 1
-    ADC_Cmd(ADC_STREAM_MASTER_ADC, ENABLE);
-    ADC_ResetCalibration(ADC_STREAM_MASTER_ADC);
-    while(ADC_GetResetCalibrationStatus(ADC_STREAM_MASTER_ADC) == SET);
-    ADC_StartCalibration(ADC_STREAM_MASTER_ADC);
-    while(ADC_GetCalibrationStatus(ADC_STREAM_MASTER_ADC) == SET);
-
-    // Enable Audio Channel 2
-    ADC_Cmd(ADC_STREAM_SLAVE_ADC, ENABLE);
-    ADC_ResetCalibration(ADC_STREAM_SLAVE_ADC);
-    while(ADC_GetResetCalibrationStatus(ADC_STREAM_SLAVE_ADC) == SET);
-    ADC_StartCalibration(ADC_STREAM_SLAVE_ADC);
-    while(ADC_GetCalibrationStatus(ADC_STREAM_SLAVE_ADC) == SET);
+    HAL_NVIC_EnableIRQ(ADC_STREAM_DMA_IRQ_CHANNEL);
+    HAL_NVIC_SetPriority(ADC_STREAM_DMA_IRQ_CHANNEL, ADC_STREAM_DMA_IRQ_PRIORITY, 0);
 
     log_debug(&adc_stream.log, "ADC initialised");
 }
-
-#elif FAMILY == STM32F4
-
-void init_local_adc()
-{
-    // we dont support single ADC operation at this time
-    assert_true(ADC_STREAM_UNIQUE_ADCS == 2);
-
-    uint8_t i;
-    uint32_t stream_adc_clocks[ADC_STREAM_UNIQUE_ADCS] = ADC_STREAM_UNIQUE_ADC_CLOCKS;
-    uint8_t adc_master_channels[ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS] = ADC_STREAM_MASTER_ADC_CHANNELS;
-    uint8_t adc_slave_channels[ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS] = ADC_STREAM_SLAVE_ADC_CHANNELS;
-
-    // Audio ADC init
-    // clock init
-    for(i = 0; i < ADC_STREAM_UNIQUE_ADCS; i++)
-        RCC_APB2PeriphClockCmd(stream_adc_clocks[i], ENABLE);
-
-    ADC_DeInit();
-
-    ADC_CommonInitTypeDef adc_common_init =
-    {
-            .ADC_Mode = ADC_DualMode_RegSimult,
-            .ADC_Prescaler = ADC_Prescaler_Div2,
-            .ADC_DMAAccessMode = ADC_DMAAccessMode_2,
-            .ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles
-    };
-
-    ADC_CommonInit(&adc_common_init);
-
-    ADC_InitTypeDef adc_init =
-    {
-            .ADC_Resolution = ADC_Resolution_12b,
-            .ADC_ScanConvMode = ENABLE,
-            .ADC_ContinuousConvMode = DISABLE,
-            .ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Rising,
-            .ADC_ExternalTrigConv = ADC_STREAM_TRIGGER_SOURCE,
-            .ADC_DataAlign = ADC_STREAM_ALIGNMENT,
-            .ADC_NbrOfConversion = adc_stream.channels/ADC_STREAM_UNIQUE_ADCS,
-    };
-    ADC_Init(ADC_STREAM_MASTER_ADC, &adc_init);
-    ADC_Init(ADC_STREAM_SLAVE_ADC, &adc_init);
-
-
-    // init ADC adc_stream.channels
-    for(i=0; i < (ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS); i++)
-    {
-        ADC_RegularChannelConfig(ADC_STREAM_MASTER_ADC, adc_master_channels[i], i+1, ADC_STREAM_ADC_CONVERSION_CYCLES);
-        ADC_RegularChannelConfig(ADC_STREAM_SLAVE_ADC, adc_slave_channels[i], i+1, ADC_STREAM_ADC_CONVERSION_CYCLES);
-    }
-
-    /* Enable DMA request after last transfer (Multi-ADC mode)  */
-    ADC_MultiModeDMARequestAfterLastTransferCmd(ENABLE);
-
-    /* Enable ADC_STREAM_MASTER_ADC */
-    ADC_Cmd(ADC_STREAM_MASTER_ADC, ENABLE);
-
-    /* Enable ADC_STREAM_SLAVE_ADC */
-    ADC_Cmd(ADC_STREAM_SLAVE_ADC, ENABLE);
-
-    log_debug(&adc_stream.log, "ADC initialised");
-}
-
-#endif
-
-/**
- * @brief   sets up the ADC DMA channel.
- *          DMA is running in word transfer width. 2x 16bit words per transfer.
- * @param   buffer is a pointer to an @ref AudioBuffer object.
- */
-#if FAMILY == STM32F1
-void init_local_adc_dma()
-{
-    DMA_InitTypeDef dma_init;
-
-    // Audio adc_stream
-    RCC_AHBPeriphClockCmd(ADC_STREAM_DMA_CLOCK, ENABLE);
-    DMA_DeInit(ADC_STREAM_DMA_CHANNEL);
-
-    dma_init.DMA_PeripheralBaseAddr = (uint32_t)&(ADC_STREAM_MASTER_ADC->DR);
-    dma_init.DMA_MemoryBaseAddr = (uint32_t)adc_stream._buffer;
-    dma_init.DMA_DIR = DMA_DIR_PeripheralSRC;
-    dma_init.DMA_BufferSize = sizeof(adc_stream_buffer)/sizeof(uint32_t);
-    dma_init.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-    dma_init.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    dma_init.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
-    dma_init.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
-    dma_init.DMA_Mode = DMA_Mode_Circular;
-    dma_init.DMA_Priority = DMA_Priority_Medium;
-    dma_init.DMA_M2M = DMA_M2M_Disable;
-
-    DMA_Init(ADC_STREAM_DMA_CHANNEL, &dma_init);
-
-    DMA_ITConfig(ADC_STREAM_DMA_CHANNEL, DMA_IT_TC|DMA_IT_HT, ENABLE);
-
-    DMA_Cmd(ADC_STREAM_DMA_CHANNEL, ENABLE);
-
-    log_debug(&adc_stream.log, "DMA initialised");
-}
-
-#elif FAMILY == STM32F4
-
-void init_local_adc_dma()
-{
-    RCC_AHB1PeriphClockCmd(ADC_STREAM_DMA_CLOCK, ENABLE);
-
-    DMA_InitTypeDef dma_init;
-
-    DMA_DeInit(ADC_STREAM_DMA_STREAM);
-
-    dma_init.DMA_Channel = ADC_STREAM_DMA_CHANNEL;
-    dma_init.DMA_PeripheralBaseAddr = ADC_STREAM_CDR_ADDRESS;
-    dma_init.DMA_Memory0BaseAddr = (uint32_t)adc_stream._buffer; //Destination address
-    dma_init.DMA_DIR = DMA_DIR_PeripheralToMemory;
-    dma_init.DMA_BufferSize = sizeof(adc_stream_buffer)/sizeof(uint32_t); //Buffer size
-    dma_init.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-    dma_init.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    dma_init.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
-    dma_init.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
-    dma_init.DMA_Mode = DMA_Mode_Circular;
-    dma_init.DMA_Priority = DMA_Priority_High;
-    dma_init.DMA_FIFOMode = DMA_FIFOMode_Disable;
-    dma_init.DMA_FIFOThreshold = DMA_FIFOThreshold_HalfFull;
-    dma_init.DMA_MemoryBurst = DMA_MemoryBurst_Single;
-    dma_init.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-
-    DMA_Init(ADC_STREAM_DMA_STREAM, &dma_init);
-
-    /* Enable DMA Stream Half / Transfer Complete interrupt */
-    DMA_ITConfig(ADC_STREAM_DMA_STREAM, DMA_IT_TC | DMA_IT_HT, ENABLE);
-
-    /* ADC_STREAM_DMA_STREAM enable */
-    DMA_Cmd(ADC_STREAM_DMA_STREAM, ENABLE);
-
-    log_debug(&adc_stream.log, "DMA initialised");
-}
-
-#endif
 
 /**
  * @brief   start the stream adc_stream.
@@ -495,21 +391,15 @@ void adc_stream_start()
     adc_stream.buffer = NULL;
     //clear the buffer
     memset(adc_stream._buffer, ADC_STREAM_BUFFER_CLEAR_VALUE, sizeof(adc_stream_buffer));
-
-    // setup adc_stream
-    // enable ADC DMA channel
     init_local_adc_dma();
-    ADC_DMACmd(ADC_STREAM_MASTER_ADC, ENABLE);
-
-    // ADC trigger enable
-#if FAMILY == STM32F1
-    ADC_ExternalTrigConvCmd(ADC_STREAM_MASTER_ADC, ENABLE);
-#elif FAMILY == STM32F4
-    ADC_SoftwareStartConv(ADC_STREAM_MASTER_ADC);
+    HAL_StatusTypeDef ret = HAL_ADCEx_MultiModeStart_DMA(&hadc[0], (uint32_t*)adc_stream._buffer, sizeof(adc_stream_buffer)/sizeof(uint32_t));
+    assert_true(ret == HAL_OK);
+#ifdef ADC_STREAM_SR_TIMER_OC_CHANNEL
+    ret = HAL_TIM_OC_Start(&adc_htim, ADC_STREAM_SR_TIMER_OC_CHANNEL);
+#else
+    ret = HAL_TIM_Base_Start(&adc_htim);
 #endif
-    // enable trigger timer
-    TIM_Cmd(ADC_STREAM_SR_TIMER, ENABLE);
-
+    assert_true(ret == HAL_OK);
     log_debug(&adc_stream.log, "started");
 }
 
@@ -519,22 +409,12 @@ void adc_stream_start()
 void adc_stream_stop()
 {
     adc_stream.buffer = NULL;
-
-    // enable trigger timer
-    TIM_Cmd(ADC_STREAM_SR_TIMER, DISABLE);
-    ADC_DMACmd(ADC_STREAM_MASTER_ADC, DISABLE);
-    // ADC trigger disable
-#if FAMILY == STM32F1
-    ADC_ExternalTrigConvCmd(ADC_STREAM_MASTER_ADC, DISABLE);
+    HAL_ADCEx_MultiModeStop_DMA(&hadc[0]);
+#ifdef ADC_STREAM_SR_TIMER_OC_CHANNEL
+    HAL_TIM_OC_Stop(&adc_htim, ADC_STREAM_SR_TIMER_OC_CHANNEL);
+#else
+    HAL_TIM_Base_Stop(&adc_htim);
 #endif
-
-    // disable ADC DMA channel
-#if FAMILY == STM32F1
-    DMA_Cmd(ADC_STREAM_DMA_CHANNEL, DISABLE);
-#elif FAMILY == STM32F4
-    DMA_Cmd(ADC_STREAM_DMA_STREAM, DISABLE);
-#endif
-
     log_debug(&adc_stream.log, "stream adc_stream stopped");
 }
 
