@@ -114,10 +114,8 @@ void start()
 static uint16_t adc_stream_buffer[ADC_STREAM_CHANNEL_COUNT * ADC_STREAM_BUFFER_LENGTH];
 static stream_connection_t* adc_stream_connections[ADC_STREAM_MAX_CONNECTIONS];
 
-static void init_adc_samplerate_timer();
 static void init_local_adc();
 static void init_local_adc_dma();
-static void init_local_adc_io();
 
 stream_t adc_stream;
 
@@ -153,8 +151,8 @@ ADC_HandleTypeDef adc_stream_hadc[ADC_STREAM_UNIQUE_ADCS] = {
 			.Resolution = ADC_RESOLUTION_12B,
 			.DataAlign = ADC_STREAM_ALIGNMENT,
 			.ScanConvMode = ENABLE,
-			.EOCSelection = ADC_EOC_SINGLE_CONV,
-			.ContinuousConvMode = DISABLE,
+			.EOCSelection = ADC_EOC_SINGLE_CONV,//ADC_EOC_SEQ_CONV,
+			.ContinuousConvMode = ADC_STREAM_CONTINUOUSCONV,
 			.DMAContinuousRequests = ENABLE,
 			.NbrOfConversion = ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS,
 			.DiscontinuousConvMode = DISABLE,
@@ -175,8 +173,8 @@ ADC_HandleTypeDef adc_stream_hadc[ADC_STREAM_UNIQUE_ADCS] = {
 			.Resolution = ADC_RESOLUTION_12B,
 			.DataAlign = ADC_STREAM_ALIGNMENT,
 			.ScanConvMode = ENABLE,
-			.EOCSelection = ADC_EOC_SINGLE_CONV,
-			.ContinuousConvMode = DISABLE,
+			.EOCSelection = ADC_EOC_SINGLE_CONV,//ADC_EOC_SEQ_CONV,
+			.ContinuousConvMode = ADC_STREAM_CONTINUOUSCONV,
 			.DMAContinuousRequests = ENABLE,
 			.NbrOfConversion = ADC_STREAM_CHANNEL_COUNT/ADC_STREAM_UNIQUE_ADCS,
 			.DiscontinuousConvMode = DISABLE,
@@ -192,19 +190,6 @@ ADC_HandleTypeDef adc_stream_hadc[ADC_STREAM_UNIQUE_ADCS] = {
 	}
 };
 
-static TIM_HandleTypeDef adc_stream_htim = {
-    .Instance = ADC_STREAM_SR_TIMER,
-    .Init = {
-        .Prescaler = 0,
-        .CounterMode = TIM_COUNTERMODE_UP,
-        .Period = 0,
-        .ClockDivision = TIM_CLOCKDIVISION_DIV1,
-        .RepetitionCounter = 0
-    },
-    .Channel = HAL_TIM_ACTIVE_CHANNEL_CLEARED,
-    .Lock = HAL_UNLOCKED,
-    .State = HAL_TIM_STATE_RESET,
-};
 
 void adc_stream_init()
 {
@@ -214,13 +199,34 @@ void adc_stream_init()
             ADC_STREAM_MAX_CONNECTIONS, adc_stream_buffer, adc_stream_connections,
             ADC_STREAM_BUFFER_LENGTH, ADC_STREAM_CHANNEL_COUNT, ADC_STREAM_THREAD_PRIO, ADC_STREAM_THREAD_STACK_SIZE, ADC_FULL_SCALE_AMPLITUDE_MV, resolution);
 
-	init_local_adc_io();
+    adc_stream_init_local_io();
     init_local_adc();
-    init_adc_samplerate_timer();
+    adc_stream_init_samplerate_timer();
+}
+
+stream_t* get_adc_stream()
+{
+	return &adc_stream;
+}
+
+void adc_stream_start()
+{
+    init_local_adc_dma();
+    HAL_StatusTypeDef ret = HAL_ADCEx_MultiModeStart_DMA(&adc_stream_hadc[0], (uint32_t*)adc_stream._buffer, sizeof(adc_stream_buffer)/sizeof(uint32_t));
+    assert_true(ret == HAL_OK);
+    _adc_stream_start();
+}
+
+void adc_stream_stop()
+{
+    _adc_stream_stop();
+    HAL_StatusTypeDef ret = HAL_ADCEx_MultiModeStop_DMA(&adc_stream_hadc[0]);
+    assert_true(ret == HAL_OK);
 }
 
 
-void init_local_adc_dma()
+
+static void init_local_adc_dma()
 {
 	ADC_STREAM_DMA_CLOCK_ENABLE();
 	HAL_StatusTypeDef ret = HAL_DMA_DeInit(&adc_stream_hdma);
@@ -231,101 +237,7 @@ void init_local_adc_dma()
     log_debug(&adc_stream.log, "DMA initialised");
 }
 
-
-stream_t* get_adc_stream()
-{
-	return &adc_stream;
-}
-
-void ADC_STREAM_DMA_IRQ_HANDLER()
-{
-	HAL_DMA_IRQHandler(&adc_stream_hdma);
-}
-
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
-{
-	static BaseType_t xHigherPriorityTaskWoken;
-    xHigherPriorityTaskWoken = pdFALSE;
-	// transfer complete
-	adc_stream.buffer = adc_stream._buffer + ((adc_stream.length / 2) * adc_stream.channels);
-	xSemaphoreGiveFromISR(adc_stream.ready, &xHigherPriorityTaskWoken);
-	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-}
-
-void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
-{
-    static BaseType_t xHigherPriorityTaskWoken;
-    xHigherPriorityTaskWoken = pdFALSE;
-	// half transfer complete
-	adc_stream.buffer = adc_stream._buffer;
-	xSemaphoreGiveFromISR(adc_stream.ready, &xHigherPriorityTaskWoken);
-	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-}
-
-void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)
-{
-	assert_true(0);
-}
-
-void init_adc_samplerate_timer()
-{
-    ADC_STREAM_SR_TIMER_CLOCK();
-
-    adc_stream_htim.Init.Prescaler = ADC_SR_TIMER_PRESCALER-1;
-    adc_stream_htim.Init.Period = (ADC_SR_TIMER_CLOCK_RATE / ADC_STREAM_DEFAULT_SAMPLERATE) - 1;
-
-#ifdef ADC_STREAM_SR_TIMER_OC_CHANNEL
-//    HAL_StatusTypeDef ret = HAL_TIM_OC_Init(&adc_stream_htim);
-    HAL_StatusTypeDef ret = HAL_TIM_PWM_Init(&adc_stream_htim);
-	assert_true(ret == HAL_OK);
-	TIM_OC_InitTypeDef sConfig;
-    sConfig.OCMode = TIM_OCMODE_PWM1;//TIM_OCMODE_ACTIVE
-    sConfig.Pulse = 0;
-    sConfig.OCPolarity = TIM_OCPOLARITY_HIGH;
-    sConfig.OCNPolarity = TIM_OCNPOLARITY_HIGH;
-    sConfig.OCFastMode = TIM_OCFAST_ENABLE;
-    sConfig.OCIdleState = TIM_OCIDLESTATE_SET;
-    sConfig.OCNIdleState = TIM_OCNIDLESTATE_SET;
-//    ret = HAL_TIM_OC_ConfigChannel(&adc_stream_htim, &sConfig, ADC_STREAM_SR_TIMER_OC_CHANNEL);
-    ret = HAL_TIM_PWM_ConfigChannel(&adc_stream_htim, &sConfig, ADC_STREAM_SR_TIMER_OC_CHANNEL);
-	assert_true(ret == HAL_OK);
-#else
-	HAL_StatusTypeDef ret = HAL_TIM_Base_Init(&adc_stream_htim);
-	assert_true(ret == HAL_OK);
-#endif
-
-    TIM_MasterConfigTypeDef sMasterConfig;
-    sMasterConfig.MasterOutputTrigger = ADC_STREAM_SR_TIMER_TRIGGER_OUT;
-    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-    ret = HAL_TIMEx_MasterConfigSynchronization(&adc_stream_htim, &sMasterConfig);
-	assert_true(ret == HAL_OK);
-
-    adc_stream_set_samplerate(ADC_STREAM_DEFAULT_SAMPLERATE);
-}
-
-
-void init_local_adc_io()
-{
-    uint8_t i;
-    GPIO_TypeDef* stream_input_ports[ADC_STREAM_CHANNEL_COUNT] = ADC_STREAM_CHANNEL_PORTS;
-    uint16_t stream_input_pins[ADC_STREAM_CHANNEL_COUNT] = ADC_STREAM_CHANNEL_PINS;
-	GPIO_InitTypeDef gpio_input_init;
-	gpio_input_init.Mode = GPIO_MODE_ANALOG;
-	gpio_input_init.Pull = GPIO_NOPULL;
-	gpio_input_init.Speed = GPIO_SPEED_LOW;
-    // ADC IO pins
-    for(i = 0; i < ADC_STREAM_CHANNEL_COUNT; i++)
-    {
-    	gpio_input_init.Pin = stream_input_pins[i];
-    	HAL_GPIO_Init(stream_input_ports[i], &gpio_input_init);
-    }
-}
-
-/**
- * @brief   initialises the on ADC IO pins, and the ADC's themselves.
- *          enables the ADC DMA request.
- */
-void init_local_adc()
+static void init_local_adc()
 {
 	uint32_t adc_master_channels[] = ADC_STREAM_MASTER_ADC_CHANNELS;
 	uint32_t adc_slave_channels[] = ADC_STREAM_SLAVE_ADC_CHANNELS;
@@ -370,67 +282,30 @@ void init_local_adc()
 
     log_debug(&adc_stream.log, "ADC initialised");
 }
-/**
- * @brief   start the stream adc_stream.
- */
-void adc_stream_start()
+
+void ADC_STREAM_DMA_IRQ_HANDLER()
 {
-    adc_stream.buffer = NULL;
-    //clear the buffer
-    memset(adc_stream._buffer, ADC_STREAM_BUFFER_CLEAR_VALUE, sizeof(adc_stream_buffer));
-    init_local_adc_dma();
-
-    HAL_StatusTypeDef ret = HAL_ADCEx_MultiModeStart_DMA(&adc_stream_hadc[0], (uint32_t*)adc_stream._buffer, sizeof(adc_stream_buffer)/sizeof(uint32_t));
-    assert_true(ret == HAL_OK);
-
-#ifdef ADC_STREAM_SR_TIMER_OC_CHANNEL
-//    ret = HAL_TIM_OC_Start(&adc_stream_htim, ADC_STREAM_SR_TIMER_OC_CHANNEL);
-    ret = HAL_TIM_PWM_Start(&adc_stream_htim, ADC_STREAM_SR_TIMER_OC_CHANNEL);
-#else
-    ret = HAL_TIM_Base_Start(&adc_stream_htim);
-#endif
-    assert_true(ret == HAL_OK);
-    log_debug(&adc_stream.log, "started");
+	HAL_DMA_IRQHandler(&adc_stream_hdma);
 }
 
-/**
- * @brief   stop the stream adc_stream.
- */
-void adc_stream_stop()
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-    adc_stream.buffer = NULL;
-    HAL_ADCEx_MultiModeStop_DMA(&adc_stream_hadc[0]);
-#ifdef ADC_STREAM_SR_TIMER_OC_CHANNEL
-//    HAL_TIM_OC_Stop(&adc_stream_htim, ADC_STREAM_SR_TIMER_OC_CHANNEL);
-    HAL_TIM_PWM_Stop(&adc_stream_htim, ADC_STREAM_SR_TIMER_OC_CHANNEL);
-#else
-    HAL_TIM_Base_Stop(&adc_stream_htim);
-#endif
-    log_debug(&adc_stream.log, "stream adc_stream stopped");
+	static BaseType_t xHigherPriorityTaskWoken;
+    xHigherPriorityTaskWoken = pdFALSE;
+	// transfer complete
+	adc_stream.buffer = adc_stream._buffer + ((adc_stream.length / 2) * adc_stream.channels);
+	xSemaphoreGiveFromISR(adc_stream.ready, &xHigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
-/**
- * @brief   wraps stream_set_samplerate, see stream_common.c for info.
- */
-void adc_stream_set_samplerate(uint32_t samplerate)
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
 {
-    stream_set_samplerate(&adc_stream, ADC_STREAM_SR_TIMER, ADC_SR_TIMER_CLOCK_RATE, samplerate);
-}
-
-/**
- * @brief   wraps stream_get_samplerate, see stream_common.c for info.
- */
-uint32_t adc_stream_get_samplerate()
-{
-    return stream_get_samplerate(&adc_stream);
-}
-
-/**
- * @brief   wraps stream_connect_service, see stream_common.c for info.
- */
-void adc_stream_connect_service(stream_connection_t* interface, uint8_t stream_channel)
-{
-    stream_connect_service(interface, &adc_stream, stream_channel);
+    static BaseType_t xHigherPriorityTaskWoken;
+    xHigherPriorityTaskWoken = pdFALSE;
+	// half transfer complete
+	adc_stream.buffer = adc_stream._buffer;
+	xSemaphoreGiveFromISR(adc_stream.ready, &xHigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
 

@@ -159,10 +159,12 @@ CFLAGS += -I$(DRIVERSDIR)/stream
 else
 ifeq ($(USE_DRIVER_ADC_INTERRUPT_STREAM),1)
 SOURCE += $(DRIVERSDIR)/stream/stream_common.c
+SOURCE += $(DRIVERSDIR)/stream/adc/adc_stream.c
 CFLAGS += -I$(DRIVERSDIR)/stream
 endif
 ifeq ($(USE_DRIVER_ADC_DMA_STREAM),1)
 SOURCE += $(DRIVERSDIR)/stream/stream_common.c
+SOURCE += $(DRIVERSDIR)/stream/adc/adc_stream.c
 CFLAGS += -I$(DRIVERSDIR)/stream
 endif
 endif

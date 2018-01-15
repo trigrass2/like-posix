@@ -142,6 +142,11 @@ void adc_stream_connect_service(stream_connection_t* interface, uint8_t stream_c
 void adc_stream_set_samplerate(uint32_t samplerate);
 uint32_t adc_stream_get_samplerate();
 
+void adc_stream_init_local_io();
+void adc_stream_init_samplerate_timer();
+void _adc_stream_start();
+void _adc_stream_stop();
+
 #endif // ADC_STREAM_H
 
 /**
