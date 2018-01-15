@@ -31,7 +31,7 @@
  */
 
 #include <string.h>
-#include "adc_stream_interrupt.h"
+#include "adc_stream.h"
 
 static uint16_t adc_stream_buffer[ADC_STREAM_CHANNEL_COUNT * ADC_STREAM_BUFFER_LENGTH];
 static stream_connection_t* adc_stream_connections[ADC_STREAM_MAX_CONNECTIONS];
@@ -45,12 +45,12 @@ static ADC_HandleTypeDef adc_stream_hadc =
 		.DataAlign = ADC_STREAM_ALIGNMENT,
 		.ScanConvMode = ENABLE,
 		.EOCSelection = ADC_EOC_SEQ_CONV,
-		.ContinuousConvMode = ENABLE,
+		.ContinuousConvMode = ADC_STREAM_CONTINUOUSCONV,
 		.DMAContinuousRequests = ENABLE,
 		.NbrOfConversion = ADC_STREAM_CHANNEL_COUNT,
 		.DiscontinuousConvMode = DISABLE,
 		.NbrOfDiscConversion = 1,
-		.ExternalTrigConv = ADC_SOFTWARE_START,
+		.ExternalTrigConv = ADC_STREAM_TRIGGER_SOURCE,
 		.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING,
 	},
 	.NbrOfCurrentConversionRank = 0,
@@ -60,14 +60,78 @@ static ADC_HandleTypeDef adc_stream_hadc =
 	.ErrorCode = HAL_ADC_ERROR_NONE,
 };
 
+#if ADC_STREAM_SR_TIMER_UNIT != 0
+static TIM_HandleTypeDef adc_stream_htim = {
+    .Instance = ADC_STREAM_SR_TIMER,
+    .Init = {
+        .Prescaler = 0,
+        .CounterMode = TIM_COUNTERMODE_UP,
+        .Period = 0,
+        .ClockDivision = TIM_CLOCKDIVISION_DIV1,
+        .RepetitionCounter = 0
+    },
+    .Channel = HAL_TIM_ACTIVE_CHANNEL_CLEARED,
+    .Lock = HAL_UNLOCKED,
+    .State = HAL_TIM_STATE_RESET,
+};
+#endif
+
 static stream_t adc_stream;
 
 static void adc_sampler_init_io();
 static void adc_sampler_init_adc();
-static void adc_stream_hc_handler();
-static void adc_stream_tc_handler();
+static void init_adc_samplerate_timer();
 
 
+
+/**
+ * this driver implements an interrupt driven adc data server (implements a stream server interface).
+ *
+ * usage:
+ *
+ *  // implement adc_stream_config.h (use template adc_stream_config.h.in) to configure the server
+ *  // then call the following functions to set up...
+ *
+ *	// start stream server
+ *	adc_stream_init();
+ *	adc_stream_start();
+ *	adc_stream_set_samplerate(2000);
+ *
+ *	// start stream client (up to ADC_STREAM_MAX_CONNECTIONS clients may be added)
+ *	stream_connection_t adc_stream_conn;
+ *	stream_connection_init(&adc_stream_conn, adc_stream_callback, "adc process", "some app context data");
+ *	adc_stream_connect_service(&adc_stream_conn, 0);
+ *
+ *  // start/stop clients
+ *	stream_connection_enable(&adc_stream_conn, true);
+ *
+ *	// start/ stop the whole stream
+ *	adc_stream_stop();
+ *
+ *	the function adc_stream_callback() receives buffered data as it is received.
+ *  - the data in the buffer reads like this:
+ *    {ADC1.ChannelN.Sample0, ADC1.ChannelM.Sample0, ... , ADC1.ChannelN.Sample1, ADC1.ChannelM.Sample1, ... }
+ *    for all channels, and the number of samples specified in adc_stream_config.h.
+ *  - employs a split circular buffer, half of it is presented to adc_stream_callback() at a time
+ *  - the number of samples received at a time is (ADC_STREAM_BUFFER_LENGTH/ADC_STREAM_CHANNEL_COUNT)/2
+ *  - the amount of memory used by the buffer in total is ADC_STREAM_BUFFER_LENGTH * ADC_STREAM_CHANNEL_COUNT * sizeof(uint16_t)
+ *  - the stream server api in stream.h may be used
+ *
+ *  // example adc_stream_callback()
+ *  // prints all samples
+ *  // use unsigned_stream_type_t or signed_stream_type_t as needed.
+ *  void adc_stream_callback(unsigned_stream_type_t* buffer, uint16_t length, uint8_t channels, stream_connection_t* conn)
+ *  {
+ *  	uint32_t sample;
+ *  	uint32_t channel;
+ *
+ *     	for (sample = 0; sample < length; sample += channels) {
+ *     		for (channel = 0; channel < channels; channel++) {
+ *     			prinf("sample %d channel %d value %d\n", sample, channel, buffer[sample + channel]);
+ *  		}
+ *     	}
+ *  }
+ */
 void adc_stream_init()
 {
     uint32_t resolution = ADC_STREAM_ALIGNMENT == ADC_DATAALIGN_LEFT ? 65536 : 4096;
@@ -79,6 +143,7 @@ void adc_stream_init()
 
     adc_sampler_init_io();
     adc_sampler_init_adc();
+    init_adc_samplerate_timer();
 }
 
 stream_t* get_adc_stream()
@@ -95,21 +160,63 @@ void adc_stream_start()
     HAL_StatusTypeDef ret = HAL_ADC_Start_IT(&adc_stream_hadc);
     assert_true(ret == HAL_OK);
 
+#if ADC_STREAM_SR_TIMER_UNIT != 0
+#ifdef ADC_STREAM_SR_TIMER_OC_CHANNEL
+    ret = HAL_TIM_OC_Start(&adc_stream_htim, ADC_STREAM_SR_TIMER_OC_CHANNEL);
+#else
+    ret = HAL_TIM_Base_Start(&adc_stream_htim);
+#endif
+    assert_true(ret == HAL_OK);
+#endif
+
     log_debug(&adc_stream.log, "started");
 }
 
 void adc_stream_stop()
 {
+	HAL_StatusTypeDef ret;
     adc_stream.buffer = NULL;
-    HAL_StatusTypeDef ret = HAL_ADC_Stop_IT(&adc_stream_hadc);
+
+#if ADC_STREAM_SR_TIMER_UNIT != 0
+#ifdef ADC_STREAM_SR_TIMER_OC_CHANNEL
+    ret = HAL_TIM_OC_Stop(&adc_stream_htim, ADC_STREAM_SR_TIMER_OC_CHANNEL);
+#else
+    ret = HAL_TIM_Base_Stop(&adc_stream_htim);
+#endif
+    assert_true(ret == HAL_OK);
+#endif
+
+    ret = HAL_ADC_Stop_IT(&adc_stream_hadc);
     assert_true(ret == HAL_OK);
     log_debug(&adc_stream.log, "stream adc_stream stopped");
+}
+
+void adc_stream_set_samplerate(uint32_t samplerate)
+{
+#if ADC_STREAM_SR_TIMER_UNIT == 0
+	(void)samplerate;
+#else
+	stream_set_samplerate(&adc_stream, ADC_STREAM_SR_TIMER, ADC_SR_TIMER_CLOCK_RATE, samplerate);
+#endif
+}
+
+uint32_t adc_stream_get_samplerate()
+{
+#if ADC_STREAM_SR_TIMER_UNIT == 0
+	return 0;
+#else
+    return stream_get_samplerate(&adc_stream);
+#endif
 }
 
 void adc_stream_connect_service(stream_connection_t* interface, uint8_t stream_channel)
 {
     stream_connect_service(interface, &adc_stream, stream_channel);
 }
+
+
+
+
 
 static void adc_sampler_init_io()
 {
@@ -151,6 +258,42 @@ static void adc_sampler_init_adc()
 
     HAL_NVIC_EnableIRQ(ADC_IRQn);
     HAL_NVIC_SetPriority(ADC_IRQn, 4, 0);
+}
+
+static void init_adc_samplerate_timer()
+{
+#if ADC_STREAM_SR_TIMER_UNIT != 0
+    ADC_STREAM_SR_TIMER_CLOCK();
+
+    adc_stream_htim.Init.Prescaler = ADC_SR_TIMER_PRESCALER-1;
+    adc_stream_htim.Init.Period = (ADC_SR_TIMER_CLOCK_RATE / ADC_STREAM_DEFAULT_SAMPLERATE) - 1;
+
+#ifdef ADC_STREAM_SR_TIMER_OC_CHANNEL
+    HAL_StatusTypeDef ret = HAL_TIM_OC_Init(&adc_stream_htim);
+	assert_true(ret == HAL_OK);
+	TIM_OC_InitTypeDef sConfig;
+    sConfig.OCMode = TIM_OCMODE_ACTIVE,
+    sConfig.Pulse = 0;
+    sConfig.OCPolarity = TIM_OCPOLARITY_HIGH;
+    sConfig.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+    sConfig.OCFastMode = TIM_OCFAST_ENABLE;
+    sConfig.OCIdleState = TIM_OCIDLESTATE_SET;
+    sConfig.OCNIdleState = TIM_OCNIDLESTATE_SET;
+    ret = HAL_TIM_OC_ConfigChannel(&adc_stream_htim, &sConfig, ADC_STREAM_SR_TIMER_OC_CHANNEL);
+	assert_true(ret == HAL_OK);
+#else
+	HAL_StatusTypeDef ret = HAL_TIM_Base_Init(&adc_stream_htim);
+	assert_true(ret == HAL_OK);
+#endif
+
+    TIM_MasterConfigTypeDef sMasterConfig;
+    sMasterConfig.MasterOutputTrigger = ADC_STREAM_SR_TIMER_TRIGGER_OUT;
+    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    ret = HAL_TIMEx_MasterConfigSynchronization(&adc_stream_htim, &sMasterConfig);
+	assert_true(ret == HAL_OK);
+
+    adc_stream_set_samplerate(ADC_STREAM_DEFAULT_SAMPLERATE);
+#endif
 }
 
 void ADC_IRQHandler()

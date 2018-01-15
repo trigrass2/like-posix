@@ -80,62 +80,67 @@
 #define ADC_STREAM_DMA_CLOCK_ENABLE			__HAL_RCC_DMA1_CLK_ENABLE
 #define ADC_STREAM_DMA_INST             	DMA1_Channel1
 #define ADC_STREAM_DMA_IRQ_CHANNEL         DMA1_Channel1_IRQn
+#define ADC_STREAM_DMA_IRQ_HANDLER         DMA1_IRQHandler
 #elif FAMILY == STM32F4
 #define ADC_STREAM_DMA_CLOCK_ENABLE			__HAL_RCC_DMA2_CLK_ENABLE
 #define ADC_STREAM_DMA_INST              	DMA2_Stream0
 #define ADC_STREAM_DMA_STREAM_CHANNEL      DMA_CHANNEL_0
 #define ADC_STREAM_DMA_IRQ_CHANNEL         DMA2_Stream0_IRQn
+#define ADC_STREAM_DMA_IRQ_HANDLER         DMA2_Stream0_IRQHandler
 #endif
 
 /**
  * ADC clock is 12MHz @ 72MHzAPB2 clock / 6
  */
-#define ADC_STREAM_ADC_CLOCK_DIV           ADC_CLOCK_SYNC_PCLK_DIV6
+#define ADC_STREAM_ADC_CLOCK_DIV           ADC_CLOCK_SYNC_PCLK_DIV6 // todo check ratio for f1 and f4, old f4 version was at /2
 
 /**
  * ADC sample rate setting: max would be 12M/28.5=421.052kHz
  */
-#if FAMILY == STM32F1
-#define ADC_STREAM_ADC_CONVERSION_CYCLES   ADC_SAMPLETIME_28CYCLES
-#elif FAMILY == STM32F4
+#ifndef ADC_STREAM_ADC_CONVERSION_CYCLES
 #define ADC_STREAM_ADC_CONVERSION_CYCLES   ADC_SAMPLETIME_28CYCLES
 #endif
+
+
 /**
  * ADC_STREAM_TRIGGER_SOURCE must be set up to match @ref ADC_STREAM_SR_TIMER selection.
  * can be ADC_ExternalTrigConv_T4_CC4, ADC_ExternalTrigConv_T2_CC2 or ADC_ExternalTrigConv_T3_TRGO
  */
-#if ADC_STREAM_SR_TIMER_UNIT == 2
+#if ADC_STREAM_SR_TIMER_UNIT == 0
+#define ADC_STREAM_TRIGGER_SOURCE          ADC_SOFTWARE_START
+#define ADC_STREAM_CONTINUOUSCONV          ENABLE
+#elif ADC_STREAM_SR_TIMER_UNIT == 2
 #if FAMILY == STM32F1
 #define ADC_STREAM_TRIGGER_SOURCE          ADC_EXTERNALTRIGCONV_T2_CC2
 #elif FAMILY == STM32F4
 #define ADC_STREAM_TRIGGER_SOURCE          ADC_EXTERNALTRIGCONV_T2_TRGO
 #endif
+#define ADC_STREAM_CONTINUOUSCONV          DISABLE
 #elif ADC_STREAM_SR_TIMER_UNIT == 3
 #define ADC_STREAM_TRIGGER_SOURCE          ADC_EXTERNALTRIGCONV_T3_TRGO
+#define ADC_STREAM_CONTINUOUSCONV          DISABLE
 #elif ADC_STREAM_SR_TIMER_UNIT == 4
 #define ADC_STREAM_TRIGGER_SOURCE          ADC_EXTERNALTRIGCONV_T4_CC4
+#define ADC_STREAM_CONTINUOUSCONV          DISABLE
 #endif
 
 #define ADC_STREAM_MASTER_ADC              ADC1
+#define ADC_STREAM_MASTER_ADC_CLOCK_ENABLE __HAL_RCC_ADC1_CLK_ENABLE
 #define ADC_STREAM_SLAVE_ADC               ADC2
+#define ADC_STREAM_SLAVE_ADC_CLOCK_ENABLE __HAL_RCC_ADC2_CLK_ENABLE
 #define ADC_STREAM_UNIQUE_ADCS             2
 
 
 #include "stream_defs.h"
 
+
 stream_t* get_adc_stream();
 void adc_stream_init();
 void adc_stream_start();
 void adc_stream_stop();
+void adc_stream_connect_service(stream_connection_t* interface, uint8_t stream_channel);
 void adc_stream_set_samplerate(uint32_t samplerate);
 uint32_t adc_stream_get_samplerate();
-void adc_stream_connect_service(stream_connection_t* interface, uint8_t stream_channel);
-
-
-void init_adc_samplerate_timer();
-void init_local_adc();
-void init_local_adc_dma();
-void init_local_adc_io();
 
 #endif // ADC_STREAM_H
 
