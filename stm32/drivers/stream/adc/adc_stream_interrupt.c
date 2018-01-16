@@ -40,20 +40,24 @@ static ADC_HandleTypeDef adc_stream_hadc =
 {
 	.Instance = ADC_STREAM_MASTER_ADC,
 	.Init = {
+#if FAMILY == STM32F4
 		.ClockPrescaler = ADC_STREAM_ADC_CLOCK_DIV,
 		.Resolution = ADC_RESOLUTION_12B,
-		.DataAlign = ADC_STREAM_ALIGNMENT,
-		.ScanConvMode = ENABLE,
 		.EOCSelection = ADC_EOC_SEQ_CONV,
-		.ContinuousConvMode = ADC_STREAM_CONTINUOUSCONV,
 		.DMAContinuousRequests = ENABLE,
+		.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING,
+#endif
+		.DataAlign = ADC_STREAM_ALIGNMENT,
+		.ScanConvMode = ADC_STREAM_SCANCONVMODE,
+		.ContinuousConvMode = ADC_STREAM_CONTINUOUSCONV,
 		.NbrOfConversion = ADC_STREAM_CHANNEL_COUNT,
 		.DiscontinuousConvMode = DISABLE,
 		.NbrOfDiscConversion = 1,
 		.ExternalTrigConv = ADC_STREAM_TRIGGER_SOURCE,
-		.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING,
 	},
+#if FAMILY == STM32F4
 	.NbrOfCurrentConversionRank = 0,
+#endif
 	.DMA_Handle = NULL,
 	.Lock = HAL_UNLOCKED,
 	.State = HAL_ADC_STATE_RESET,
@@ -142,9 +146,9 @@ void adc_stream_start()
 
 void adc_stream_stop()
 {
+    _adc_stream_stop();
 	HAL_StatusTypeDef ret = HAL_ADC_Stop_IT(&adc_stream_hadc);
     assert_true(ret == HAL_OK);
-    _adc_stream_stop();
 }
 
 
@@ -171,11 +175,11 @@ static void adc_sampler_init_adc()
 		assert_true(ret == HAL_OK);
 	}
 
-    HAL_NVIC_EnableIRQ(ADC_IRQn);
-    HAL_NVIC_SetPriority(ADC_IRQn, 4, 0);
+    HAL_NVIC_EnableIRQ(ADC_STREAM_MASTER_ADC_IRQn);
+    HAL_NVIC_SetPriority(ADC_STREAM_MASTER_ADC_IRQn, 4, 0);
 }
 
-void ADC_IRQHandler()
+void ADC_STREAM_MASTER_ADC_IRQ_HANDLER()
 {
 	HAL_ADC_IRQHandler(&adc_stream_hadc);
 }
@@ -184,18 +188,19 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* adc_stream_hadc)
 {
     static BaseType_t xHigherPriorityTaskWoken;
 	static uint32_t i = 0;
-	static uint32_t total_length = ADC_STREAM_CHANNEL_COUNT * ADC_STREAM_BUFFER_LENGTH;
 
 	adc_stream_buffer[i] = adc_stream_hadc->Instance->DR;
 	i++;
-	if(i == total_length / 2) {
+
+#if USE_FREERTOS
+	if(i == (ADC_STREAM_CHANNEL_COUNT * ADC_STREAM_BUFFER_LENGTH) / 2) {
 	    // half transfer complete
 	    xHigherPriorityTaskWoken = pdFALSE;
 		adc_stream.buffer = adc_stream._buffer;
 		xSemaphoreGiveFromISR(adc_stream.ready, &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 	}
-	else if(i == total_length) {
+	else if(i == ADC_STREAM_CHANNEL_COUNT * ADC_STREAM_BUFFER_LENGTH) {
 		i = 0;
 	    // transfer complete
 	    xHigherPriorityTaskWoken = pdFALSE;
@@ -203,6 +208,17 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* adc_stream_hadc)
 		xSemaphoreGiveFromISR(adc_stream.ready, &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 	}
+#else
+	if(i == (ADC_STREAM_CHANNEL_COUNT * ADC_STREAM_BUFFER_LENGTH) / 2) {
+	    // half transfer complete
+		assert_true(0);
+	}
+	else if(i == ADC_STREAM_CHANNEL_COUNT * ADC_STREAM_BUFFER_LENGTH) {
+		i = 0;
+	    // transfer complete
+		assert_true(0);
+	}
+#endif
 }
 
 /**

@@ -62,8 +62,9 @@
 
 /**
  * default sample cycles count. use to control samplerate if ADC_STREAM_SR_TIMER_UNIT is set to 0.
+ * hint: for stm32f1 add _5 to ADC_SAMPLETIME_xxCYCLES eg ADC_SAMPLETIME_xxCYCLES_5
  */
-#define ADC_STREAM_ADC_CONVERSION_CYCLES   ADC_SAMPLETIME_28CYCLES
+//#define ADC_STREAM_ADC_CONVERSION_CYCLES   ADC_SAMPLETIME_28CYCLES
 
 /**
  * channels to use on the master ADC (ADC1).

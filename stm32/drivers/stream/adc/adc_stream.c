@@ -59,7 +59,11 @@ void adc_stream_set_samplerate(uint32_t samplerate)
 #if ADC_STREAM_SR_TIMER_UNIT == 0
 	(void)samplerate;
 #else
-	stream_set_samplerate(&adc_stream, ADC_STREAM_SR_TIMER, ADC_SR_TIMER_CLOCK_RATE, samplerate);
+	uint32_t clock = ADC_SR_TIMER_CLOCK_RATE;
+#ifdef ADC_STREAM_SR_TIMER_OC_CHANNEL
+	clock /= 2; // we use TIM_OCMODE_TOGGLE so got to halve the effective value
+#endif
+	stream_set_samplerate(&adc_stream, ADC_STREAM_SR_TIMER, clock, samplerate);
 #endif
 }
 
@@ -106,7 +110,7 @@ void adc_stream_init_samplerate_timer()
     HAL_StatusTypeDef ret = HAL_TIM_OC_Init(&adc_stream_htim);
 	assert_true(ret == HAL_OK);
 	TIM_OC_InitTypeDef sConfig;
-    sConfig.OCMode = TIM_OCMODE_ACTIVE,
+    sConfig.OCMode = TIM_OCMODE_TOGGLE,
     sConfig.Pulse = 0;
     sConfig.OCPolarity = TIM_OCPOLARITY_HIGH;
     sConfig.OCNPolarity = TIM_OCNPOLARITY_HIGH;
