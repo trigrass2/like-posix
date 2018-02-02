@@ -1,5 +1,5 @@
 
-#include "font_type.h"
+#include "font.h"
 
 #ifndef FONTAWESOME_20_H_
 #define FONTAWESOME_20_H_

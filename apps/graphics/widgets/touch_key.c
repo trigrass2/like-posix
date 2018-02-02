@@ -88,7 +88,7 @@ touch_key_enable(&key, true);
 
 \endcode
  */
-void touch_key_init(touch_key_t* key, point_t location, point_t size, char* buffer, uint16_t radius)
+void touch_key_init(touch_key_t* key, point_t location, point_t size, const char* buffer, uint16_t radius)
 {
     text_init(&key->text, size, buffer, radius);
     text_set_filled(&key->text, true);

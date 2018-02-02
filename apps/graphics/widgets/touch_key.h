@@ -51,7 +51,7 @@ typedef struct {
 // define to enable debug
 // #define DEBUG_TOUCH_KEY_PRINTF
 
-void touch_key_init(touch_key_t* key, point_t location, point_t size, char* buffer, uint16_t radius);
+void touch_key_init(touch_key_t* key, point_t location, point_t size, const char* buffer, uint16_t radius);
 bool touch_key_add(touch_key_t* key, touch_callback_t callback, void* appdata);
 void touch_key_enable(touch_key_t* key, bool enable);
 

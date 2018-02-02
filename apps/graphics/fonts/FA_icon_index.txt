@@ -3,7 +3,7 @@
 2 home
 3 trash
 4 lock
-6 unlock
+5 unlock
 6 cross
 7 circle-plus
 8 refresh

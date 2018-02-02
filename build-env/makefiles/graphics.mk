@@ -21,6 +21,12 @@ SOURCE += $(GRAPHICSDIR)/shape.c
 
 SOURCE += $(GRAPHICSDIR)/images/images.c
 
+SOURCE += $(GRAPHICSDIR)/fonts/FontAwesome_16_Inverted.c
+SOURCE += $(GRAPHICSDIR)/fonts/FontAwesome_20_Inverted.c
+SOURCE += $(GRAPHICSDIR)/fonts/FontAwesome_24_Inverted.c
+SOURCE += $(GRAPHICSDIR)/fonts/FontAwesome_32_Inverted.c
+SOURCE += $(GRAPHICSDIR)/fonts/FontAwesome_48_Inverted.c
+SOURCE += $(GRAPHICSDIR)/fonts/FontAwesome_64_Inverted.c
 SOURCE += $(GRAPHICSDIR)/fonts/Ubuntu_16.c
 SOURCE += $(GRAPHICSDIR)/fonts/Ubuntu_20.c
 SOURCE += $(GRAPHICSDIR)/fonts/Ubuntu_24.c
