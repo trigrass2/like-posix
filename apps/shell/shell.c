@@ -183,6 +183,66 @@ static void shell_end(shell_instance_t* shell_inst, char code);
 
 
 /**
+ * starts a shell, blocking till the shell terminates.
+ *
+ * @param   shell is a pointer to a shell server structure, its contents will be fully initialized.
+ * @param   commandset is a pointer to a presumably pre initialized command set. this would have been obtained
+ *              from another pre-existing shell, or from a shell that has had register_command() called on it previously.
+ *              if set to NULL, the shell command set is not modified.
+ * @param   exit_on_eof causes the shell to exit when the read system call returns 0 (on EOF).
+ * @param   rdfd - is a file descriptor for reading.
+ * @param   wrfd - is a file descriptor for writing.
+ * @retval  returns -1 on error.
+ */
+int start_shell_blocking_instance(shellserver_t* shell, shell_cmd_t* commandset, bool exit_on_eof, int rdfd, int wrfd)
+{
+    if(commandset) {
+    	shell->head_cmd = commandset;
+    }
+
+    shell->rdfd = rdfd;
+    shell->wrfd = wrfd;
+    shell->exit_on_eof = exit_on_eof;
+
+    shell_instance(shell, NULL);
+    return 0;
+}
+
+/**
+ * starts a single shell in a thread. the thread is deleted when the shell terminates.
+ *
+ * @param   shell is a pointer to a shell server structure, its contents will be fully initialized.
+ * @param   commandset is a pointer to a presumably pre initialized command set. this would have been obtained
+ *              from another pre-existing shell, or from a shell that has had register_command() called on it previously.
+ *              if set to NULL, the shell command set is not modified.
+ * @param   exit_on_eof causes the shell to exit when the read system call returns 0 (on EOF).
+ * @param   rdfd - is a file descriptor for reading.
+ * @param   wrfd - is a file descriptor for writing.
+ * @param   stack_size - the size of the shell task stack in words. set to 0 to use the default SHELL_TASK_STACK_SIZE.
+ * @retval  returns -1 on error.
+ */
+int start_shell_threaded_instance(shellserver_t* shell, shell_cmd_t* commandset, bool exit_on_eof, int rdfd, int wrfd, int stack_size)
+{
+#if USE_FREERTOS
+    if(commandset) {
+    	shell->head_cmd = commandset;
+    }
+
+    uint32_t _stacksize = stack_size ? stack_size : SHELL_TASK_STACK_SIZE;
+    shell->rdfd = rdfd;
+    shell->wrfd = wrfd;
+    shell->exit_on_eof = exit_on_eof;
+
+	if(xTaskCreate((TaskFunction_t)threaded_instance, "shell", _stacksize, shell, SHELL_TASK_PRIORITY, NULL) == pdPASS) {
+		return 0;
+	}
+#else
+	assert_true(0);
+#endif
+    return -1;
+}
+
+/**
  * starts a shell server, or single shell instance.
  *
  * @param   shell is a pointer to a shell server structure, its contents will be fully initialized.
@@ -191,18 +251,15 @@ static void shell_end(shell_instance_t* shell_inst, char code);
  *              if set to NULL, the shell command set is not modified.
  * @param   configfile is a filepath to a configuration file. it must contain port and conns settings.
  * 			if specified, a threaded server is started.
- * @param   threaded enables threaded server or threaded instance operation when set to true.
- * 				when set to false, runs a blocking shell (blocks till exit).
- * 			threaded instance operation is enabled by specifying rdfd and wrfd != -1.
  * @param   exit_on_eof causes the shell to exit when the read system call returns 0 (on EOF).
  * @param   rdfd - is a file descriptor for reading.
  * @param   wrfd - is a file descriptor for writing.
  * @param   stack_size - the size of the shell task stack in words. set to 0 to use the default SHELL_TASK_STACK_SIZE.
- * @retval  returns -1 on error. when running threaded server, returns the server file descriptor.
- * 				when running a threaded instance, returns the task handle.
+ * @retval  returns -1 on error. returns the server file descriptor on success.
  */
-int start_shell(shellserver_t* shell, shell_cmd_t* commandset, const char* configfile, bool threaded, bool exit_on_eof, int rdfd, int wrfd, int stack_size)
+int start_shell_threaded_server(shellserver_t* shell, shell_cmd_t* commandset, const char* configfile, bool exit_on_eof, int rdfd, int wrfd, int stack_size)
 {
+#if INCLUDE_REMOTE_SHELL_SUPPORT
     if(commandset) {
     	shell->head_cmd = commandset;
     }
@@ -218,24 +275,12 @@ int start_shell(shellserver_t* shell, shell_cmd_t* commandset, const char* confi
 
     get_server_configuration(configfile, &shell->server);
 
-    if(threaded) {
-    	if(rdfd == -1 && wrfd == -1) {
-#if INCLUDE_REMOTE_SHELL_SUPPORT
-			return start_threaded_server(&shell->server, shell_server_thread, shell);
+	if(rdfd == -1 && wrfd == -1) {
+		return start_threaded_server(&shell->server, shell_server_thread, shell);
+	}
+#else
+	assert_true(0);
 #endif
-		}
-		else {
-			if(xTaskCreate((TaskFunction_t)threaded_instance, shell->server.name, shell->server.stacksize, shell, shell->server.prio, NULL) == pdPASS) {
-				return 0;
-			}
-			log_error(&shell->server.log, "failed to start shell thread");
-		}
-    }
-    else
-    {
-    	shell_instance(shell, NULL);
-    	return 0;
-    }
     return -1;
 }
 

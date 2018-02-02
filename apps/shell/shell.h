@@ -83,7 +83,10 @@ typedef struct {
 typedef struct _shell_t shell_t;
 
 
-int start_shell(shellserver_t* shell, shell_cmd_t* commandset, const char* configfile, bool threaded, bool exit_on_eof, int rdfd, int wrfd, int stack_size);
+//int start_shell(shellserver_t* shell, shell_cmd_t* commandset, const char* configfile, bool threaded, bool exit_on_eof, int rdfd, int wrfd, int stack_size);
+int start_shell_blocking_instance(shellserver_t* shell, shell_cmd_t* commandset, bool exit_on_eof, int rdfd, int wrfd);
+int start_shell_threaded_instance(shellserver_t* shell, shell_cmd_t* commandset, bool exit_on_eof, int rdfd, int wrfd, int stack_size);
+int start_shell_threaded_server(shellserver_t* shell, shell_cmd_t* commandset, const char* configfile, bool exit_on_eof, int rdfd, int wrfd, int stack_size);
 shell_cmd_t* register_command(shellserver_t* shell, shell_cmd_t* cmd, shell_cmd_func_t cmdfunc, const char* name, const char* usage);
 extern int _system(const char* inputstr);
 

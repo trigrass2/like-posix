@@ -103,7 +103,7 @@ void startup_script_runner(shellserver_t* shell, shell_cmd_t* commandset, const 
 
 				if(rdfd != -1)
 				{
-					start_shell(shell, commandset, NULL, false, true, rdfd, wrfd, 256);
+					start_shell_blocking_instance(shell, commandset, true, rdfd, wrfd);
 					close(rdfd);
 				}
 
