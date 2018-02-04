@@ -53,6 +53,7 @@ typedef struct {
 
 void touch_key_init(touch_key_t* key, point_t location, point_t size, const char* buffer, uint16_t radius);
 bool touch_key_add(touch_key_t* key, touch_callback_t callback, void* appdata);
+void touch_key_remove(touch_key_t* key);
 void touch_key_enable(touch_key_t* key, bool enable);
 
 void touch_key_redraw(touch_key_t* key);
@@ -75,5 +76,6 @@ void touch_key_set_colour(touch_key_t* key, colour_t border, colour_t background
 void touch_key_set_callback(touch_key_t* key, touch_callback_t callback);
 void touch_key_set_appdata(touch_key_t* key, void* appdata);
 void* touch_key_get_appdata(touch_key_t* key);
+point_t touch_key_get_point(touch_key_t* key);
 
 #endif // TOUCH_KEY_H_

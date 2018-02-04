@@ -93,8 +93,14 @@
 
 #endif
 
+static float _mx = 1;
+static float _cx = 0;
+static float _my = 1;
+static float _cy = 0;
+
 TSC2046_t tsc2046_init()
 {
+
 #if TSC2046_POLLED_SPI
 	TSC2046_t tsc2046 = spi_create_polled(TSC2046_SPI_PERIPH, true, SPI_FIRSTBIT_MSB, SPI_PHASE_1EDGE, SPI_POLARITY_LOW, SPI_DATASIZE_8BIT, TSC2046_SPI_BAUDRATE);
 #else
@@ -110,6 +116,14 @@ TSC2046_t tsc2046_init()
     HAL_GPIO_Init(TSC2046_NIRQ_PORT, &GPIO_InitStructure);
 
     return tsc2046;
+}
+
+void tsc2046_cal(float mx, float cx, float my, float cy)
+{
+	_mx = mx;
+	_cx = cx;
+	_my = my;
+	_cy = cy;
 }
 
 
@@ -146,9 +160,9 @@ void tsc2046_read(TSC2046_t tsc2046, int16_t* x, int16_t* y)
     spi_set_ss(tsc2046);
 
     if(x) {
-    	*x = _x;
+    	*x = (_mx * _x) + _cx;
     }
     if(y) {
-    	*y = _y;
+    	*y = (_my * _y) + _cy;
     }
 }

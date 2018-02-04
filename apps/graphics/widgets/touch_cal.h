@@ -26,31 +26,29 @@
  *
  * This file is part of the like-posix project, <https://github.com/drmetal/like-posix>
  *
- * based heavily on the code by Zizzle at: https://github.com/Zizzle/stm32_freertos_example/tree/master/drivers
- *
  * Author: Michael Stuart <spaceorbot@gmail.com>
  *
  */
-#include <stdbool.h>
-#include "tsc2046_config.h"
-#include "spi.h"
-#include "board_config.h"
 
-#ifndef TSC2046_H_
-#define TSC2046_H_
+#include <string.h>
+#include "graphics.h"
+#include "text.h"
+#include "touch_key.h"
 
-#define TSC2046_POLLED_SPI 0 // set to 1 for polled SPI, 0 for interrupt driven SPI
-typedef SPI_HANDLE_t TSC2046_t;
+#ifndef TOUCH_CAL_H_
+#define TOUCH_CAL_H_
 
-/**
- * http://e2e.ti.com/support/other_analog/touch/f/750/t/177249.aspx
- * ignore busy signal, is redundant and not documented in:
- * http://www.ti.com/lit/ds/symlink/tsc2046.pdf
- */
+typedef struct {
+	bool done;
+	point_t point_a;
+	point_t point_b;
+    touch_key_t touch_keyok;
+    touch_key_t touch_key_a;
+    touch_key_t touch_key_b;
+} touch_cal_t;
 
-TSC2046_t tsc2046_init();
-void tsc2046_cal(float mx, float cx, float my, float cy);
-void tsc2046_read(TSC2046_t tsc2046, int16_t* x, int16_t* y);
-bool tsc2046_ready();
+void touch_cal_start(touch_cal_t* tc);
+void save_cal(const char* file, float mx, float cx, float my, float cy);
+void load_cal(const char* file);
 
-#endif // TSC2046_H_
+#endif // TOUCH_CAL_H_

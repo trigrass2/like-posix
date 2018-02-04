@@ -6,8 +6,8 @@ release: all
 small: OPT = s
 small: all
 
-debug: CFLAGS += -g
-debug: OPT ?= 0
+debug: CFLAGS += -g3
+debug: OPT = 0
 debug: all
 
 SHELL = /bin/bash
@@ -117,6 +117,7 @@ USE_SHELL ?= 0
 ## graphics module from the graphics project
 # set to 1 to enable, set to 0 to disable
 USE_GRAPHICS ?= 0
+USE_GRAPHIC_WIDGET_TOUCH_CAL ?= 0
 USE_GRAPHIC_WIDGET_TOUCH_KEY ?= 0
 USE_GRAPHIC_WIDGET_PANEL_METER ?= 0
 USE_GRAPHIC_WIDGET_STATUSBAR ?= 0

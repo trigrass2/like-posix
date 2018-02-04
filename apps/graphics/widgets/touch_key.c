@@ -109,7 +109,18 @@ bool touch_key_add(touch_key_t* key, touch_callback_t callback, void* appdata)
     key->handler.backend_key_callback = touch_key_on_key_stroke;
     key->handler.pressed = false;
 	touch_panel_handler_init(&key->handler, &key->location, &key->text.shape.size, key);
-	return touch_panel_add_handler(&key->handler);
+	assert_true(touch_panel_add_handler(&key->handler));
+	return true;
+}
+
+/**
+ * removes the key from the touch panel handlers group.
+ * disables touch events on the key.
+ */
+void touch_key_remove(touch_key_t* key)
+{
+	touch_key_enable(key, false);
+	touch_panel_remove_handler(&key->handler);
 }
 
 /**
@@ -205,6 +216,11 @@ void touch_key_set_appdata(touch_key_t* key, void* appdata)
 void* touch_key_get_appdata(touch_key_t* key)
 {
 	return key->handler.appdata;
+}
+
+point_t touch_key_get_point(touch_key_t* key)
+{
+	return key->handler.touch_point;
 }
 
 text_t* touch_key_get_text(touch_key_t* key)

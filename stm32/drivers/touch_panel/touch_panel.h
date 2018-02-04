@@ -79,6 +79,7 @@ typedef struct _touch_handler_t {
     void* parent;                           ///< point to the parent object - most likely a touch_key_t
 	point_t* location;						///< the location of the key on the display
 	point_t* size;					        ///< the graphical size of the key
+	point_t touch_point;
 	void* appdata;							///< set by the application, is a pointer to application data.
 	touch_callback_t key_callback;			///< set by application to be run on key press
 	touch_backend_callback_t backend_key_callback;	///< not to be set by application.
@@ -89,6 +90,7 @@ typedef struct _touch_handler_t {
 
 bool touch_panel_init();
 point_t touch_panel_xy();
+void touch_panel_cal(float mx, float cx, float my, float cy);
 
 void touch_panel_handler_init(touch_handler_t* handler, point_t* location, point_t* size, void* parent);
 bool touch_panel_add_handler(touch_handler_t* handler);

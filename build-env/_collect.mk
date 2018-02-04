@@ -162,7 +162,10 @@ ALLSRCBASE = $(notdir $(basename $(SOURCE))) $(notdir $(basename $(ASOURCE)))
 # List of all objects files.
 OBJS = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(ALLSRCBASE)))
 
-all: begin gccversion buildlinkerscript $(OUTPUT_PREFIX).bin log size proj_version end
+all:
+	$(MAKE) begin
+	$(MAKE) $(OUTPUT_PREFIX).bin
+	$(MAKE) end
 	
 # binary file
 $(OUTPUT_PREFIX).bin : $(OUTPUT_PREFIX).elf Makefile
@@ -210,10 +213,11 @@ log : $(OUTPUT_PREFIX).elf
 	$(OBJDUMP) -S $(OUTPUT_PREFIX).elf > $(OUTPUT_PREFIX)_Disassembly.txt
 
 
-begin:
+begin: gccversion
 	@echo -------- begin --------
+	$(MAKE) buildlinkerscript
 
-end:
+end: log size proj_version
 	@echo --------  end  --------
 
 # Display compiler version information.
@@ -221,10 +225,9 @@ gccversion :
 	@$(CC) --version
 
 $(shell mkdir $(OUTDIR) 2>/dev/null)
-
-ELFSIZE = $(SIZE) -B $(OUTPUT_PREFIX).elf
+ 
 size:
-	@if [ -f  $(OUTPUT_PREFIX).elf ]; then echo; echo "Size:"; $(ELFSIZE); echo; fi
+	$(SIZE) -B $(OUTPUT_PREFIX).elf
 	
 proj_version:
 	@echo Project Name: $(PROJECT_NAME) > $(VERSION_FILENAME)

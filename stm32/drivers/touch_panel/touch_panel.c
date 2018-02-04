@@ -89,10 +89,16 @@ bool touch_panel_init()
                         NULL) == pdPASS;
 }
 
+void touch_panel_cal(float mx, float cx, float my, float cy)
+{
+	tsc2046_cal(mx, cx, my, cy);
+}
+
 const char* touch_panel_get_press_type_string(touch_handler_t* handler)
 {
     return key_press_type[handler->press_type];
 }
+
 /**
  * @retval the last touched point - best read from a callback
  * registered with a touch handler.
@@ -270,6 +276,7 @@ void touch_panel_interpreter_task(void *pvParameters)
                         {
                             if(!handler->pressed)
                             {
+                                handler->touch_point = tt_params->_touch_point;
                                 handler->press_type = KEY_DOWN;
                                 handler->backend_key_callback(handler);
                                 handler->pressed = true;
@@ -281,25 +288,38 @@ void touch_panel_interpreter_task(void *pvParameters)
                             }
                             else
                             {
-                                // hold timing
-                                held_at = tt_params->_touch_point;
-                                handler->press_type = KEY_HOLD;
-                                handler->backend_key_callback(handler);
+                            	if (tsc2046_ready()) {
+									// hold timing
+                                    handler->touch_point = tt_params->_touch_point;
+									held_at = tt_params->_touch_point;
+									handler->press_type = KEY_HOLD;
+									handler->backend_key_callback(handler);
 
-                                // tap timing
-                                tt_params->_tap_count += TOUCH_TASK_POLL_RATE;
+									// tap timing
+									tt_params->_tap_count += TOUCH_TASK_POLL_RATE;
 
-                                // long press timing
-                                if(!handler->long_pressed)
-                                {
-                                    tt_params->_long_press_count += TOUCH_TASK_POLL_RATE;
-                                    if(tt_params->_long_press_count >= tt_params->long_press_duration)
-                                    {
-                                        handler->long_pressed = true;
-                                        handler->press_type = KEY_LONG_PRESS;
-                                        handler->backend_key_callback(handler);
-                                    }
-                                }
+									// long press timing
+									if(!handler->long_pressed)
+									{
+										tt_params->_long_press_count += TOUCH_TASK_POLL_RATE;
+										if(tt_params->_long_press_count >= tt_params->long_press_duration)
+										{
+											handler->long_pressed = true;
+											handler->press_type = KEY_LONG_PRESS;
+											handler->backend_key_callback(handler);
+										}
+									}
+                            	}
+                            	else {
+                                    down_count--;
+                                    handler->press_type = KEY_UP;
+                                    handler->backend_key_callback(handler);
+                                    handler->touch_point.x = -1;
+                                    handler->touch_point.y = -1;
+
+                                    handler->long_pressed = false;
+                                    handler->pressed = false;
+                            	}
                             }
                         }
                         else if(handler->pressed)
@@ -340,6 +360,8 @@ void touch_panel_interpreter_task(void *pvParameters)
                             handler->press_type = KEY_UP;
                             handler->backend_key_callback(handler);
 
+                            handler->touch_point.x = -1;
+                            handler->touch_point.y = -1;
                             handler->long_pressed = false;
                             handler->pressed = false;
 
