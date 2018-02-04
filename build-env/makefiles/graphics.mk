@@ -21,6 +21,12 @@ SOURCE += $(GRAPHICSDIR)/shape.c
 
 SOURCE += $(GRAPHICSDIR)/images/images.c
 
+SOURCE += $(GRAPHICSDIR)/fonts/FontAwesome_16.c
+SOURCE += $(GRAPHICSDIR)/fonts/FontAwesome_20.c
+SOURCE += $(GRAPHICSDIR)/fonts/FontAwesome_24.c
+SOURCE += $(GRAPHICSDIR)/fonts/FontAwesome_32.c
+SOURCE += $(GRAPHICSDIR)/fonts/FontAwesome_48.c
+SOURCE += $(GRAPHICSDIR)/fonts/FontAwesome_64.c
 SOURCE += $(GRAPHICSDIR)/fonts/FontAwesome_16_Inverted.c
 SOURCE += $(GRAPHICSDIR)/fonts/FontAwesome_20_Inverted.c
 SOURCE += $(GRAPHICSDIR)/fonts/FontAwesome_24_Inverted.c
@@ -41,6 +47,9 @@ SOURCE += $(GRAPHICSDIR)/fonts/Digital_7_Italic_64.c
 SOURCE += $(GRAPHICSDIR)/fonts/Digital_7_Italic_96.c
 SOURCE += $(GRAPHICSDIR)/fonts/Digital_7_Italic_128.c
 
+ifeq ($(USE_GRAPHIC_WIDGET_TOUCH_CAL), 1)
+SOURCE += $(GRAPHICSDIR)/widgets/touch_cal.c
+endif
 ifeq ($(USE_GRAPHIC_WIDGET_TOUCH_KEY), 1)
 SOURCE += $(GRAPHICSDIR)/widgets/touch_key.c
 endif

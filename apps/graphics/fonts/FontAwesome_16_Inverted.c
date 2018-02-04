@@ -231,6 +231,6 @@ static const character_t* FontAwesome_16_characters[] = {
 &FontAwesome_16_char_16, &FontAwesome_16_char_18, &FontAwesome_16_char_20, &FontAwesome_16_char_35, &FontAwesome_16_char_40, &FontAwesome_16_char_41, &FontAwesome_16_char_42, &FontAwesome_16_char_43, &FontAwesome_16_char_48, &FontAwesome_16_char_51, &FontAwesome_16_char_60, &FontAwesome_16_char_62, &FontAwesome_16_char_63, &FontAwesome_16_char_74, &FontAwesome_16_char_75, &FontAwesome_16_char_77, &FontAwesome_16_char_80, &FontAwesome_16_char_83, &FontAwesome_16_char_85, &FontAwesome_16_char_87, &FontAwesome_16_char_89, &FontAwesome_16_char_92, &FontAwesome_16_char_106, &FontAwesome_16_char_107, &FontAwesome_16_char_108, &FontAwesome_16_char_109, &FontAwesome_16_char_115, &FontAwesome_16_char_119, &FontAwesome_16_char_120, &FontAwesome_16_char_178, &FontAwesome_16_char_179, &FontAwesome_16_char_188, &FontAwesome_16_char_189, &FontAwesome_16_char_190, &FontAwesome_16_char_208, &FontAwesome_16_char_215, &FontAwesome_16_char_254, 
 };
 
-const font_t FontAwesome_16 = {
+const font_t FontAwesome_16_Inverted = {
     .size=16, .bold=0, .italic=0, .stretchH=100, .smooth=1, .aa=1, .outline=0, .characters=FontAwesome_16_characters, .base_id=16, .count=37, 
 };
